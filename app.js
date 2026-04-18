@@ -444,7 +444,7 @@ async function resetForm() {
   artworkPreview2.innerHTML = '🖼';
   artworkFilename.textContent  = '';
   artworkFilename2.textContent = '';
-  document.getElementById('field-id').disabled = false;
+  document.getElementById('field-id').readOnly = false;
   document.getElementById('field-id').value = await nextId();
   document.getElementById('form-title').textContent = 'Lägg till kort';
   form.querySelector('button[type="submit"]').textContent = 'Spara kort';
@@ -473,7 +473,7 @@ async function openEditForm(card) {
   setFieldVal('description', card.description);
   setFieldVal('rarity',      card.rarity);
   setFieldVal('draft_tag',   card.draft_tag);
-  document.getElementById('field-id').disabled = true;
+  document.getElementById('field-id').readOnly = true;
 
   // Keywords
   resetKeywords();
