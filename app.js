@@ -103,6 +103,45 @@ async function nextId() {
   return 'A' + String(max + 1).padStart(5, '0');
 }
 
+// ── Auth ──────────────────────────────────────────────────────────────────────
+const loginScreen = document.getElementById('login-screen');
+const appEl       = document.getElementById('app');
+
+async function initAuth() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) showApp();
+  else         showLogin();
+}
+
+function showApp()   { loginScreen.style.display = 'none';  appEl.style.display = 'block'; }
+function showLogin() { loginScreen.style.display = 'flex';  appEl.style.display = 'none'; }
+
+document.getElementById('btn-login').addEventListener('click', async () => {
+  const email    = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errEl    = document.getElementById('login-error');
+  errEl.style.display = 'none';
+
+  const { error } = await sb.auth.signInWithPassword({ email, password });
+  if (error) {
+    errEl.textContent = 'Fel email eller lösenord.';
+    errEl.style.display = 'block';
+  } else {
+    showApp();
+    showPage('page-overview');
+    renderGrid();
+  }
+});
+
+document.getElementById('login-password').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('btn-login').click();
+});
+
+document.getElementById('btn-logout').addEventListener('click', async () => {
+  await sb.auth.signOut();
+  showLogin();
+});
+
 // ── Navigation ────────────────────────────────────────────────────────────────
 const pages   = document.querySelectorAll('.page');
 const navBtns = document.querySelectorAll('nav button[data-page]');
@@ -968,7 +1007,7 @@ async function seedDocsIfEmpty() {
 const origShowPage = showPage;
 
 // ── Init ──────────────────────────────────────────────────────────────────────
-showPage('page-overview');
+initAuth();
 
 // Lyssna på design-fliken
 document.querySelector('nav button[data-page="page-design"]').addEventListener('click', async () => {
