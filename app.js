@@ -46,7 +46,6 @@ async function saveCard(base, extra, imageFile, imageFile2) {
 
   if (paths.length) {
     base.artwork_path = paths.join(', ');
-    base.artwork_url  = sb.storage.from(BUCKET).getPublicUrl(paths[0]).data.publicUrl;
   }
 
   const { error: cardErr } = await sb.from('cards').insert(base);
