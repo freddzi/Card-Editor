@@ -83,7 +83,7 @@ async function updateCard(id, base, extra, imageFile, imageFile2) {
   const paths = [];
   if (imageFile)  { const p = await uploadImg(imageFile,  imageFile2 ? '_v1' : ''); if (!p) return false; paths.push(p); }
   if (imageFile2) { const p = await uploadImg(imageFile2, '_v2'); if (!p) return false; paths.push(p); }
-  if (paths.length) base.artwork_path = paths.join(', ');
+  base.artwork_path = paths.length ? paths.join(', ') : editingArtworkPath;
 
   const { error: cardErr } = await sb.from('cards').update(base).eq('id', id);
   if (cardErr) { showToast('Fel: ' + cardErr.message); return false; }
@@ -437,6 +437,7 @@ updateTypeSections();
 
 async function resetForm() {
   editingId = null;
+  editingArtworkPath = '';
   form.reset();
   selectedImageFile  = null;
   selectedImageFile2 = null;
@@ -453,6 +454,7 @@ async function resetForm() {
 }
 
 let editingId = null;
+let editingArtworkPath = '';
 
 function setFieldVal(name, val) {
   const el = form.querySelector(`[name="${name}"]`);
@@ -461,6 +463,7 @@ function setFieldVal(name, val) {
 
 async function openEditForm(card) {
   editingId = card.id;
+  editingArtworkPath = card.artwork_path || '';
   await refreshAllCards();
   document.getElementById('form-title').textContent = `Redigera kort — ${card.name}`;
   form.querySelector('button[type="submit"]').textContent = 'Spara ändringar';
