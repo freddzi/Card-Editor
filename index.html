@@ -116,10 +116,13 @@
           </div>
         </div>
         <div class="field-row">
-          <div class="field">
+          <div class="field field-full">
             <label>Keywords</label>
-            <input name="keywords" placeholder="FLYING, FIRST_STRIKE">
+            <div class="keyword-picker" id="keyword-picker"></div>
+            <input type="hidden" name="keywords" id="keywords-hidden">
           </div>
+        </div>
+        <div class="field-row">
           <div class="field">
             <label>Draft Tag</label>
             <input name="draft_tag" placeholder="dark_set_01">
@@ -148,11 +151,23 @@
         <div class="field-row">
           <div class="field">
             <label>Ability ID</label>
-            <input name="ability_id" placeholder="deal_damage">
+            <select name="ability_id">
+              <option value="">— ingen —</option>
+              <option value="deal_damage">deal_damage</option>
+              <option value="draw_card">draw_card</option>
+              <option value="heal">heal</option>
+              <option value="chain">chain</option>
+            </select>
           </div>
           <div class="field">
             <label>Trigger</label>
-            <input name="ability_trigger" placeholder="on_play">
+            <select name="ability_trigger">
+              <option value="">— ingen —</option>
+              <option value="activate">activate</option>
+              <option value="on_play">on_play</option>
+              <option value="on_death">on_death</option>
+              <option value="on_attack">on_attack</option>
+            </select>
           </div>
           <div class="field">
             <label>Cost</label>
@@ -162,7 +177,19 @@
         <div class="field-row">
           <div class="field">
             <label>Target Mode</label>
-            <input name="ability_target_mode" placeholder="enemy_minion">
+            <select name="ability_target_mode">
+              <option value="">— ingen —</option>
+              <option value="any_target">any_target</option>
+              <option value="target_minion">target_minion</option>
+              <option value="enemy_minion">enemy_minion</option>
+              <option value="friendly_minion">friendly_minion</option>
+              <option value="enemy_hero">enemy_hero</option>
+              <option value="friendly_hero">friendly_hero</option>
+              <option value="enemy_player">enemy_player</option>
+              <option value="friendly_player">friendly_player</option>
+              <option value="self">self</option>
+              <option value="source">source</option>
+            </select>
           </div>
           <div class="field">
             <label>Targeting Mode</label>
@@ -191,7 +218,13 @@
         <div class="field-row">
           <div class="field">
             <label>Effect ID</label>
-            <input name="effect_id" placeholder="deal_damage">
+            <select name="effect_id">
+              <option value="">— ingen —</option>
+              <option value="deal_damage">deal_damage</option>
+              <option value="draw_card">draw_card</option>
+              <option value="heal">heal</option>
+              <option value="chain">chain</option>
+            </select>
           </div>
           <div class="field">
             <label>Effect Value</label>
@@ -205,7 +238,19 @@
         <div class="field-row">
           <div class="field">
             <label>Target Mode</label>
-            <input name="target_mode" placeholder="enemy_minion">
+            <select name="target_mode">
+              <option value="">— ingen —</option>
+              <option value="any_target">any_target</option>
+              <option value="target_minion">target_minion</option>
+              <option value="enemy_minion">enemy_minion</option>
+              <option value="friendly_minion">friendly_minion</option>
+              <option value="enemy_hero">enemy_hero</option>
+              <option value="friendly_hero">friendly_hero</option>
+              <option value="enemy_player">enemy_player</option>
+              <option value="friendly_player">friendly_player</option>
+              <option value="self">self</option>
+              <option value="source">source</option>
+            </select>
           </div>
           <div class="field">
             <label>Targeting Mode</label>
@@ -256,7 +301,13 @@
         <div class="field-row">
           <div class="field">
             <label>Ability ID</label>
-            <input name="s_ability_id" placeholder="">
+            <select name="s_ability_id">
+              <option value="">— ingen —</option>
+              <option value="deal_damage">deal_damage</option>
+              <option value="draw_card">draw_card</option>
+              <option value="heal">heal</option>
+              <option value="chain">chain</option>
+            </select>
           </div>
           <div class="field">
             <label>Cost</label>
@@ -264,7 +315,19 @@
           </div>
           <div class="field">
             <label>Target Mode</label>
-            <input name="s_ability_target_mode" placeholder="">
+            <select name="s_ability_target_mode">
+              <option value="">— ingen —</option>
+              <option value="any_target">any_target</option>
+              <option value="target_minion">target_minion</option>
+              <option value="enemy_minion">enemy_minion</option>
+              <option value="friendly_minion">friendly_minion</option>
+              <option value="enemy_hero">enemy_hero</option>
+              <option value="friendly_hero">friendly_hero</option>
+              <option value="enemy_player">enemy_player</option>
+              <option value="friendly_player">friendly_player</option>
+              <option value="self">self</option>
+              <option value="source">source</option>
+            </select>
           </div>
         </div>
         <div class="field-row">
@@ -299,7 +362,13 @@
         <div class="field-row">
           <div class="field">
             <label>Trigger ID</label>
-            <input name="trigger_id" placeholder="">
+            <select name="trigger_id">
+              <option value="">— ingen —</option>
+              <option value="deal_damage">deal_damage</option>
+              <option value="draw_card">draw_card</option>
+              <option value="heal">heal</option>
+              <option value="chain">chain</option>
+            </select>
           </div>
           <div class="field">
             <label>Trigger Value</label>
@@ -307,7 +376,17 @@
           </div>
           <div class="field">
             <label>Trigger Target Mode</label>
-            <input name="trigger_target_mode" value="enemy_hero">
+            <select name="trigger_target_mode">
+              <option value="enemy_hero">enemy_hero</option>
+              <option value="any_target">any_target</option>
+              <option value="target_minion">target_minion</option>
+              <option value="enemy_minion">enemy_minion</option>
+              <option value="friendly_minion">friendly_minion</option>
+              <option value="friendly_hero">friendly_hero</option>
+              <option value="enemy_player">enemy_player</option>
+              <option value="friendly_player">friendly_player</option>
+              <option value="self">self</option>
+            </select>
           </div>
         </div>
       </div>

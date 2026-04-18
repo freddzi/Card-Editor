@@ -177,6 +177,33 @@ btnDelOk.addEventListener('click', async () => {
   if (ok) { showToast('Kort borttaget.'); renderGrid(); }
 });
 
+// ── Keyword picker ────────────────────────────────────────────────────────────
+const ALL_KEYWORDS = [
+  'FLYING','RAPID','RANGE','REACH','FIRST_STRIKE','DOUBLE_STRIKE',
+  'TWINSTRIKE','CANT_ATTACK','PARRY','IRON_SKIN','TOXIC','VAMPIRISM','INSTANT'
+];
+
+const kwPicker = document.getElementById('keyword-picker');
+const kwHidden = document.getElementById('keywords-hidden');
+
+ALL_KEYWORDS.forEach(kw => {
+  const tag = document.createElement('span');
+  tag.className = 'kw-tag';
+  tag.textContent = kw;
+  tag.dataset.kw = kw;
+  tag.addEventListener('click', () => {
+    tag.classList.toggle('active');
+    kwHidden.value = [...kwPicker.querySelectorAll('.kw-tag.active')]
+      .map(t => t.dataset.kw).join(', ');
+  });
+  kwPicker.appendChild(tag);
+});
+
+function resetKeywords() {
+  kwPicker.querySelectorAll('.kw-tag').forEach(t => t.classList.remove('active'));
+  kwHidden.value = '';
+}
+
 // ── Add Card form ─────────────────────────────────────────────────────────────
 const form           = document.getElementById('card-form');
 const typeSelect     = document.getElementById('field-card_type');
@@ -217,6 +244,7 @@ async function resetForm() {
   artworkFilename.textContent = '';
   document.getElementById('field-id').value = await nextId();
   updateTypeSections();
+  resetKeywords();
 }
 
 document.querySelector('nav button[data-page="page-add"]').addEventListener('click', async () => {

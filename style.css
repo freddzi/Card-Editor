@@ -390,6 +390,37 @@ nav button.active { background: var(--surface2); color: var(--gold); font-weight
 .modal p  { color: var(--muted); font-size: 13px; margin-bottom: 20px; }
 .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
 
+/* keyword picker */
+.keyword-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  min-height: 40px;
+}
+
+.kw-tag {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  user-select: none;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.kw-tag.active {
+  background: #2a3a6a;
+  border-color: var(--blue);
+  color: var(--blue);
+}
+
 /* toast */
 .toast {
   position: fixed;
