@@ -195,22 +195,43 @@ async function renderGrid() {
     return;
   }
 
-  // Gruppera per klass
-  const groups = {};
-  CLASS_ORDER.forEach(cl => groups[cl] = []);
-  cards.forEach(c => {
-    const key = CLASS_ORDER.includes(c.card_class) ? c.card_class : 'Neutral';
-    groups[key].push(c);
-  });
+  const TYPE_ORDER = ['minion', 'spell', 'structure'];
 
-  grid.innerHTML = CLASS_ORDER
-    .filter(cl => groups[cl].length > 0)
-    .map(cl => `
-      <div class="class-section" id="class-${cl.replace(/\s/g,'-')}">
-        <div class="class-heading">${cl} <span class="card-count-small">${groups[cl].length}</span></div>
-        <div class="class-grid">${groups[cl].map(cardTileHTML).join('')}</div>
-      </div>`)
-    .join('');
+  function renderSection(label, sectionCards, anchorId) {
+    return `
+      <div class="class-section" id="${anchorId}">
+        <div class="class-heading">${label} <span class="card-count-small">${sectionCards.length}</span></div>
+        <div class="class-grid">${sectionCards.map(cardTileHTML).join('')}</div>
+      </div>`;
+  }
+
+  if (cls) {
+    // Vald klass → gruppera per typ
+    grid.innerHTML = TYPE_ORDER
+      .map(typ => ({ typ, group: cards.filter(c => c.card_type === typ) }))
+      .filter(({ group }) => group.length > 0)
+      .map(({ typ, group }) => renderSection(
+        `${cls} — ${typ.charAt(0).toUpperCase() + typ.slice(1)}`,
+        group,
+        `class-${cls.replace(/\s/g,'-')}-${typ}`
+      )).join('');
+  } else {
+    // Alla klasser → en rad per klass
+    const groups = {};
+    CLASS_ORDER.forEach(cl => groups[cl] = []);
+    cards.forEach(c => {
+      const key = CLASS_ORDER.includes(c.card_class) ? c.card_class : 'Neutral';
+      groups[key].push(c);
+    });
+
+    grid.innerHTML = CLASS_ORDER
+      .filter(cl => groups[cl].length > 0)
+      .map(cl => renderSection(
+        cl,
+        groups[cl],
+        `class-${cl.replace(/\s/g,'-')}`
+      )).join('');
+  }
 
   grid.querySelectorAll('.tile-del').forEach(btn => {
     btn.addEventListener('click', e => { e.stopPropagation(); confirmDelete(btn.dataset.del); });
