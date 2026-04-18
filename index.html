@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Card Editor</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <h1>Card Editor</h1>
+  <nav>
+    <button data-page="page-overview" class="active">Översikt</button>
+    <button data-page="page-add">Lägg till kort</button>
+    <button data-page="page-export">Exportera SQL</button>
+  </nav>
+</header>
+
+<!-- ── OVERVIEW ── -->
+<section id="page-overview" class="page active">
+  <div class="grid-header">
+    <h2>Kort</h2>
+    <span class="card-count" id="card-count">0 kort</span>
+  </div>
+  <div class="filter-bar">
+    <input id="search" type="search" placeholder="Sök namn eller ID…">
+    <select id="filter-type">
+      <option value="">Alla typer</option>
+      <option value="minion">Minion</option>
+      <option value="spell">Spell</option>
+      <option value="structure">Structure</option>
+    </select>
+    <select id="filter-rarity">
+      <option value="">Alla sällsyntheter</option>
+      <option value="common">Common</option>
+      <option value="uncommon">Uncommon</option>
+      <option value="rare">Rare</option>
+      <option value="epic">Epic</option>
+      <option value="legendary">Legendary</option>
+    </select>
+  </div>
+  <div class="card-grid" id="card-grid"></div>
+</section>
+
+<!-- ── ADD CARD ── -->
+<section id="page-add" class="page">
+  <div class="form-wrap">
+    <h2>Lägg till kort</h2>
+    <form id="card-form" autocomplete="off">
+
+      <!-- Artwork -->
+      <div class="form-section">
+        <div class="field-row">
+          <div class="field field-full">
+            <legend>Kortbild</legend>
+            <div class="artwork-upload">
+              <div class="artwork-preview" id="artwork-preview">🖼</div>
+              <div class="artwork-right">
+                <label>Ladda upp bild</label>
+                <div class="btn-upload" onclick="document.getElementById('artwork-input').click()">Välj fil…</div>
+                <input type="file" id="artwork-input" accept="image/*" style="display:none">
+                <span id="artwork-filename" style="font-size:12px;color:var(--muted)"></span>
+                <p style="font-size:11px;color:var(--muted);margin-top:4px">Bilden sparas lokalt i webbläsaren. Filnamnet används i SQL-exporten.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bas-info -->
+      <div class="form-section">
+        <legend>Grunddata</legend>
+        <div class="field-row">
+          <div class="field">
+            <label>ID *</label>
+            <input name="id" id="field-id" placeholder="A00041" required>
+          </div>
+          <div class="field">
+            <label>Namn *</label>
+            <input name="name" placeholder="Bat Fiend" required>
+          </div>
+          <div class="field">
+            <label>Mana</label>
+            <input name="mana" type="number" min="0" value="1">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Klass</label>
+            <input name="card_class" placeholder="Dark">
+          </div>
+          <div class="field">
+            <label>Typ *</label>
+            <select name="card_type" id="field-card_type" required>
+              <option value="minion">Minion</option>
+              <option value="spell">Spell</option>
+              <option value="structure">Structure</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Sällsynthet</label>
+            <select name="rarity">
+              <option value="common">Common</option>
+              <option value="uncommon">Uncommon</option>
+              <option value="rare">Rare</option>
+              <option value="epic">Epic</option>
+              <option value="legendary">Legendary</option>
+            </select>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field field-full">
+            <label>Beskrivning</label>
+            <textarea name="description" placeholder="Flying. First Strike. …"></textarea>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Keywords</label>
+            <input name="keywords" placeholder="FLYING, FIRST_STRIKE">
+          </div>
+          <div class="field">
+            <label>Draft Tag</label>
+            <input name="draft_tag" placeholder="dark_set_01">
+          </div>
+        </div>
+      </div>
+
+      <!-- MINION -->
+      <div class="form-section type-section visible" data-type="minion">
+        <legend>Minion — Stats</legend>
+        <div class="field-row">
+          <div class="field">
+            <label>Attack</label>
+            <input name="attack" type="number" min="0" value="1">
+          </div>
+          <div class="field">
+            <label>Health</label>
+            <input name="health" type="number" min="0" value="1">
+          </div>
+          <div class="field">
+            <label>Subtype</label>
+            <input name="subtype" placeholder="Beast">
+          </div>
+        </div>
+        <legend style="margin-top:16px">Minion — Ability</legend>
+        <div class="field-row">
+          <div class="field">
+            <label>Ability ID</label>
+            <input name="ability_id" placeholder="deal_damage">
+          </div>
+          <div class="field">
+            <label>Trigger</label>
+            <input name="ability_trigger" placeholder="on_play">
+          </div>
+          <div class="field">
+            <label>Cost</label>
+            <input name="ability_cost" type="number" min="0" value="0">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Target Mode</label>
+            <input name="ability_target_mode" placeholder="enemy_minion">
+          </div>
+          <div class="field">
+            <label>Targeting Mode</label>
+            <select name="ability_targeting_mode">
+              <option value="explicit">explicit</option>
+              <option value="random">random</option>
+              <option value="auto">auto</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Value</label>
+            <input name="ability_value" type="number" value="0">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field field-full">
+            <label>Ability Arg</label>
+            <input name="ability_arg" placeholder="valfritt extra-argument">
+          </div>
+        </div>
+      </div>
+
+      <!-- SPELL -->
+      <div class="form-section type-section" data-type="spell">
+        <legend>Spell — Effekt</legend>
+        <div class="field-row">
+          <div class="field">
+            <label>Effect ID</label>
+            <input name="effect_id" placeholder="deal_damage">
+          </div>
+          <div class="field">
+            <label>Effect Value</label>
+            <input name="effect_value" type="number" value="0">
+          </div>
+          <div class="field">
+            <label>School</label>
+            <input name="school" placeholder="shadow">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Target Mode</label>
+            <input name="target_mode" placeholder="enemy_minion">
+          </div>
+          <div class="field">
+            <label>Targeting Mode</label>
+            <select name="targeting_mode">
+              <option value="explicit">explicit</option>
+              <option value="random">random</option>
+              <option value="auto">auto</option>
+            </select>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Effect Arg</label>
+            <input name="effect_arg" placeholder="valfritt">
+          </div>
+          <div class="field">
+            <label>Repeat Count</label>
+            <input name="repeat_count" type="number" min="1" value="1">
+          </div>
+          <div class="field">
+            <label>Repeat Mode</label>
+            <select name="repeat_mode">
+              <option value="same_target">same_target</option>
+              <option value="reroll_each_time">reroll_each_time</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- STRUCTURE -->
+      <div class="form-section type-section" data-type="structure">
+        <legend>Structure — Stats</legend>
+        <div class="field-row">
+          <div class="field">
+            <label>Armor</label>
+            <input name="armor" type="number" min="1" value="1">
+          </div>
+          <div class="field">
+            <label>Subtype</label>
+            <input name="s_subtype" placeholder="Totem">
+          </div>
+          <div class="field">
+            <label>Maintenance Cost</label>
+            <input name="maintenance_cost" type="number" min="0" value="0">
+          </div>
+        </div>
+        <legend style="margin-top:16px">Structure — Ability</legend>
+        <div class="field-row">
+          <div class="field">
+            <label>Ability ID</label>
+            <input name="s_ability_id" placeholder="">
+          </div>
+          <div class="field">
+            <label>Cost</label>
+            <input name="s_ability_cost" type="number" min="0" value="0">
+          </div>
+          <div class="field">
+            <label>Target Mode</label>
+            <input name="s_ability_target_mode" placeholder="">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Targeting Mode</label>
+            <select name="s_ability_targeting_mode">
+              <option value="explicit">explicit</option>
+              <option value="random">random</option>
+              <option value="auto">auto</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Value</label>
+            <input name="s_ability_value" type="number" value="0">
+          </div>
+          <div class="field">
+            <label>Ability Arg</label>
+            <input name="s_ability_arg" placeholder="">
+          </div>
+        </div>
+        <legend style="margin-top:16px">Structure — Repair &amp; Trigger</legend>
+        <div class="field-row">
+          <div class="field">
+            <label>Repair Cost</label>
+            <input name="repair_cost" type="number" min="0" value="0">
+          </div>
+          <div class="field">
+            <label>Repair Value</label>
+            <input name="repair_value" type="number" min="0" value="0">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Trigger ID</label>
+            <input name="trigger_id" placeholder="">
+          </div>
+          <div class="field">
+            <label>Trigger Value</label>
+            <input name="trigger_value" type="number" value="0">
+          </div>
+          <div class="field">
+            <label>Trigger Target Mode</label>
+            <input name="trigger_target_mode" value="enemy_hero">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" id="btn-reset">Återställ</button>
+        <button type="submit" class="btn btn-primary">Spara kort</button>
+      </div>
+    </form>
+  </div>
+</section>
+
+<!-- ── EXPORT ── -->
+<section id="page-export" class="page">
+  <div class="export-wrap">
+    <h2>Exportera SQL</h2>
+    <p>Genererar INSERT-satser för alla kort i databasen. Kör filen direkt mot SQLite.</p>
+    <div class="export-toolbar">
+      <button class="btn btn-primary" id="btn-copy-sql">Kopiera SQL</button>
+      <button class="btn btn-green" id="btn-download-sql">Ladda ner .sql</button>
+      <button class="btn btn-secondary" id="btn-export-json">Ladda ner JSON</button>
+    </div>
+    <pre id="sql-output">-- Laddar…</pre>
+  </div>
+</section>
+
+<!-- ── DELETE MODAL ── -->
+<div class="modal-overlay" id="delete-modal">
+  <div class="modal">
+    <h3>Ta bort kort?</h3>
+    <p>Vill du ta bort <strong id="del-card-name"></strong>? Åtgärden kan inte ångras.</p>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" id="btn-del-cancel">Avbryt</button>
+      <button class="btn btn-danger" id="btn-del-ok">Ta bort</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
