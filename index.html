@@ -14,6 +14,7 @@
     <button data-page="page-overview" class="active">Översikt</button>
     <button data-page="page-add">Lägg till kort</button>
     <button data-page="page-export">Exportera SQL</button>
+    <button data-page="page-design">Speldesign</button>
   </nav>
 </header>
 
@@ -448,6 +449,68 @@
       <button class="btn btn-secondary" id="btn-export-json">Ladda ner JSON</button>
     </div>
     <pre id="sql-output">-- Laddar…</pre>
+  </div>
+</section>
+
+<!-- ── SPELDESIGN ── -->
+<section id="page-design" class="page">
+  <div class="design-wrap">
+    <div class="design-header">
+      <h2>Speldesign</h2>
+      <button class="btn btn-primary" id="btn-new-doc">+ Ny post</button>
+    </div>
+
+    <div class="design-filters">
+      <button class="doc-cat-btn active" data-cat="">Alla</button>
+      <button class="doc-cat-btn" data-cat="keyword">Keywords</button>
+      <button class="doc-cat-btn" data-cat="effect">Effects</button>
+      <button class="doc-cat-btn" data-cat="ability">Abilities</button>
+      <button class="doc-cat-btn" data-cat="rule">Regler</button>
+      <button class="doc-cat-btn" data-cat="suggestion">Förslag</button>
+      <button class="doc-cat-btn" data-cat="misc">Övrigt</button>
+    </div>
+
+    <div id="doc-list"></div>
+  </div>
+
+  <!-- Doc editor panel -->
+  <div class="doc-editor-overlay" id="doc-editor-overlay">
+    <div class="doc-editor">
+      <div class="doc-editor-header">
+        <h3 id="doc-editor-title">Ny post</h3>
+        <button class="card-detail-close" id="btn-doc-close">✕</button>
+      </div>
+      <div class="field-row" style="margin-bottom:12px">
+        <div class="field">
+          <label>Kategori</label>
+          <select id="doc-category">
+            <option value="keyword">Keyword</option>
+            <option value="effect">Effect</option>
+            <option value="ability">Ability</option>
+            <option value="rule">Regel</option>
+            <option value="suggestion">Förslag</option>
+            <option value="misc">Övrigt</option>
+          </select>
+        </div>
+        <div class="field" style="flex:2">
+          <label>Titel</label>
+          <input id="doc-title" placeholder="t.ex. FLYING">
+        </div>
+      </div>
+      <div class="field" style="margin-bottom:12px">
+        <label>Beskrivning / Regler</label>
+        <textarea id="doc-body" rows="6" placeholder="Förklara hur det fungerar..."></textarea>
+      </div>
+      <div class="field" style="margin-bottom:16px">
+        <label>Taggar (kommaseparerade)</label>
+        <input id="doc-tags" placeholder="combat, movement">
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-danger" id="btn-doc-delete" style="display:none;margin-right:auto">Ta bort</button>
+        <button class="btn btn-secondary" id="btn-doc-cancel">Avbryt</button>
+        <button class="btn btn-primary" id="btn-doc-save">Spara</button>
+      </div>
+    </div>
   </div>
 </section>
 

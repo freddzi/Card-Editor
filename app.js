@@ -795,5 +795,183 @@ document.getElementById('btn-export-json').addEventListener('click', async () =>
   showToast('JSON nedladdat!');
 });
 
+// ── Speldesign ────────────────────────────────────────────────────────────────
+const CAT_LABELS = {
+  keyword: 'Keywords', effect: 'Effects', ability: 'Abilities',
+  rule: 'Regler', suggestion: 'Förslag', misc: 'Övrigt'
+};
+const CAT_ORDER = ['keyword', 'effect', 'ability', 'rule', 'suggestion', 'misc'];
+
+let activeCat  = '';
+let editingDoc = null;
+
+const docList          = document.getElementById('doc-list');
+const docEditorOverlay = document.getElementById('doc-editor-overlay');
+const docEditorTitle   = document.getElementById('doc-editor-title');
+const docCategory      = document.getElementById('doc-category');
+const docTitleEl       = document.getElementById('doc-title');
+const docBodyEl        = document.getElementById('doc-body');
+const docTagsEl        = document.getElementById('doc-tags');
+const btnDocDelete     = document.getElementById('btn-doc-delete');
+
+async function loadDocs() {
+  let q = sb.from('game_docs').select('*').order('category').order('title');
+  if (activeCat) q = q.eq('category', activeCat);
+  const { data, error } = await q;
+  if (error) { console.error(error); return []; }
+  return data || [];
+}
+
+async function renderDocs() {
+  docList.innerHTML = '<p style="color:var(--muted);padding:20px 0">Laddar…</p>';
+  const docs = await loadDocs();
+  if (!docs.length) {
+    docList.innerHTML = '<p style="color:var(--muted);padding:20px 0">Inga poster hittades.</p>';
+    return;
+  }
+
+  const groups = {};
+  CAT_ORDER.forEach(c => groups[c] = []);
+  docs.forEach(d => { if (groups[d.category]) groups[d.category].push(d); });
+
+  docList.innerHTML = CAT_ORDER
+    .filter(cat => groups[cat].length)
+    .map(cat => `
+      <div class="doc-group">
+        <div class="doc-group-title">${CAT_LABELS[cat]}</div>
+        ${groups[cat].map(d => `
+          <div class="doc-card" data-id="${d.id}">
+            <div class="doc-card-left">
+              <div class="doc-card-title">${d.title}</div>
+              <div class="doc-card-body">${d.body || '<em style="color:var(--muted)">Ingen beskrivning</em>'}</div>
+              ${d.tags ? `<div class="doc-card-tags">${d.tags.split(',').map(t => `<span class="doc-tag">${t.trim()}</span>`).join('')}</div>` : ''}
+            </div>
+            <span class="doc-cat-badge cat-${d.category}">${CAT_LABELS[d.category]}</span>
+          </div>`).join('')}
+      </div>`).join('');
+
+  docList.querySelectorAll('.doc-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const doc = docs.find(d => d.id == card.dataset.id);
+      if (doc) openDocEditor(doc);
+    });
+  });
+}
+
+function openDocEditor(doc = null) {
+  editingDoc = doc;
+  docEditorTitle.textContent = doc ? 'Redigera post' : 'Ny post';
+  docCategory.value  = doc?.category  || 'keyword';
+  docTitleEl.value   = doc?.title     || '';
+  docBodyEl.value    = doc?.body      || '';
+  docTagsEl.value    = doc?.tags      || '';
+  btnDocDelete.style.display = doc ? 'inline-block' : 'none';
+  docEditorOverlay.classList.add('open');
+}
+
+function closeDocEditor() {
+  docEditorOverlay.classList.remove('open');
+  editingDoc = null;
+}
+
+document.getElementById('btn-new-doc').addEventListener('click', () => openDocEditor());
+document.getElementById('btn-doc-cancel').addEventListener('click', closeDocEditor);
+document.getElementById('btn-doc-close').addEventListener('click', closeDocEditor);
+docEditorOverlay.addEventListener('click', e => { if (e.target === docEditorOverlay) closeDocEditor(); });
+
+document.getElementById('btn-doc-save').addEventListener('click', async () => {
+  const payload = {
+    category: docCategory.value,
+    title:    docTitleEl.value.trim(),
+    body:     docBodyEl.value.trim(),
+    tags:     docTagsEl.value.trim(),
+    updated_at: new Date().toISOString(),
+  };
+  if (!payload.title) { showToast('Titel krävs.'); return; }
+
+  if (editingDoc) {
+    await sb.from('game_docs').update(payload).eq('id', editingDoc.id);
+    showToast('Uppdaterat!');
+  } else {
+    await sb.from('game_docs').insert(payload);
+    showToast('Sparat!');
+  }
+  closeDocEditor();
+  renderDocs();
+});
+
+document.getElementById('btn-doc-delete').addEventListener('click', async () => {
+  if (!editingDoc) return;
+  await sb.from('game_docs').delete().eq('id', editingDoc.id);
+  showToast('Borttaget.');
+  closeDocEditor();
+  renderDocs();
+});
+
+document.querySelectorAll('.doc-cat-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.doc-cat-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeCat = btn.dataset.cat;
+    renderDocs();
+  });
+});
+
+// Seed om databasen är tom
+async function seedDocsIfEmpty() {
+  const { count } = await sb.from('game_docs').select('*', { count: 'exact', head: true });
+  if (count > 0) return;
+
+  const seed = [
+    // Keywords
+    { category:'keyword', title:'FLYING', body:'Minionen kan bara blockas av andra minions med FLYING eller REACH.\nFlyande minions kan attackera fritt förbi marktrupper.', tags:'combat,movement' },
+    { category:'keyword', title:'RAPID', body:'Minionen går direkt till FRONT_LINE när den spelas, utan att behöva vänta en tur.\nNormalt startar minions i BACK_LINE och kan inte attackera förrän nästa tur.', tags:'combat,tempo' },
+    { category:'keyword', title:'REACH', body:'Minionen kan blockera FLYING-minions trots att den inte flyger själv.\nBra defensivt verktyg mot flygande hot.', tags:'combat,defense' },
+    { category:'keyword', title:'RANGE', body:'Minionen kan attackera utan att ta motskada vid direkt attack.\nFienden svarar inte med skada.', tags:'combat,offense' },
+    { category:'keyword', title:'FIRST_STRIKE', body:'Minionen delar ut sin skada innan motståndaren i strid.\nOm motståndaren dör av first strike-skadan svarar den aldrig.', tags:'combat' },
+    { category:'keyword', title:'DOUBLE_STRIKE', body:'Minionen attackerar två gånger per strid — först med first strike, sedan igen i normal stridsupplösning.', tags:'combat,offense' },
+    { category:'keyword', title:'TWINSTRIKE', body:'Minionen slår två separata måltavlor i en och samma attack.', tags:'combat,offense' },
+    { category:'keyword', title:'CANT_ATTACK', body:'Minionen kan inte deklarera attacker. Kan fortfarande blockera och använda aktiverade förmågor.', tags:'combat,restriction' },
+    { category:'keyword', title:'PARRY', body:'Minionen reducerar inkommande skada med sitt PARRY-värde. Ex: PARRY_2 reducerar all inkommande skada med 2.', tags:'defense,combat' },
+    { category:'keyword', title:'IRON_SKIN', body:'Minionen är immun mot skada under 1 (eller definierat värde). Svår att ta bort med pytteskador.', tags:'defense' },
+    { category:'keyword', title:'TOXIC', body:'Varje poäng skada den här minionen delar ut dödar målet direkt, oavsett hur mycket HP målet har kvar.', tags:'combat,removal' },
+    { category:'keyword', title:'VAMPIRISM', body:'Minionen återfår HP lika med den skada den delar ut. Lifesteal.', tags:'combat,sustain' },
+    { category:'keyword', title:'INSTANT', body:'Spellen med INSTANT kan spelas utanför din tur, som en reaktion.', tags:'timing,spell' },
+
+    // Effects
+    { category:'effect', title:'deal_damage', body:'Delar ut X skada till ett mål.\nAnvänds av spells och minion-abilities.\neffect_value = mängd skada.\ntarget_mode avgör vad som kan träffas.', tags:'damage' },
+    { category:'effect', title:'draw_card', body:'Drar X kort från ditt deck.\neffect_value = antal kort att dra.', tags:'card-draw' },
+    { category:'effect', title:'heal', body:'Återställer X HP till ett mål.\neffect_value = mängd HP.\ntarget_mode avgör vad som kan läkas.', tags:'healing' },
+    { category:'effect', title:'chain', body:'Upprepar effekten på ett nytt slumpmässigt mål efter att den första effekten löst sig.\nAntal kedjor styrs av repeat_count.', tags:'aoe,bounce' },
+
+    // Abilities
+    { category:'ability', title:'activate', body:'Triggern "activate" innebär att spelaren manuellt aktiverar förmågan under sin tur mot en kostnad (ability_cost mana).\nMinionen måste vara i FRONT_LINE eller BACK_LINE — den kan inte ha attackerat samma tur.', tags:'trigger,active' },
+    { category:'ability', title:'on_play', body:'Förmågan triggar automatiskt när minionen spelas från handen.\nIngen extra kostnad — effekten sker direkt.', tags:'trigger,passive' },
+    { category:'ability', title:'on_death', body:'Förmågan triggar när minionen dör.\nDeathrattle-effekter löser sig efter striden.', tags:'trigger,deathrattle' },
+    { category:'ability', title:'on_attack', body:'Förmågan triggar varje gång minionen attackerar.', tags:'trigger,passive' },
+
+    // Regler
+    { category:'rule', title:'Zoner — FRONT_LINE & BACK_LINE', body:'Alla minions börjar i BACK_LINE när de spelas (om de inte har RAPID).\nFrån FRONT_LINE kan de attackera.\nFlytt sker automatiskt i slutet av ägarens tur.', tags:'zones,movement' },
+    { category:'rule', title:'Faser per tur', body:'DRAW → MAIN → ATTACK → BLOCK → CLEANUP → END_TURN\n\nDRAW: Spelaren drar ett kort.\nMAIN: Spela kort, aktivera förmågor.\nATTACK: Deklarera attacker med FRONT_LINE-minions.\nBLOCK: Motspelaren tilldelar blockers.\nCLEANUP: Strid löses, döda minions tas bort.\nEND_TURN: Korteffekter med "efter tur"-villkor utlöses.', tags:'phases,turn' },
+    { category:'rule', title:'Mana', body:'Varje spelare börjar med 1 mana och ökar med 1 per tur upp till max (10 eller konfigurerat).\nOanvänd mana försvinner i slutet av turen — den rullas inte över.', tags:'resources,mana' },
+    { category:'rule', title:'Kortens UID-system', body:'Varje kortinstans får ett unikt runtime-ID (uid).\nSpelare 0 börjar på uid 1, spelare 1 börjar på 1 000 000.\nDetta förhindrar kollisioner mellan spelares kort.', tags:'technical,uid' },
+    { category:'rule', title:'Blockfönster', body:'Efter att attackeraren deklarerats öppnar servern ett blockfönster.\nMotspelaren har BLOCK_TIME sekunder på sig att sätta blockers.\nOm ingen blockar går attacken igenom direkt mot hjälten.', tags:'combat,timing' },
+
+    // Förslag
+    { category:'suggestion', title:'Mall för nya förslag', body:'Använd den här posten som mall.\nBeskriv:\n1. Problemet / idén\n2. Föreslaget beteende\n3. Eventuella undantag eller interaktioner\n4. Prioritet (låg/medium/hög)', tags:'meta' },
+  ];
+
+  await sb.from('game_docs').insert(seed);
+}
+
+// Kör seed och rendera när sidan visas
+const origShowPage = showPage;
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 showPage('page-overview');
+
+// Lyssna på design-fliken
+document.querySelector('nav button[data-page="page-design"]').addEventListener('click', async () => {
+  await seedDocsIfEmpty();
+  renderDocs();
+});

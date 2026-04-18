@@ -497,6 +497,153 @@ nav button.active { background: var(--surface2); color: var(--gold); font-weight
   min-height: 200px;
 }
 
+/* ── SPELDESIGN ── */
+.design-wrap { max-width: 900px; margin: 0 auto; }
+
+.design-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.design-header h2 { font-size: 20px; color: var(--blue); }
+
+.design-filters {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.doc-cat-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 6px 14px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.doc-cat-btn:hover { background: var(--surface2); color: var(--text); }
+.doc-cat-btn.active { background: var(--surface2); border-color: var(--gold); color: var(--gold); }
+
+.doc-group { margin-bottom: 28px; }
+
+.doc-group-title {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--muted);
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.doc-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: start;
+}
+
+.doc-card:hover { border-color: var(--blue); background: var(--surface2); }
+
+.doc-card-left {}
+
+.doc-card-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.doc-card-body {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.doc-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.doc-tag {
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 3px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
+.doc-cat-badge {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.cat-keyword    { background: #1a2a3a; color: #8ab4f8; }
+.cat-effect     { background: #2a1a3a; color: #c8a0f8; }
+.cat-ability    { background: #1a3a2a; color: #7fd490; }
+.cat-rule       { background: #3a2a1a; color: var(--gold); }
+.cat-suggestion { background: #1a3a3a; color: #7fd4d4; }
+.cat-misc       { background: #2a2a2a; color: #aaa; }
+
+/* Doc editor overlay */
+.doc-editor-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.75);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.doc-editor-overlay.open { display: flex; }
+
+.doc-editor {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px;
+  max-width: 620px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.doc-editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.doc-editor-header h3 { color: var(--gold); font-size: 16px; }
+
 /* ── CARD DETAIL MODAL ── */
 .card-detail-modal {
   display: none;
