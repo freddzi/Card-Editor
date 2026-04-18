@@ -156,7 +156,7 @@ function cardTileHTML(c) {
     </div>`;
   } else if (c.card_type === 'structure') {
     statsOverlay = `<div class="card-overlay-stats">
-      <span class="card-stat-armor">🛡 ${c.armor ?? '?'}</span>
+      <span class="card-stat-armor">🛡${c.armor ?? '?'}</span>
     </div>`;
   }
 

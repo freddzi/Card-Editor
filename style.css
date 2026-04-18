@@ -140,7 +140,7 @@ nav button.active { background: var(--surface2); color: var(--gold); font-weight
 .card-overlay-mana {
   position: absolute;
   top: 6px;
-  left: 6px;
+  right: 6px;
   background: #1a3a6e;
   border: 2px solid #5588cc;
   color: #8ab4f8;
@@ -161,33 +161,39 @@ nav button.active { background: var(--surface2); color: var(--gold); font-weight
   bottom: 0;
   left: 0;
   right: 0;
-  display: flex;
-  justify-content: space-between;
-  padding: 4px 6px;
-  background: linear-gradient(transparent, rgba(0,0,0,.75));
+  height: 36px;
+  pointer-events: none;
 }
 
 .card-stat-atk {
-  font-size: 14px;
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  font-size: 15px;
   font-weight: 800;
-  color: #ff8888;
-  text-shadow: 0 1px 3px #000;
+  color: #fff;
+  text-shadow: 0 0 4px #000, 0 0 8px #000;
 }
 
 .card-stat-hp {
-  font-size: 14px;
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  font-size: 15px;
   font-weight: 800;
-  color: #88dd88;
-  text-shadow: 0 1px 3px #000;
+  color: #fff;
+  text-shadow: 0 0 4px #000, 0 0 8px #000;
 }
 
 .card-stat-armor {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
   font-size: 13px;
   font-weight: 700;
-  color: #f0c040;
-  text-shadow: 0 1px 3px #000;
-  width: 100%;
-  text-align: center;
+  color: #fff;
+  text-shadow: 0 0 4px #000, 0 0 8px #000;
 }
 
 .card-tile-info {
