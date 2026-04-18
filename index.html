@@ -31,6 +31,14 @@
       <option value="spell">Spell</option>
       <option value="structure">Structure</option>
     </select>
+    <select id="filter-class">
+      <option value="">Alla klasser</option>
+      <option value="Dark">Dark</option>
+      <option value="Wasteland">Wasteland</option>
+      <option value="The Blue">The Blue</option>
+      <option value="Forest">Forest</option>
+      <option value="Neutral">Neutral</option>
+    </select>
     <select id="filter-rarity">
       <option value="">Alla sällsyntheter</option>
       <option value="common">Common</option>
@@ -99,7 +107,13 @@
         <div class="field-row">
           <div class="field">
             <label>Klass</label>
-            <input name="card_class" placeholder="Dark">
+            <select name="card_class">
+              <option value="Dark">Dark</option>
+              <option value="Wasteland">Wasteland</option>
+              <option value="The Blue">The Blue</option>
+              <option value="Forest">Forest</option>
+              <option value="Neutral">Neutral</option>
+            </select>
           </div>
           <div class="field">
             <label>Typ *</label>

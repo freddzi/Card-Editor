@@ -65,6 +65,12 @@ async function saveCard(base, extra, imageFile, imageFile2) {
 }
 
 async function deleteCard(id) {
+  // Ta bort bilder från Storage
+  const { data: card } = await sb.from('cards').select('artwork_path').eq('id', id).single();
+  if (card?.artwork_path) {
+    const paths = card.artwork_path.split(',').map(p => p.trim()).filter(Boolean);
+    if (paths.length) await sb.storage.from(BUCKET).remove(paths);
+  }
   const { error } = await sb.from('cards').delete().eq('id', id);
   if (error) { showToast('Fel: ' + error.message); return false; }
   return true;
@@ -103,10 +109,11 @@ function showToast(msg) {
 
 // ── Overview ──────────────────────────────────────────────────────────────────
 const grid       = document.getElementById('card-grid');
-const cardCount  = document.getElementById('card-count');
-const searchEl   = document.getElementById('search');
-const filterType = document.getElementById('filter-type');
-const filterRar  = document.getElementById('filter-rarity');
+const cardCount   = document.getElementById('card-count');
+const searchEl    = document.getElementById('search');
+const filterType  = document.getElementById('filter-type');
+const filterClass = document.getElementById('filter-class');
+const filterRar   = document.getElementById('filter-rarity');
 
 async function renderGrid() {
   grid.innerHTML = `<div class="empty-state">⏳<p>Laddar kort…</p></div>`;
@@ -114,10 +121,12 @@ async function renderGrid() {
 
   const q   = searchEl.value.trim().toLowerCase();
   const typ = filterType.value;
+  const cls = filterClass.value;
   const rar = filterRar.value;
 
   if (q)   cards = cards.filter(c => c.name.toLowerCase().includes(q) || c.id.toLowerCase().includes(q));
   if (typ) cards = cards.filter(c => c.card_type === typ);
+  if (cls) cards = cards.filter(c => c.card_class === cls);
   if (rar) cards = cards.filter(c => c.rarity === rar);
 
   cardCount.textContent = `${cards.length} kort`;
@@ -169,7 +178,7 @@ async function renderGrid() {
 }
 
 let searchTimer;
-[searchEl, filterType, filterRar].forEach(el => {
+[searchEl, filterType, filterClass, filterRar].forEach(el => {
   el.addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(renderGrid, 300); });
 });
 
@@ -286,6 +295,38 @@ function resetKeywords() {
   kwHidden.value = '';
 }
 
+// ── Duplicate check ───────────────────────────────────────────────────────────
+let allCards = [];
+
+async function refreshAllCards() {
+  allCards = await loadCards();
+}
+
+function setFieldError(inputEl, msg) {
+  inputEl.style.borderColor = msg ? 'var(--danger)' : '';
+  let hint = inputEl.nextElementSibling;
+  if (hint && hint.classList.contains('field-error')) hint.remove();
+  if (msg) {
+    const el = document.createElement('span');
+    el.className = 'field-error';
+    el.textContent = msg;
+    inputEl.after(el);
+  }
+}
+
+function checkDuplicateId(val) {
+  if (!val) return;
+  const dup = allCards.find(c => c.id.toLowerCase() === val.toLowerCase());
+  setFieldError(document.getElementById('field-id'), dup ? `ID "${val}" är redan taget` : null);
+}
+
+function checkDuplicateName(val) {
+  if (!val) return;
+  const dup = allCards.find(c => c.name.toLowerCase() === val.toLowerCase());
+  const el  = document.querySelector('input[name="name"]');
+  setFieldError(el, dup ? `Namn "${val}" är redan taget (${dup.id})` : null);
+}
+
 // ── Add Card form ─────────────────────────────────────────────────────────────
 const form            = document.getElementById('card-form');
 const typeSelect      = document.getElementById('field-card_type');
@@ -346,8 +387,12 @@ async function resetForm() {
 }
 
 document.querySelector('nav button[data-page="page-add"]').addEventListener('click', async () => {
+  await refreshAllCards();
   document.getElementById('field-id').value = await nextId();
 });
+
+document.getElementById('field-id').addEventListener('input', e => checkDuplicateId(e.target.value.trim()));
+document.querySelector('input[name="name"]').addEventListener('input', e => checkDuplicateName(e.target.value.trim()));
 
 form.addEventListener('submit', async e => {
   e.preventDefault();
@@ -373,6 +418,20 @@ form.addEventListener('submit', async e => {
 
   if (!base.id || !base.name || !base.card_type) {
     showToast('ID, Namn och Typ krävs.');
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Spara kort';
+    return;
+  }
+
+  await refreshAllCards();
+  if (allCards.find(c => c.id.toLowerCase() === base.id.toLowerCase())) {
+    showToast(`ID "${base.id}" är redan taget!`);
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Spara kort';
+    return;
+  }
+  if (allCards.find(c => c.name.toLowerCase() === base.name.toLowerCase())) {
+    showToast(`Namn "${base.name}" är redan taget!`);
     submitBtn.disabled = false;
     submitBtn.textContent = 'Spara kort';
     return;

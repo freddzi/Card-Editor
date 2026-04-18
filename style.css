@@ -260,6 +260,12 @@ nav button.active { background: var(--surface2); color: var(--gold); font-weight
 
 .field textarea { resize: vertical; min-height: 64px; }
 
+.field-error {
+  font-size: 11px;
+  color: var(--danger);
+  margin-top: 2px;
+}
+
 .field-full { grid-column: 1/-1; }
 
 /* artwork upload */
