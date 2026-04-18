@@ -128,9 +128,10 @@ async function renderGrid() {
   }
 
   grid.innerHTML = cards.map(c => {
-    const imgSrc = c.artwork_url || (c.artwork_path
-      ? sb.storage.from(BUCKET).getPublicUrl(c.artwork_path).data.publicUrl
-      : null);
+    const firstPath = c.artwork_path ? c.artwork_path.split(',')[0].trim() : null;
+    const imgSrc = firstPath
+      ? sb.storage.from(BUCKET).getPublicUrl(firstPath).data.publicUrl
+      : null;
     const img = imgSrc
       ? `<img src="${imgSrc}" alt="${c.name}">`
       : `<div class="no-img">🃏</div>`;
