@@ -180,6 +180,7 @@ function cardTileHTML(c) {
     <div class="card-tile-info">
       <div class="card-tile-name">${c.name}</div>
       <div class="card-tile-badges">
+        <span class="badge badge-${c.card_type}">${c.card_type}</span>
         <span class="badge badge-${c.rarity}">${c.rarity}</span>
         ${effectInfo}
       </div>
