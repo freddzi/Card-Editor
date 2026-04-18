@@ -1,27 +1,71 @@
 'use strict';
 
-// ── Storage ──────────────────────────────────────────────────────────────────
-const STORE_KEY = 'card_editor_cards';
+// ── Supabase ──────────────────────────────────────────────────────────────────
+const SUPABASE_URL = 'https://uofhyrawyjhqbdztagae.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_QtniV0UdS9gY80_2O5HL7g_5uVDarKy';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-function loadCards() {
-  try { return JSON.parse(localStorage.getItem(STORE_KEY)) || []; }
-  catch { return []; }
+const BUCKET = 'card-images';
+
+// ── Load cards ────────────────────────────────────────────────────────────────
+async function loadCards() {
+  const { data, error } = await sb.from('cards').select(`
+    *,
+    minion_cards(*),
+    spell_cards(*),
+    structure_cards(*)
+  `).order('id');
+  if (error) { console.error(error); return []; }
+  return data.map(c => {
+    const extra = c.minion_cards || c.spell_cards || c.structure_cards || {};
+    const { minion_cards, spell_cards, structure_cards, ...base } = c;
+    return { ...base, ...extra };
+  });
 }
 
-function saveCards(cards) {
-  localStorage.setItem(STORE_KEY, JSON.stringify(cards));
+async function saveCard(base, extra, imageFile) {
+  // Upload image first if provided
+  if (imageFile) {
+    const ext  = imageFile.name.split('.').pop();
+    const path = `${base.id}.${ext}`;
+    const { error: upErr } = await sb.storage.from(BUCKET).upload(path, imageFile, { upsert: true });
+    if (upErr) { showToast('Bilduppladdning misslyckades: ' + upErr.message); return false; }
+    const { data: urlData } = sb.storage.from(BUCKET).getPublicUrl(path);
+    base.artwork_path = path;
+    base.artwork_url  = urlData.publicUrl;
+  }
+
+  const { error: cardErr } = await sb.from('cards').insert(base);
+  if (cardErr) { showToast('Fel: ' + cardErr.message); return false; }
+
+  const table = base.card_type === 'minion' ? 'minion_cards'
+              : base.card_type === 'spell'   ? 'spell_cards'
+              : 'structure_cards';
+
+  const { error: typeErr } = await sb.from(table).insert({ card_id: base.id, ...extra });
+  if (typeErr) {
+    await sb.from('cards').delete().eq('id', base.id);
+    showToast('Fel: ' + typeErr.message);
+    return false;
+  }
+  return true;
 }
 
-function nextId(cards) {
-  const nums = cards
-    .map(c => parseInt(c.id.replace(/\D/g, ''), 10))
-    .filter(n => !isNaN(n));
-  const max = nums.length ? Math.max(...nums) : 0;
+async function deleteCard(id) {
+  const { error } = await sb.from('cards').delete().eq('id', id);
+  if (error) { showToast('Fel: ' + error.message); return false; }
+  return true;
+}
+
+async function nextId() {
+  const cards = await loadCards();
+  const nums  = cards.map(c => parseInt(c.id.replace(/\D/g, ''), 10)).filter(n => !isNaN(n));
+  const max   = nums.length ? Math.max(...nums) : 0;
   return 'A' + String(max + 1).padStart(5, '0');
 }
 
 // ── Navigation ────────────────────────────────────────────────────────────────
-const pages = document.querySelectorAll('.page');
+const pages   = document.querySelectorAll('.page');
 const navBtns = document.querySelectorAll('nav button[data-page]');
 
 function showPage(id) {
@@ -41,7 +85,7 @@ function showToast(msg) {
   toast.textContent = msg;
   toast.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toast.classList.remove('show'), 2500);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 2800);
 }
 
 // ── Overview ──────────────────────────────────────────────────────────────────
@@ -51,8 +95,10 @@ const searchEl   = document.getElementById('search');
 const filterType = document.getElementById('filter-type');
 const filterRar  = document.getElementById('filter-rarity');
 
-function renderGrid() {
-  let cards = loadCards();
+async function renderGrid() {
+  grid.innerHTML = `<div class="empty-state">⏳<p>Laddar kort…</p></div>`;
+  let cards = await loadCards();
+
   const q   = searchEl.value.trim().toLowerCase();
   const typ = filterType.value;
   const rar = filterRar.value;
@@ -69,8 +115,11 @@ function renderGrid() {
   }
 
   grid.innerHTML = cards.map(c => {
-    const img = c.artwork_data
-      ? `<img src="${c.artwork_data}" alt="${c.name}">`
+    const imgSrc = c.artwork_url || (c.artwork_path
+      ? sb.storage.from(BUCKET).getPublicUrl(c.artwork_path).data.publicUrl
+      : null);
+    const img = imgSrc
+      ? `<img src="${imgSrc}" alt="${c.name}">`
       : `<div class="no-img">🃏</div>`;
     const stats = c.card_type === 'minion'
       ? `${c.attack ?? '?'}/${c.health ?? '?'} · ${c.subtype || '-'}`
@@ -94,24 +143,24 @@ function renderGrid() {
   }).join('');
 
   grid.querySelectorAll('.tile-del').forEach(btn => {
-    btn.addEventListener('click', e => {
-      e.stopPropagation();
-      confirmDelete(btn.dataset.del);
-    });
+    btn.addEventListener('click', e => { e.stopPropagation(); confirmDelete(btn.dataset.del); });
   });
 }
 
-[searchEl, filterType, filterRar].forEach(el => el.addEventListener('input', renderGrid));
+let searchTimer;
+[searchEl, filterType, filterRar].forEach(el => {
+  el.addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(renderGrid, 300); });
+});
 
 // ── Delete modal ──────────────────────────────────────────────────────────────
-const delModal     = document.getElementById('delete-modal');
-const delCardName  = document.getElementById('del-card-name');
+const delModal    = document.getElementById('delete-modal');
+const delCardName = document.getElementById('del-card-name');
 const btnDelCancel = document.getElementById('btn-del-cancel');
-const btnDelOk     = document.getElementById('btn-del-ok');
-let pendingDelId   = null;
+const btnDelOk    = document.getElementById('btn-del-ok');
+let pendingDelId  = null;
 
-function confirmDelete(id) {
-  const cards = loadCards();
+async function confirmDelete(id) {
+  const cards = await loadCards();
   const card  = cards.find(c => c.id === id);
   if (!card) return;
   pendingDelId = id;
@@ -120,42 +169,36 @@ function confirmDelete(id) {
 }
 
 btnDelCancel.addEventListener('click', () => delModal.classList.remove('open'));
-btnDelOk.addEventListener('click', () => {
+btnDelOk.addEventListener('click', async () => {
   if (!pendingDelId) return;
-  const cards = loadCards().filter(c => c.id !== pendingDelId);
-  saveCards(cards);
+  const ok = await deleteCard(pendingDelId);
   delModal.classList.remove('open');
   pendingDelId = null;
-  renderGrid();
-  showToast('Kort borttaget.');
+  if (ok) { showToast('Kort borttaget.'); renderGrid(); }
 });
 
 // ── Add Card form ─────────────────────────────────────────────────────────────
-const form          = document.getElementById('card-form');
-const typeSelect    = document.getElementById('field-card_type');
-const artworkInput  = document.getElementById('artwork-input');
+const form           = document.getElementById('card-form');
+const typeSelect     = document.getElementById('field-card_type');
+const artworkInput   = document.getElementById('artwork-input');
 const artworkPreview = document.getElementById('artwork-preview');
 const artworkFilename = document.getElementById('artwork-filename');
 
-let artworkData = null;   // base64 data URL
-let artworkName = '';
+let selectedImageFile = null;
 
-// artwork upload
 artworkPreview.addEventListener('click', () => artworkInput.click());
 artworkInput.addEventListener('change', () => {
   const file = artworkInput.files[0];
   if (!file) return;
-  artworkName = file.name;
+  selectedImageFile = file;
   artworkFilename.textContent = file.name;
   const reader = new FileReader();
   reader.onload = e => {
-    artworkData = e.target.result;
-    artworkPreview.innerHTML = `<img src="${artworkData}" alt="preview">`;
+    artworkPreview.innerHTML = `<img src="${e.target.result}" alt="preview">`;
   };
   reader.readAsDataURL(file);
 });
 
-// card type → show/hide sections
 typeSelect.addEventListener('change', updateTypeSections);
 
 function updateTypeSections() {
@@ -167,25 +210,25 @@ function updateTypeSections() {
 
 updateTypeSections();
 
-// reset form
-function resetForm() {
+async function resetForm() {
   form.reset();
-  artworkData = null;
-  artworkName = '';
+  selectedImageFile = null;
   artworkPreview.innerHTML = '🖼';
   artworkFilename.textContent = '';
-  document.getElementById('field-id').value = nextId(loadCards());
+  document.getElementById('field-id').value = await nextId();
   updateTypeSections();
 }
 
-// pre-fill next id when navigating to Add
-document.querySelector('nav button[data-page="page-add"]').addEventListener('click', () => {
-  document.getElementById('field-id').value = nextId(loadCards());
+document.querySelector('nav button[data-page="page-add"]').addEventListener('click', async () => {
+  document.getElementById('field-id').value = await nextId();
 });
 
-// submit
-form.addEventListener('submit', e => {
+form.addEventListener('submit', async e => {
   e.preventDefault();
+  const submitBtn = form.querySelector('button[type="submit"]');
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Sparar…';
+
   const fd  = new FormData(form);
   const get = k => fd.get(k)?.trim() ?? '';
 
@@ -196,8 +239,7 @@ form.addEventListener('submit', e => {
     card_class:  get('card_class'),
     card_type:   get('card_type'),
     description: get('description'),
-    artwork_path: artworkName,
-    artwork_data: artworkData,
+    artwork_path: selectedImageFile ? '' : '',
     rarity:      get('rarity'),
     keywords:    get('keywords'),
     draft_tag:   get('draft_tag'),
@@ -205,64 +247,64 @@ form.addEventListener('submit', e => {
 
   if (!base.id || !base.name || !base.card_type) {
     showToast('ID, Namn och Typ krävs.');
-    return;
-  }
-
-  const cards = loadCards();
-  if (cards.find(c => c.id === base.id)) {
-    showToast(`ID ${base.id} finns redan!`);
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Spara kort';
     return;
   }
 
   let extra = {};
   if (base.card_type === 'minion') {
     extra = {
-      attack:                parseInt(get('attack')) || 0,
-      health:                parseInt(get('health')) || 1,
-      subtype:               get('subtype'),
-      ability_id:            get('ability_id'),
-      ability_trigger:       get('ability_trigger'),
-      ability_cost:          parseInt(get('ability_cost')) || 0,
-      ability_target_mode:   get('ability_target_mode'),
-      ability_targeting_mode:get('ability_targeting_mode') || 'explicit',
-      ability_value:         parseInt(get('ability_value')) || 0,
-      ability_arg:           get('ability_arg'),
+      attack: parseInt(get('attack')) || 0,
+      health: parseInt(get('health')) || 1,
+      subtype: get('subtype'),
+      ability_id: get('ability_id'),
+      ability_trigger: get('ability_trigger'),
+      ability_cost: parseInt(get('ability_cost')) || 0,
+      ability_target_mode: get('ability_target_mode'),
+      ability_targeting_mode: get('ability_targeting_mode') || 'explicit',
+      ability_value: parseInt(get('ability_value')) || 0,
+      ability_arg: get('ability_arg'),
     };
   } else if (base.card_type === 'spell') {
     extra = {
-      effect_id:      get('effect_id'),
-      effect_value:   parseInt(get('effect_value')) || 0,
-      target_mode:    get('target_mode'),
+      effect_id: get('effect_id'),
+      effect_value: parseInt(get('effect_value')) || 0,
+      target_mode: get('target_mode'),
       targeting_mode: get('targeting_mode') || 'explicit',
-      school:         get('school'),
-      effect_arg:     get('effect_arg'),
-      repeat_count:   parseInt(get('repeat_count')) || 1,
-      repeat_mode:    get('repeat_mode') || 'same_target',
+      school: get('school'),
+      effect_arg: get('effect_arg'),
+      repeat_count: parseInt(get('repeat_count')) || 1,
+      repeat_mode: get('repeat_mode') || 'same_target',
     };
   } else if (base.card_type === 'structure') {
     extra = {
-      armor:                  parseInt(get('armor')) || 1,
-      subtype:                get('s_subtype'),
-      maintenance_cost:       parseInt(get('maintenance_cost')) || 0,
-      ability_id:             get('s_ability_id'),
-      ability_cost:           parseInt(get('s_ability_cost')) || 0,
-      ability_target_mode:    get('s_ability_target_mode'),
+      armor: parseInt(get('armor')) || 1,
+      subtype: get('s_subtype'),
+      maintenance_cost: parseInt(get('maintenance_cost')) || 0,
+      ability_id: get('s_ability_id'),
+      ability_cost: parseInt(get('s_ability_cost')) || 0,
+      ability_target_mode: get('s_ability_target_mode'),
       ability_targeting_mode: get('s_ability_targeting_mode') || 'explicit',
-      ability_value:          parseInt(get('s_ability_value')) || 0,
-      ability_arg:            get('s_ability_arg'),
-      repair_cost:            parseInt(get('repair_cost')) || 0,
-      repair_value:           parseInt(get('repair_value')) || 0,
-      trigger_id:             get('trigger_id'),
-      trigger_value:          parseInt(get('trigger_value')) || 0,
-      trigger_target_mode:    get('trigger_target_mode') || 'enemy_hero',
+      ability_value: parseInt(get('s_ability_value')) || 0,
+      ability_arg: get('s_ability_arg'),
+      repair_cost: parseInt(get('repair_cost')) || 0,
+      repair_value: parseInt(get('repair_value')) || 0,
+      trigger_id: get('trigger_id'),
+      trigger_value: parseInt(get('trigger_value')) || 0,
+      trigger_target_mode: get('trigger_target_mode') || 'enemy_hero',
     };
   }
 
-  cards.push({ ...base, ...extra });
-  saveCards(cards);
-  showToast(`"${base.name}" sparat!`);
-  resetForm();
-  showPage('page-overview');
+  const ok = await saveCard(base, extra, selectedImageFile);
+  submitBtn.disabled = false;
+  submitBtn.textContent = 'Spara kort';
+
+  if (ok) {
+    showToast(`"${base.name}" sparat!`);
+    await resetForm();
+    showPage('page-overview');
+  }
 });
 
 document.getElementById('btn-reset').addEventListener('click', resetForm);
@@ -270,23 +312,21 @@ document.getElementById('btn-reset').addEventListener('click', resetForm);
 // ── Export ────────────────────────────────────────────────────────────────────
 const sqlOutput = document.getElementById('sql-output');
 
-function esc(v) { return String(v).replace(/'/g, "''"); }
+function esc(v) { return String(v ?? '').replace(/'/g, "''"); }
 
 function buildSQL(cards) {
   if (!cards.length) return '-- Inga kort att exportera.';
 
-  const ids = cards.map(c => `'${esc(c.id)}'`).join(', ');
-  const range = `card_id IN (${ids})`;
-  const idRange = `id IN (${ids})`;
+  const ids      = cards.map(c => `'${esc(c.id)}'`).join(', ');
+  const range    = `card_id IN (${ids})`;
+  const idRange  = `id IN (${ids})`;
 
   let sql = `PRAGMA foreign_keys = ON;\n\n`;
-  sql += `-- Rensa befintliga poster för dessa ID:n\n`;
   sql += `DELETE FROM structure_cards WHERE ${range};\n`;
   sql += `DELETE FROM spell_cards     WHERE ${range};\n`;
   sql += `DELETE FROM minion_cards    WHERE ${range};\n`;
   sql += `DELETE FROM cards           WHERE ${idRange};\n\n`;
 
-  // cards table
   sql += `INSERT INTO cards (\n    id, name, mana, card_class, card_type, description, artwork_path, rarity, keywords, draft_tag\n) VALUES\n`;
   sql += cards.map((c, i) => {
     const comma = i < cards.length - 1 ? ',' : ';';
@@ -324,8 +364,10 @@ function buildSQL(cards) {
   return sql;
 }
 
-function renderExport() {
-  sqlOutput.textContent = buildSQL(loadCards());
+async function renderExport() {
+  sqlOutput.textContent = '-- Laddar…';
+  const cards = await loadCards();
+  sqlOutput.textContent = buildSQL(cards);
 }
 
 document.getElementById('btn-copy-sql').addEventListener('click', () => {
@@ -339,13 +381,11 @@ document.getElementById('btn-download-sql').addEventListener('click', () => {
     download: 'cards_export.sql',
   });
   a.click();
+  showToast('SQL nedladdat!');
 });
 
-document.getElementById('btn-export-json').addEventListener('click', () => {
-  const cards = loadCards().map(c => {
-    const { artwork_data, ...rest } = c;
-    return rest;
-  });
+document.getElementById('btn-export-json').addEventListener('click', async () => {
+  const cards = await loadCards();
   const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' });
   const a = Object.assign(document.createElement('a'), {
     href: URL.createObjectURL(blob),
