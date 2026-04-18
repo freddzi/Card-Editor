@@ -291,7 +291,8 @@ nav button.active { background: var(--surface2); color: var(--gold); font-weight
   position: absolute;
   top: 4px;
   left: 4px;
-  background: rgba(0,0,0,.6);
+  z-index: 10;
+  background: rgba(0,0,0,.7);
   border: none;
   color: var(--danger);
   border-radius: 4px;
