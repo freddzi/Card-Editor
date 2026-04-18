@@ -25,6 +25,7 @@
   </div>
   <div class="filter-bar">
     <input id="search" type="search" placeholder="Sök namn eller ID…">
+    <input id="filter-keywords" type="search" placeholder="Keyword (FLYING…)">
     <select id="filter-type">
       <option value="">Alla typer</option>
       <option value="minion">Minion</option>
@@ -47,6 +48,16 @@
       <option value="epic">Epic</option>
       <option value="legendary">Legendary</option>
     </select>
+    <select id="filter-effect">
+      <option value="">Alla effekter</option>
+      <option value="deal_damage">deal_damage</option>
+      <option value="draw_card">draw_card</option>
+      <option value="heal">heal</option>
+      <option value="chain">chain</option>
+    </select>
+    <input id="filter-mana" type="number" min="0" placeholder="Mana ≤" style="width:80px">
+    <input id="filter-attack" type="number" min="0" placeholder="Attack ≥" style="width:90px">
+    <input id="filter-health" type="number" min="0" placeholder="Health ≥" style="width:90px">
   </div>
   <div class="card-grid" id="card-grid"></div>
 </section>
@@ -54,7 +65,7 @@
 <!-- ── ADD CARD ── -->
 <section id="page-add" class="page">
   <div class="form-wrap">
-    <h2>Lägg till kort</h2>
+    <h2 id="form-title">Lägg till kort</h2>
     <form id="card-form" autocomplete="off">
 
       <!-- Artwork -->
@@ -451,6 +462,9 @@
       <div class="card-detail-badges" id="detail-badges"></div>
       <div class="card-detail-desc" id="detail-desc"></div>
       <div class="card-detail-stats" id="detail-stats"></div>
+      <div style="margin-top:16px;display:flex;gap:10px">
+        <button class="btn btn-primary" id="btn-detail-edit">Redigera kort</button>
+      </div>
     </div>
   </div>
 </div>

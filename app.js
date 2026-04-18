@@ -65,14 +65,34 @@ async function saveCard(base, extra, imageFile, imageFile2) {
 }
 
 async function deleteCard(id) {
-  // Ta bort bilder från Storage
-  const { data: card } = await sb.from('cards').select('artwork_path').eq('id', id).single();
-  if (card?.artwork_path) {
-    const paths = card.artwork_path.split(',').map(p => p.trim()).filter(Boolean);
-    if (paths.length) await sb.storage.from(BUCKET).remove(paths);
-  }
   const { error } = await sb.from('cards').delete().eq('id', id);
   if (error) { showToast('Fel: ' + error.message); return false; }
+  return true;
+}
+
+async function updateCard(id, base, extra, imageFile, imageFile2) {
+  // Ladda upp nya bilder om de valts
+  async function uploadImg(file, suffix) {
+    const ext  = file.name.split('.').pop();
+    const path = `${id}${suffix}.${ext}`;
+    const { error } = await sb.storage.from(BUCKET).upload(path, file, { upsert: true });
+    if (error) { showToast('Bilduppladdning misslyckades: ' + error.message); return null; }
+    return path;
+  }
+
+  const paths = [];
+  if (imageFile)  { const p = await uploadImg(imageFile,  imageFile2 ? '_v1' : ''); if (!p) return false; paths.push(p); }
+  if (imageFile2) { const p = await uploadImg(imageFile2, '_v2'); if (!p) return false; paths.push(p); }
+  if (paths.length) base.artwork_path = paths.join(', ');
+
+  const { error: cardErr } = await sb.from('cards').update(base).eq('id', id);
+  if (cardErr) { showToast('Fel: ' + cardErr.message); return false; }
+
+  const table = base.card_type === 'minion' ? 'minion_cards'
+              : base.card_type === 'spell'   ? 'spell_cards'
+              : 'structure_cards';
+  const { error: typeErr } = await sb.from(table).upsert({ card_id: id, ...extra });
+  if (typeErr) { showToast('Fel: ' + typeErr.message); return false; }
   return true;
 }
 
@@ -109,25 +129,40 @@ function showToast(msg) {
 
 // ── Overview ──────────────────────────────────────────────────────────────────
 const grid       = document.getElementById('card-grid');
-const cardCount   = document.getElementById('card-count');
-const searchEl    = document.getElementById('search');
-const filterType  = document.getElementById('filter-type');
-const filterClass = document.getElementById('filter-class');
-const filterRar   = document.getElementById('filter-rarity');
+const cardCount      = document.getElementById('card-count');
+const searchEl       = document.getElementById('search');
+const filterKeywords = document.getElementById('filter-keywords');
+const filterType     = document.getElementById('filter-type');
+const filterClass    = document.getElementById('filter-class');
+const filterRar      = document.getElementById('filter-rarity');
+const filterEffect   = document.getElementById('filter-effect');
+const filterMana     = document.getElementById('filter-mana');
+const filterAttack   = document.getElementById('filter-attack');
+const filterHealth   = document.getElementById('filter-health');
 
 async function renderGrid() {
   grid.innerHTML = `<div class="empty-state">⏳<p>Laddar kort…</p></div>`;
   let cards = await loadCards();
 
-  const q   = searchEl.value.trim().toLowerCase();
-  const typ = filterType.value;
-  const cls = filterClass.value;
-  const rar = filterRar.value;
+  const q      = searchEl.value.trim().toLowerCase();
+  const kw     = filterKeywords.value.trim().toUpperCase();
+  const typ    = filterType.value;
+  const cls    = filterClass.value;
+  const rar    = filterRar.value;
+  const eff    = filterEffect.value;
+  const mana   = filterMana.value !== '' ? parseInt(filterMana.value) : null;
+  const attack = filterAttack.value !== '' ? parseInt(filterAttack.value) : null;
+  const health = filterHealth.value !== '' ? parseInt(filterHealth.value) : null;
 
-  if (q)   cards = cards.filter(c => c.name.toLowerCase().includes(q) || c.id.toLowerCase().includes(q));
-  if (typ) cards = cards.filter(c => c.card_type === typ);
-  if (cls) cards = cards.filter(c => c.card_class === cls);
-  if (rar) cards = cards.filter(c => c.rarity === rar);
+  if (q)      cards = cards.filter(c => c.name.toLowerCase().includes(q) || c.id.toLowerCase().includes(q));
+  if (kw)     cards = cards.filter(c => (c.keywords || '').toUpperCase().includes(kw));
+  if (typ)    cards = cards.filter(c => c.card_type === typ);
+  if (cls)    cards = cards.filter(c => c.card_class === cls);
+  if (rar)    cards = cards.filter(c => c.rarity === rar);
+  if (eff)    cards = cards.filter(c => c.effect_id === eff || c.ability_id === eff);
+  if (mana   !== null) cards = cards.filter(c => (c.mana ?? 0) <= mana);
+  if (attack !== null) cards = cards.filter(c => (c.attack ?? 0) >= attack);
+  if (health !== null) cards = cards.filter(c => (c.health ?? 0) >= health);
 
   cardCount.textContent = `${cards.length} kort`;
 
@@ -178,7 +213,7 @@ async function renderGrid() {
 }
 
 let searchTimer;
-[searchEl, filterType, filterClass, filterRar].forEach(el => {
+[searchEl, filterKeywords, filterType, filterClass, filterRar, filterEffect, filterMana, filterAttack, filterHealth].forEach(el => {
   el.addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(renderGrid, 300); });
 });
 
@@ -194,7 +229,16 @@ const detailStats  = document.getElementById('detail-stats');
 document.getElementById('btn-detail-close').addEventListener('click', () => detailModal.classList.remove('open'));
 detailModal.addEventListener('click', e => { if (e.target === detailModal) detailModal.classList.remove('open'); });
 
+document.getElementById('btn-detail-edit').addEventListener('click', () => {
+  if (!currentDetailCard) return;
+  detailModal.classList.remove('open');
+  openEditForm(currentDetailCard);
+});
+
+let currentDetailCard = null;
+
 function openCardDetail(card) {
+  currentDetailCard = card;
   // Images
   const paths = card.artwork_path ? card.artwork_path.split(',').map(p => p.trim()).filter(Boolean) : [];
   detailImages.innerHTML = paths.length
@@ -374,6 +418,7 @@ function updateTypeSections() {
 updateTypeSections();
 
 async function resetForm() {
+  editingId = null;
   form.reset();
   selectedImageFile  = null;
   selectedImageFile2 = null;
@@ -381,12 +426,90 @@ async function resetForm() {
   artworkPreview2.innerHTML = '🖼';
   artworkFilename.textContent  = '';
   artworkFilename2.textContent = '';
+  document.getElementById('field-id').disabled = false;
   document.getElementById('field-id').value = await nextId();
+  document.getElementById('form-title').textContent = 'Lägg till kort';
+  form.querySelector('button[type="submit"]').textContent = 'Spara kort';
   updateTypeSections();
   resetKeywords();
 }
 
+let editingId = null;
+
+function setFieldVal(name, val) {
+  const el = form.querySelector(`[name="${name}"]`);
+  if (el && val !== undefined && val !== null) el.value = val;
+}
+
+async function openEditForm(card) {
+  editingId = card.id;
+  await refreshAllCards();
+  document.getElementById('form-title').textContent = `Redigera kort — ${card.name}`;
+  form.querySelector('button[type="submit"]').textContent = 'Spara ändringar';
+
+  setFieldVal('id',          card.id);
+  setFieldVal('name',        card.name);
+  setFieldVal('mana',        card.mana);
+  setFieldVal('card_class',  card.card_class);
+  setFieldVal('card_type',   card.card_type);
+  setFieldVal('description', card.description);
+  setFieldVal('rarity',      card.rarity);
+  setFieldVal('draft_tag',   card.draft_tag);
+  document.getElementById('field-id').disabled = true;
+
+  // Keywords
+  resetKeywords();
+  if (card.keywords) {
+    card.keywords.split(',').map(k => k.trim()).forEach(kw => {
+      const tag = kwPicker.querySelector(`[data-kw="${kw}"]`);
+      if (tag) tag.classList.add('active');
+    });
+    kwHidden.value = card.keywords;
+  }
+
+  updateTypeSections();
+
+  if (card.card_type === 'minion') {
+    setFieldVal('attack', card.attack); setFieldVal('health', card.health);
+    setFieldVal('subtype', card.subtype); setFieldVal('ability_id', card.ability_id);
+    setFieldVal('ability_trigger', card.ability_trigger); setFieldVal('ability_cost', card.ability_cost);
+    setFieldVal('ability_target_mode', card.ability_target_mode);
+    setFieldVal('ability_targeting_mode', card.ability_targeting_mode);
+    setFieldVal('ability_value', card.ability_value); setFieldVal('ability_arg', card.ability_arg);
+  } else if (card.card_type === 'spell') {
+    setFieldVal('effect_id', card.effect_id); setFieldVal('effect_value', card.effect_value);
+    setFieldVal('target_mode', card.target_mode); setFieldVal('targeting_mode', card.targeting_mode);
+    setFieldVal('school', card.school); setFieldVal('effect_arg', card.effect_arg);
+    setFieldVal('repeat_count', card.repeat_count); setFieldVal('repeat_mode', card.repeat_mode);
+  } else if (card.card_type === 'structure') {
+    setFieldVal('armor', card.armor); setFieldVal('s_subtype', card.subtype);
+    setFieldVal('maintenance_cost', card.maintenance_cost); setFieldVal('s_ability_id', card.ability_id);
+    setFieldVal('s_ability_cost', card.ability_cost); setFieldVal('s_ability_target_mode', card.ability_target_mode);
+    setFieldVal('s_ability_targeting_mode', card.ability_targeting_mode);
+    setFieldVal('s_ability_value', card.ability_value); setFieldVal('s_ability_arg', card.ability_arg);
+    setFieldVal('repair_cost', card.repair_cost); setFieldVal('repair_value', card.repair_value);
+    setFieldVal('trigger_id', card.trigger_id); setFieldVal('trigger_value', card.trigger_value);
+    setFieldVal('trigger_target_mode', card.trigger_target_mode);
+  }
+
+  // Visa befintliga bilder
+  if (card.artwork_path) {
+    const paths = card.artwork_path.split(',').map(p => p.trim());
+    if (paths[0]) {
+      artworkPreview.innerHTML = `<img src="${sb.storage.from(BUCKET).getPublicUrl(paths[0]).data.publicUrl}" alt="">`;
+      artworkFilename.textContent = paths[0] + ' (befintlig)';
+    }
+    if (paths[1]) {
+      artworkPreview2.innerHTML = `<img src="${sb.storage.from(BUCKET).getPublicUrl(paths[1]).data.publicUrl}" alt="">`;
+      artworkFilename2.textContent = paths[1] + ' (befintlig)';
+    }
+  }
+
+  showPage('page-add');
+}
+
 document.querySelector('nav button[data-page="page-add"]').addEventListener('click', async () => {
+  if (editingId) { editingId = null; await resetForm(); }
   await refreshAllCards();
   document.getElementById('field-id').value = await nextId();
 });
@@ -423,18 +546,20 @@ form.addEventListener('submit', async e => {
     return;
   }
 
-  await refreshAllCards();
-  if (allCards.find(c => c.id.toLowerCase() === base.id.toLowerCase())) {
-    showToast(`ID "${base.id}" är redan taget!`);
-    submitBtn.disabled = false;
-    submitBtn.textContent = 'Spara kort';
-    return;
-  }
-  if (allCards.find(c => c.name.toLowerCase() === base.name.toLowerCase())) {
-    showToast(`Namn "${base.name}" är redan taget!`);
-    submitBtn.disabled = false;
-    submitBtn.textContent = 'Spara kort';
-    return;
+  if (!editingId) {
+    await refreshAllCards();
+    if (allCards.find(c => c.id.toLowerCase() === base.id.toLowerCase())) {
+      showToast(`ID "${base.id}" är redan taget!`);
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Spara kort';
+      return;
+    }
+    if (allCards.find(c => c.name.toLowerCase() === base.name.toLowerCase())) {
+      showToast(`Namn "${base.name}" är redan taget!`);
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Spara kort';
+      return;
+    }
   }
 
   let extra = {};
@@ -481,12 +606,15 @@ form.addEventListener('submit', async e => {
     };
   }
 
-  const ok = await saveCard(base, extra, selectedImageFile, selectedImageFile2);
+  const ok = editingId
+    ? await updateCard(editingId, base, extra, selectedImageFile, selectedImageFile2)
+    : await saveCard(base, extra, selectedImageFile, selectedImageFile2);
+
   submitBtn.disabled = false;
-  submitBtn.textContent = 'Spara kort';
+  submitBtn.textContent = editingId ? 'Spara ändringar' : 'Spara kort';
 
   if (ok) {
-    showToast(`"${base.name}" sparat!`);
+    showToast(editingId ? `"${base.name}" uppdaterat!` : `"${base.name}" sparat!`);
     await resetForm();
     showPage('page-overview');
   }
