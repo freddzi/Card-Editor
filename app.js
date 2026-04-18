@@ -2,7 +2,7 @@
 
 // ── Supabase ──────────────────────────────────────────────────────────────────
 const SUPABASE_URL = 'https://uofhyrawyjhqbdztagae.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_QtniV0UdS9gY80_2O5HL7g_5uVDarKy';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVvZmh5cmF3eWpocWJkenRhZ2FlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY1MTgwMDEsImV4cCI6MjA5MjA5NDAwMX0.ihOsMlG6LBe71Ta13T1Pomzv38zX3Vw8YIw9Pn2FfjU';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const BUCKET = 'card-images';
