@@ -212,9 +212,17 @@ nav button.active { background: var(--surface2); color: var(--gold); font-weight
 }
 
 .class-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+  display: flex;
+  flex-direction: row;
   gap: 14px;
+  overflow-x: auto;
+  padding-bottom: 10px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.class-grid .card-tile {
+  flex: 0 0 155px;
 }
 
 .empty-state {

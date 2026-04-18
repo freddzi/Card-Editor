@@ -58,6 +58,7 @@
     <input id="filter-mana" type="number" min="0" placeholder="Mana ≤" style="width:80px">
     <input id="filter-attack" type="number" min="0" placeholder="Attack ≥" style="width:90px">
     <input id="filter-health" type="number" min="0" placeholder="Health ≥" style="width:90px">
+    <button class="btn btn-secondary" id="btn-clear-filters" style="white-space:nowrap">Rensa filter</button>
   </div>
   <div class="card-grid" id="card-grid"></div>
 </section>
@@ -429,6 +430,7 @@
 
       <div class="form-actions">
         <button type="button" class="btn btn-secondary" id="btn-reset">Återställ</button>
+        <button type="button" class="btn btn-danger" id="btn-cancel-edit" style="display:none">Avbryt redigering</button>
         <button type="submit" class="btn btn-primary">Spara kort</button>
       </div>
     </form>

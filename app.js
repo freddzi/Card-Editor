@@ -449,6 +449,7 @@ async function resetForm() {
   document.getElementById('field-id').value = await nextId();
   document.getElementById('form-title').textContent = 'Lägg till kort';
   form.querySelector('button[type="submit"]').textContent = 'Spara kort';
+  document.getElementById('btn-cancel-edit').style.display = 'none';
   updateTypeSections();
   resetKeywords();
 }
@@ -467,6 +468,7 @@ async function openEditForm(card) {
   await refreshAllCards();
   document.getElementById('form-title').textContent = `Redigera kort — ${card.name}`;
   form.querySelector('button[type="submit"]').textContent = 'Spara ändringar';
+  document.getElementById('btn-cancel-edit').style.display = 'inline-block';
 
   setFieldVal('id',          card.id);
   setFieldVal('name',        card.name);
@@ -642,6 +644,24 @@ form.addEventListener('submit', async e => {
 });
 
 document.getElementById('btn-reset').addEventListener('click', resetForm);
+
+document.getElementById('btn-cancel-edit').addEventListener('click', async () => {
+  await resetForm();
+  showPage('page-overview');
+});
+
+document.getElementById('btn-clear-filters').addEventListener('click', () => {
+  searchEl.value = '';
+  filterKeywords.value = '';
+  filterType.value = '';
+  filterClass.value = '';
+  filterRar.value = '';
+  filterEffect.value = '';
+  filterMana.value = '';
+  filterAttack.value = '';
+  filterHealth.value = '';
+  renderGrid();
+});
 
 // ── Export ────────────────────────────────────────────────────────────────────
 const sqlOutput = document.getElementById('sql-output');
