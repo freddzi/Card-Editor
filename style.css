@@ -187,6 +187,36 @@ nav button.active { background: var(--surface2); color: var(--gold); font-weight
 
 .card-tile:hover .tile-del { opacity: 1; }
 
+.class-section { margin-bottom: 32px; }
+
+.class-heading {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--gold);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 10px 0 10px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.card-count-small {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.class-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+  gap: 14px;
+}
+
 .empty-state {
   grid-column: 1/-1;
   text-align: center;

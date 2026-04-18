@@ -140,6 +140,30 @@ const filterMana     = document.getElementById('filter-mana');
 const filterAttack   = document.getElementById('filter-attack');
 const filterHealth   = document.getElementById('filter-health');
 
+const CLASS_ORDER = ['Dark', 'Wasteland', 'The Blue', 'Forest', 'Neutral'];
+
+function cardTileHTML(c) {
+  const firstPath = c.artwork_path ? c.artwork_path.split(',')[0].trim() : null;
+  const imgSrc = firstPath ? sb.storage.from(BUCKET).getPublicUrl(firstPath).data.publicUrl : null;
+  const img = imgSrc ? `<img src="${imgSrc}" alt="${c.name}">` : `<div class="no-img">🃏</div>`;
+  const stats = c.card_type === 'minion'
+    ? `${c.attack ?? '?'}/${c.health ?? '?'} · ${c.subtype || '-'}`
+    : c.card_type === 'spell' ? `Mana ${c.mana}` : `Armor ${c.armor ?? '?'}`;
+  return `
+  <div class="card-tile" data-id="${c.id}" title="${c.id}">
+    ${img}
+    <button class="tile-del" data-del="${c.id}">✕</button>
+    <div class="card-tile-info">
+      <div class="card-tile-name">${c.name}</div>
+      <div class="card-tile-sub">
+        <span class="badge badge-${c.card_type}">${c.card_type}</span>
+        <span class="badge badge-${c.rarity}">${c.rarity}</span>
+      </div>
+      <div class="card-tile-sub" style="margin-top:4px;font-size:11px">${stats}</div>
+    </div>
+  </div>`;
+}
+
 async function renderGrid() {
   grid.innerHTML = `<div class="empty-state">⏳<p>Laddar kort…</p></div>`;
   let cards = await loadCards();
@@ -171,34 +195,22 @@ async function renderGrid() {
     return;
   }
 
-  grid.innerHTML = cards.map(c => {
-    const firstPath = c.artwork_path ? c.artwork_path.split(',')[0].trim() : null;
-    const imgSrc = firstPath
-      ? sb.storage.from(BUCKET).getPublicUrl(firstPath).data.publicUrl
-      : null;
-    const img = imgSrc
-      ? `<img src="${imgSrc}" alt="${c.name}">`
-      : `<div class="no-img">🃏</div>`;
-    const stats = c.card_type === 'minion'
-      ? `${c.attack ?? '?'}/${c.health ?? '?'} · ${c.subtype || '-'}`
-      : c.card_type === 'spell'
-      ? `Mana ${c.mana}`
-      : `Armor ${c.armor ?? '?'}`;
+  // Gruppera per klass
+  const groups = {};
+  CLASS_ORDER.forEach(cl => groups[cl] = []);
+  cards.forEach(c => {
+    const key = CLASS_ORDER.includes(c.card_class) ? c.card_class : 'Neutral';
+    groups[key].push(c);
+  });
 
-    return `
-    <div class="card-tile" data-id="${c.id}" title="${c.id}">
-      ${img}
-      <button class="tile-del" data-del="${c.id}">✕</button>
-      <div class="card-tile-info">
-        <div class="card-tile-name">${c.name}</div>
-        <div class="card-tile-sub">
-          <span class="badge badge-${c.card_type}">${c.card_type}</span>
-          <span class="badge badge-${c.rarity}">${c.rarity}</span>
-        </div>
-        <div class="card-tile-sub" style="margin-top:4px;font-size:11px">${stats}</div>
-      </div>
-    </div>`;
-  }).join('');
+  grid.innerHTML = CLASS_ORDER
+    .filter(cl => groups[cl].length > 0)
+    .map(cl => `
+      <div class="class-section" id="class-${cl.replace(/\s/g,'-')}">
+        <div class="class-heading">${cl} <span class="card-count-small">${groups[cl].length}</span></div>
+        <div class="class-grid">${groups[cl].map(cardTileHTML).join('')}</div>
+      </div>`)
+    .join('');
 
   grid.querySelectorAll('.tile-del').forEach(btn => {
     btn.addEventListener('click', e => { e.stopPropagation(); confirmDelete(btn.dataset.del); });
@@ -210,6 +222,12 @@ async function renderGrid() {
       if (card) openCardDetail(card);
     });
   });
+
+  // Scrolla till vald klass
+  if (cls) {
+    const section = document.getElementById(`class-${cls.replace(/\s/g,'-')}`);
+    if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 }
 
 let searchTimer;
