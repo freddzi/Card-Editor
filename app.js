@@ -145,21 +145,45 @@ const CLASS_ORDER = ['Dark', 'Wasteland', 'The Blue', 'Forest', 'Neutral'];
 function cardTileHTML(c) {
   const firstPath = c.artwork_path ? c.artwork_path.split(',')[0].trim() : null;
   const imgSrc = firstPath ? sb.storage.from(BUCKET).getPublicUrl(firstPath).data.publicUrl : null;
-  const img = imgSrc ? `<img src="${imgSrc}" alt="${c.name}">` : `<div class="no-img">🃏</div>`;
-  const stats = c.card_type === 'minion'
-    ? `${c.attack ?? '?'}/${c.health ?? '?'} · ${c.subtype || '-'}`
-    : c.card_type === 'spell' ? `Mana ${c.mana}` : `Armor ${c.armor ?? '?'}`;
+
+  const imgContent = imgSrc ? `<img src="${imgSrc}" alt="${c.name}">` : `<div class="no-img">🃏</div>`;
+
+  let statsOverlay = '';
+  if (c.card_type === 'minion') {
+    statsOverlay = `<div class="card-overlay-stats">
+      <span class="card-stat-atk">${c.attack ?? '?'}</span>
+      <span class="card-stat-hp">${c.health ?? '?'}</span>
+    </div>`;
+  } else if (c.card_type === 'structure') {
+    statsOverlay = `<div class="card-overlay-stats">
+      <span class="card-stat-armor">🛡 ${c.armor ?? '?'}</span>
+    </div>`;
+  }
+
+  const keywords = (c.keywords || '').split(',').map(k => k.trim()).filter(Boolean);
+  const kwHTML = keywords.length
+    ? `<div class="card-tile-keywords">${keywords.map(k => `<span class="kw-badge">${k}</span>`).join('')}</div>`
+    : '';
+
+  const effectInfo = c.card_type === 'spell' && c.effect_id
+    ? `<span style="font-size:10px;color:var(--muted)">${c.effect_id} ${c.effect_value > 0 ? c.effect_value : ''}</span>`
+    : c.ability_id ? `<span style="font-size:10px;color:var(--muted)">${c.ability_id} ${c.ability_value > 0 ? c.ability_value : ''}</span>` : '';
+
   return `
   <div class="card-tile" data-id="${c.id}" title="${c.id}">
-    ${img}
     <button class="tile-del" data-del="${c.id}">✕</button>
+    <div class="card-tile-img-wrap">
+      ${imgContent}
+      <div class="card-overlay-mana">${c.mana ?? 0}</div>
+      ${statsOverlay}
+    </div>
     <div class="card-tile-info">
       <div class="card-tile-name">${c.name}</div>
-      <div class="card-tile-sub">
-        <span class="badge badge-${c.card_type}">${c.card_type}</span>
+      <div class="card-tile-badges">
         <span class="badge badge-${c.rarity}">${c.rarity}</span>
+        ${effectInfo}
       </div>
-      <div class="card-tile-sub" style="margin-top:4px;font-size:11px">${stats}</div>
+      ${kwHTML}
     </div>
   </div>`;
 }
