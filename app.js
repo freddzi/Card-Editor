@@ -23,16 +23,30 @@ async function loadCards() {
   });
 }
 
-async function saveCard(base, extra, imageFile) {
-  // Upload image first if provided
+async function saveCard(base, extra, imageFile, imageFile2) {
+  async function uploadImg(file, suffix) {
+    const ext  = file.name.split('.').pop();
+    const path = `${base.id}${suffix}.${ext}`;
+    const { error } = await sb.storage.from(BUCKET).upload(path, file, { upsert: true });
+    if (error) { showToast('Bilduppladdning misslyckades: ' + error.message); return null; }
+    return path;
+  }
+
+  const paths = [];
   if (imageFile) {
-    const ext  = imageFile.name.split('.').pop();
-    const path = `${base.id}.${ext}`;
-    const { error: upErr } = await sb.storage.from(BUCKET).upload(path, imageFile, { upsert: true });
-    if (upErr) { showToast('Bilduppladdning misslyckades: ' + upErr.message); return false; }
-    const { data: urlData } = sb.storage.from(BUCKET).getPublicUrl(path);
-    base.artwork_path = path;
-    base.artwork_url  = urlData.publicUrl;
+    const p = await uploadImg(imageFile, imageFile2 ? '_v1' : '');
+    if (!p) return false;
+    paths.push(p);
+  }
+  if (imageFile2) {
+    const p = await uploadImg(imageFile2, '_v2');
+    if (!p) return false;
+    paths.push(p);
+  }
+
+  if (paths.length) {
+    base.artwork_path = paths.join(', ');
+    base.artwork_url  = sb.storage.from(BUCKET).getPublicUrl(paths[0]).data.publicUrl;
   }
 
   const { error: cardErr } = await sb.from('cards').insert(base);
@@ -205,26 +219,36 @@ function resetKeywords() {
 }
 
 // ── Add Card form ─────────────────────────────────────────────────────────────
-const form           = document.getElementById('card-form');
-const typeSelect     = document.getElementById('field-card_type');
-const artworkInput   = document.getElementById('artwork-input');
-const artworkPreview = document.getElementById('artwork-preview');
+const form            = document.getElementById('card-form');
+const typeSelect      = document.getElementById('field-card_type');
+const artworkInput    = document.getElementById('artwork-input');
+const artworkPreview  = document.getElementById('artwork-preview');
 const artworkFilename = document.getElementById('artwork-filename');
+const artworkInput2    = document.getElementById('artwork-input-2');
+const artworkPreview2  = document.getElementById('artwork-preview-2');
+const artworkFilename2 = document.getElementById('artwork-filename-2');
+const artwork2Wrap     = document.getElementById('artwork2-wrap');
+const artworkLabel1    = document.getElementById('artwork-label-1');
 
-let selectedImageFile = null;
+let selectedImageFile  = null;
+let selectedImageFile2 = null;
 
-artworkPreview.addEventListener('click', () => artworkInput.click());
-artworkInput.addEventListener('change', () => {
-  const file = artworkInput.files[0];
-  if (!file) return;
-  selectedImageFile = file;
-  artworkFilename.textContent = file.name;
-  const reader = new FileReader();
-  reader.onload = e => {
-    artworkPreview.innerHTML = `<img src="${e.target.result}" alt="preview">`;
-  };
-  reader.readAsDataURL(file);
-});
+function setupArtworkUpload(input, preview, filenameEl, slot) {
+  preview.addEventListener('click', () => input.click());
+  input.addEventListener('change', () => {
+    const file = input.files[0];
+    if (!file) return;
+    if (slot === 1) selectedImageFile  = file;
+    else            selectedImageFile2 = file;
+    filenameEl.textContent = file.name;
+    const reader = new FileReader();
+    reader.onload = e => { preview.innerHTML = `<img src="${e.target.result}" alt="preview">`; };
+    reader.readAsDataURL(file);
+  });
+}
+
+setupArtworkUpload(artworkInput,  artworkPreview,  artworkFilename,  1);
+setupArtworkUpload(artworkInput2, artworkPreview2, artworkFilename2, 2);
 
 typeSelect.addEventListener('change', updateTypeSections);
 
@@ -233,15 +257,21 @@ function updateTypeSections() {
   document.querySelectorAll('.type-section').forEach(s => {
     s.classList.toggle('visible', s.dataset.type === t);
   });
+  const needsTwo = t === 'minion' || t === 'structure';
+  artwork2Wrap.style.display  = needsTwo ? 'flex' : 'none';
+  artworkLabel1.textContent   = needsTwo ? 'Variant 1' : 'Bild';
 }
 
 updateTypeSections();
 
 async function resetForm() {
   form.reset();
-  selectedImageFile = null;
-  artworkPreview.innerHTML = '🖼';
-  artworkFilename.textContent = '';
+  selectedImageFile  = null;
+  selectedImageFile2 = null;
+  artworkPreview.innerHTML  = '🖼';
+  artworkPreview2.innerHTML = '🖼';
+  artworkFilename.textContent  = '';
+  artworkFilename2.textContent = '';
   document.getElementById('field-id').value = await nextId();
   updateTypeSections();
   resetKeywords();
@@ -324,7 +354,7 @@ form.addEventListener('submit', async e => {
     };
   }
 
-  const ok = await saveCard(base, extra, selectedImageFile);
+  const ok = await saveCard(base, extra, selectedImageFile, selectedImageFile2);
   submitBtn.disabled = false;
   submitBtn.textContent = 'Spara kort';
 

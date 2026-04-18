@@ -54,16 +54,27 @@
         <div class="field-row">
           <div class="field field-full">
             <legend>Kortbild</legend>
+            <!-- Variant 1 (alltid synlig) -->
             <div class="artwork-upload">
               <div class="artwork-preview" id="artwork-preview">🖼</div>
               <div class="artwork-right">
-                <label>Ladda upp bild</label>
+                <label id="artwork-label-1">Bild</label>
                 <div class="btn-upload" onclick="document.getElementById('artwork-input').click()">Välj fil…</div>
                 <input type="file" id="artwork-input" accept="image/*" style="display:none">
                 <span id="artwork-filename" style="font-size:12px;color:var(--muted)"></span>
-                <p style="font-size:11px;color:var(--muted);margin-top:4px">Bilden sparas lokalt i webbläsaren. Filnamnet används i SQL-exporten.</p>
               </div>
             </div>
+            <!-- Variant 2 (minion + structure) -->
+            <div class="artwork-upload" id="artwork2-wrap" style="margin-top:12px;display:none">
+              <div class="artwork-preview" id="artwork-preview-2">🖼</div>
+              <div class="artwork-right">
+                <label>Variant 2</label>
+                <div class="btn-upload" onclick="document.getElementById('artwork-input-2').click()">Välj fil…</div>
+                <input type="file" id="artwork-input-2" accept="image/*" style="display:none">
+                <span id="artwork-filename-2" style="font-size:12px;color:var(--muted)"></span>
+              </div>
+            </div>
+            <p style="font-size:11px;color:var(--muted);margin-top:8px">Filnamnen används i SQL-exporten (artwork_path).</p>
           </div>
         </div>
       </div>
