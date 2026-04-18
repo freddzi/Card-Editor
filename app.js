@@ -159,12 +159,80 @@ async function renderGrid() {
   grid.querySelectorAll('.tile-del').forEach(btn => {
     btn.addEventListener('click', e => { e.stopPropagation(); confirmDelete(btn.dataset.del); });
   });
+
+  grid.querySelectorAll('.card-tile').forEach(tile => {
+    tile.addEventListener('click', () => {
+      const card = cards.find(c => c.id === tile.dataset.id);
+      if (card) openCardDetail(card);
+    });
+  });
 }
 
 let searchTimer;
 [searchEl, filterType, filterRar].forEach(el => {
   el.addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(renderGrid, 300); });
 });
+
+// ── Card detail modal ─────────────────────────────────────────────────────────
+const detailModal  = document.getElementById('card-detail-modal');
+const detailImages = document.getElementById('detail-images');
+const detailName   = document.getElementById('detail-name');
+const detailId     = document.getElementById('detail-id');
+const detailBadges = document.getElementById('detail-badges');
+const detailDesc   = document.getElementById('detail-desc');
+const detailStats  = document.getElementById('detail-stats');
+
+document.getElementById('btn-detail-close').addEventListener('click', () => detailModal.classList.remove('open'));
+detailModal.addEventListener('click', e => { if (e.target === detailModal) detailModal.classList.remove('open'); });
+
+function openCardDetail(card) {
+  // Images
+  const paths = card.artwork_path ? card.artwork_path.split(',').map(p => p.trim()).filter(Boolean) : [];
+  detailImages.innerHTML = paths.length
+    ? paths.map((p, i) => `
+        <img src="${sb.storage.from(BUCKET).getPublicUrl(p).data.publicUrl}" alt="Variant ${i+1}">
+        ${paths.length > 1 ? `<div class="img-label">Variant ${i+1}</div>` : ''}
+      `).join('')
+    : '<div style="color:var(--muted);text-align:center;padding:40px">Ingen bild</div>';
+
+  detailName.textContent = card.name;
+  detailId.textContent   = `${card.id} · ${card.card_class || '-'} · Mana ${card.mana}`;
+
+  detailBadges.innerHTML = `
+    <span class="badge badge-${card.card_type}">${card.card_type}</span>
+    <span class="badge badge-${card.rarity}">${card.rarity}</span>
+    ${card.keywords ? card.keywords.split(',').map(k => `<span class="badge" style="background:#1a2a3a;color:#aac">${k.trim()}</span>`).join('') : ''}
+  `;
+
+  detailDesc.textContent = card.description || '—';
+
+  const stats = [];
+  if (card.card_type === 'minion') {
+    stats.push(['Attack', card.attack ?? '-'], ['Health', card.health ?? '-'],
+               ['Subtype', card.subtype || '-'], ['Ability', card.ability_id || '-'],
+               ['Trigger', card.ability_trigger || '-'], ['Ability Cost', card.ability_cost ?? 0],
+               ['Target Mode', card.ability_target_mode || '-'], ['Targeting', card.ability_targeting_mode || '-'],
+               ['Ability Value', card.ability_value ?? 0], ['Draft Tag', card.draft_tag || '-']);
+  } else if (card.card_type === 'spell') {
+    stats.push(['Effect', card.effect_id || '-'], ['Value', card.effect_value ?? 0],
+               ['Target Mode', card.target_mode || '-'], ['Targeting', card.targeting_mode || '-'],
+               ['School', card.school || '-'], ['Repeat', `${card.repeat_count ?? 1}x ${card.repeat_mode || ''}`],
+               ['Draft Tag', card.draft_tag || '-']);
+  } else if (card.card_type === 'structure') {
+    stats.push(['Armor', card.armor ?? '-'], ['Subtype', card.subtype || '-'],
+               ['Maintenance', card.maintenance_cost ?? 0], ['Ability', card.ability_id || '-'],
+               ['Repair Cost', card.repair_cost ?? 0], ['Repair Value', card.repair_value ?? 0],
+               ['Trigger', card.trigger_id || '-'], ['Draft Tag', card.draft_tag || '-']);
+  }
+
+  detailStats.innerHTML = stats.map(([label, val]) => `
+    <div class="stat-row">
+      <div class="stat-label">${label}</div>
+      <div class="stat-value">${val}</div>
+    </div>`).join('');
+
+  detailModal.classList.add('open');
+}
 
 // ── Delete modal ──────────────────────────────────────────────────────────────
 const delModal    = document.getElementById('delete-modal');
