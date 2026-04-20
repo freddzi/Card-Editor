@@ -7,6 +7,10 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const BUCKET = 'card-images';
 
+function imgUrl(path) {
+  return sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+}
+
 // ── Load cards ────────────────────────────────────────────────────────────────
 async function loadCards() {
   const { data, error } = await sb.from('cards').select(`
@@ -183,7 +187,7 @@ const CLASS_ORDER = ['Dark', 'Wasteland', 'The Blue', 'Forest', 'Neutral'];
 
 function cardTileHTML(c) {
   const firstPath = c.artwork_path ? c.artwork_path.split(',')[0].trim() : null;
-  const imgSrc = firstPath ? sb.storage.from(BUCKET).getPublicUrl(firstPath).data.publicUrl : null;
+  const imgSrc = firstPath ? imgUrl(firstPath) : null;
 
   const imgContent = imgSrc ? `<img src="${imgSrc}" alt="${c.name}">` : `<div class="no-img">🃏</div>`;
 
@@ -280,21 +284,17 @@ async function renderGrid() {
         `class-${cls.replace(/\s/g,'-')}-${typ}`
       )).join('');
   } else {
-    // Alla klasser → en rad per klass
-    const groups = {};
-    CLASS_ORDER.forEach(cl => groups[cl] = []);
-    cards.forEach(c => {
-      const key = CLASS_ORDER.includes(c.card_class) ? c.card_class : 'Neutral';
-      groups[key].push(c);
-    });
-
-    grid.innerHTML = CLASS_ORDER
-      .filter(cl => groups[cl].length > 0)
-      .map(cl => renderSection(
-        cl,
-        groups[cl],
-        `class-${cl.replace(/\s/g,'-')}`
-      )).join('');
+    // Alla klasser → gruppera per klass + typ
+    grid.innerHTML = CLASS_ORDER.flatMap(cl =>
+      TYPE_ORDER
+        .map(t => ({ t, group: cards.filter(c => c.card_class === cl && c.card_type === t) }))
+        .filter(({ group }) => group.length > 0)
+        .map(({ t, group }) => renderSection(
+          `${cl} — ${t.charAt(0).toUpperCase() + t.slice(1)}`,
+          group,
+          `class-${cl.replace(/\s/g,'-')}-${t}`
+        ))
+    ).join('');
   }
 
   grid.querySelectorAll('.tile-del').forEach(btn => {
@@ -346,7 +346,7 @@ function openCardDetail(card) {
   const paths = card.artwork_path ? card.artwork_path.split(',').map(p => p.trim()).filter(Boolean) : [];
   detailImages.innerHTML = paths.length
     ? paths.map((p, i) => `
-        <img src="${sb.storage.from(BUCKET).getPublicUrl(p).data.publicUrl}" alt="Variant ${i+1}">
+        <img src="${imgUrl(p)}" alt="Variant ${i+1}">
         ${paths.length > 1 ? `<div class="img-label">Variant ${i+1}</div>` : ''}
       `).join('')
     : '<div style="color:var(--muted);text-align:center;padding:40px">Ingen bild</div>';
@@ -604,11 +604,11 @@ async function openEditForm(card) {
   if (card.artwork_path) {
     const paths = card.artwork_path.split(',').map(p => p.trim());
     if (paths[0]) {
-      artworkPreview.innerHTML = `<img src="${sb.storage.from(BUCKET).getPublicUrl(paths[0]).data.publicUrl}" alt="">`;
+      artworkPreview.innerHTML = `<img src="${imgUrl(paths[0])}" alt="">`;
       artworkFilename.textContent = paths[0] + ' (befintlig)';
     }
     if (paths[1]) {
-      artworkPreview2.innerHTML = `<img src="${sb.storage.from(BUCKET).getPublicUrl(paths[1]).data.publicUrl}" alt="">`;
+      artworkPreview2.innerHTML = `<img src="${imgUrl(paths[1])}" alt="">`;
       artworkFilename2.textContent = paths[1] + ' (befintlig)';
     }
   }
