@@ -1006,6 +1006,694 @@ async function seedDocsIfEmpty() {
 // Kör seed och rendera när sidan visas
 const origShowPage = showPage;
 
+// ── Mallar ────────────────────────────────────────────────────────────────────
+let activeTplType  = '';
+let editingTpl     = null;
+
+const tplGrid          = document.getElementById('tpl-grid');
+const tplEditorOverlay = document.getElementById('tpl-editor-overlay');
+
+async function loadTemplates() {
+  let q = sb.from('card_templates').select('*').order('is_builtin', { ascending: false }).order('created_at');
+  if (activeTplType) q = q.eq('card_type', activeTplType);
+  const { data, error } = await q;
+  if (error) { console.error(error); return []; }
+  return data || [];
+}
+
+function renderTplCard(tpl) {
+  const data  = tpl.card_data  || {};
+  const notes = tpl.field_notes || {};
+
+  const rows = Object.entries(data)
+    .filter(([, v]) => v !== '' && v !== null && v !== undefined)
+    .map(([k, v]) => `
+      <tr>
+        <td class="tpl-field-key">${k}</td>
+        <td class="tpl-field-val"><code>${String(v).replace(/</g,'&lt;')}</code></td>
+        <td class="tpl-field-note">${notes[k] ? String(notes[k]).replace(/</g,'&lt;') : ''}</td>
+      </tr>`).join('');
+
+  const badgeCls = `tpl-badge-${tpl.card_type}`;
+
+  return `
+    <div class="tpl-card" data-tpl-id="${tpl.id}">
+      <div class="tpl-card-header">
+        <div>
+          <div class="tpl-card-title">${tpl.name}</div>
+          ${tpl.description ? `<div class="tpl-card-desc">${tpl.description}</div>` : ''}
+        </div>
+        <span class="tpl-type-badge ${badgeCls}">${tpl.card_type}</span>
+      </div>
+      ${rows ? `
+        <div class="tpl-field-guide">
+          <table class="tpl-field-table">
+            <thead><tr><th>Fält</th><th>Värde</th><th>Förklaring</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>` : ''}
+      <div class="tpl-card-footer">
+        ${tpl.is_builtin
+          ? '<span class="tpl-builtin-label">Inbyggd mall</span>'
+          : `<button class="btn btn-secondary tpl-edit-btn" data-tpl-id="${tpl.id}">Redigera</button>`}
+        <button class="btn btn-primary tpl-use-btn" data-tpl-id="${tpl.id}" style="margin-left:auto">Använd mall →</button>
+      </div>
+    </div>`;
+}
+
+async function renderTplGrid() {
+  tplGrid.innerHTML = '<p style="color:var(--muted);padding:20px 0">Laddar…</p>';
+  const tpls = await loadTemplates();
+  if (!tpls.length) {
+    tplGrid.innerHTML = '<p style="color:var(--muted);padding:20px 0">Inga mallar hittades.</p>';
+    return;
+  }
+  tplGrid.innerHTML = tpls.map(renderTplCard).join('');
+
+  tplGrid.querySelectorAll('.tpl-use-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const tpl = tpls.find(t => String(t.id) === btn.dataset.tplId);
+      if (tpl) await applyTemplate(tpl);
+    });
+  });
+
+  tplGrid.querySelectorAll('.tpl-edit-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tpl = tpls.find(t => String(t.id) === btn.dataset.tplId);
+      if (tpl) openTplEditor(tpl);
+    });
+  });
+}
+
+async function applyTemplate(tpl) {
+  await resetForm();
+  const data = tpl.card_data || {};
+
+  const type = data.card_type || tpl.card_type;
+  setFieldVal('card_type', type);
+  updateTypeSections();
+
+  Object.entries(data).forEach(([k, v]) => {
+    if (k === 'keywords') {
+      resetKeywords();
+      if (v) {
+        v.split(',').map(kw => kw.trim()).forEach(kw => {
+          const tag = kwPicker.querySelector(`[data-kw="${kw}"]`);
+          if (tag) tag.classList.add('active');
+        });
+        kwHidden.value = v;
+      }
+    } else {
+      setFieldVal(k, v);
+    }
+  });
+
+  setFieldVal('card_type', type);
+  updateTypeSections();
+  showPage('page-add');
+  showToast(`Mall "${tpl.name}" applicerad!`);
+}
+
+function openTplEditor(tpl = null) {
+  editingTpl = tpl;
+  document.getElementById('tpl-editor-title').textContent = tpl ? 'Redigera mall' : 'Ny mall';
+  document.getElementById('tpl-card-type').value    = tpl?.card_type    || 'minion';
+  document.getElementById('tpl-name').value         = tpl?.name         || '';
+  document.getElementById('tpl-description').value  = tpl?.description  || '';
+  document.getElementById('tpl-card-data').value    = tpl?.card_data    ? JSON.stringify(tpl.card_data,  null, 2) : '';
+  document.getElementById('tpl-field-notes').value  = tpl?.field_notes  ? JSON.stringify(tpl.field_notes, null, 2) : '';
+  document.getElementById('btn-tpl-delete').style.display = tpl && !tpl.is_builtin ? 'inline-block' : 'none';
+  document.getElementById('tpl-json-error').style.display = 'none';
+  tplEditorOverlay.classList.add('open');
+}
+
+function closeTplEditor() {
+  tplEditorOverlay.classList.remove('open');
+  editingTpl = null;
+}
+
+document.getElementById('btn-new-tpl').addEventListener('click', () => openTplEditor());
+document.getElementById('btn-tpl-cancel').addEventListener('click', closeTplEditor);
+document.getElementById('btn-tpl-close').addEventListener('click', closeTplEditor);
+tplEditorOverlay.addEventListener('click', e => { if (e.target === tplEditorOverlay) closeTplEditor(); });
+
+document.getElementById('btn-tpl-save').addEventListener('click', async () => {
+  const errEl = document.getElementById('tpl-json-error');
+  errEl.style.display = 'none';
+
+  const name = document.getElementById('tpl-name').value.trim();
+  if (!name) { showToast('Mallnamn krävs.'); return; }
+
+  let card_data = {}, field_notes = {};
+  try {
+    const rawData = document.getElementById('tpl-card-data').value.trim();
+    if (rawData) card_data = JSON.parse(rawData);
+  } catch (e) {
+    errEl.textContent = 'Ogiltig JSON i Kortdata: ' + e.message;
+    errEl.style.display = 'block';
+    return;
+  }
+  try {
+    const rawNotes = document.getElementById('tpl-field-notes').value.trim();
+    if (rawNotes) field_notes = JSON.parse(rawNotes);
+  } catch (e) {
+    errEl.textContent = 'Ogiltig JSON i Fältnoter: ' + e.message;
+    errEl.style.display = 'block';
+    return;
+  }
+
+  const payload = {
+    name,
+    description: document.getElementById('tpl-description').value.trim(),
+    card_type:   document.getElementById('tpl-card-type').value,
+    card_data,
+    field_notes,
+    is_builtin:  false,
+  };
+
+  if (editingTpl) {
+    await sb.from('card_templates').update(payload).eq('id', editingTpl.id);
+    showToast('Mall uppdaterad!');
+  } else {
+    await sb.from('card_templates').insert(payload);
+    showToast('Mall sparad!');
+  }
+  closeTplEditor();
+  renderTplGrid();
+});
+
+document.getElementById('btn-tpl-delete').addEventListener('click', async () => {
+  if (!editingTpl || editingTpl.is_builtin) return;
+  await sb.from('card_templates').delete().eq('id', editingTpl.id);
+  showToast('Mall borttagen.');
+  closeTplEditor();
+  renderTplGrid();
+});
+
+// Tabb-logik för Mallar/Regelguide
+document.querySelectorAll('.tpl-tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tpl-tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tpl-tab-content').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(`tpl-tab-${btn.dataset.tab}`).classList.add('active');
+  });
+});
+
+document.querySelectorAll('.tpl-type-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tpl-type-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeTplType = btn.dataset.type;
+    renderTplGrid();
+  });
+});
+
+async function seedTemplatesIfEmpty() {
+  const { count } = await sb.from('card_templates').select('*', { count: 'exact', head: true });
+  if (count > 0) return;
+
+  const seed = [
+    // ── MINIONS ──────────────────────────────────────────────────────────
+    {
+      name: 'Enkel Minion — 2/2 utan förmåga',
+      description: 'Den enklaste möjliga minionen. Bra startpunkt. Byt stats och klass efter behov.',
+      card_type: 'minion', is_builtin: true,
+      card_data: {
+        mana:2, card_class:'Neutral', rarity:'common',
+        description:'',
+        attack:2, health:2, subtype:'',
+      },
+      field_notes: {
+        mana: 'Kostnaden för att spela kortet. Tumregel: en "rättvis" 2/2 kostar 2 mana.',
+        card_class: 'Neutral = alla klasser kan spela den. Dark, Wasteland, The Blue, Forest = klassspecifik.',
+        rarity: 'common = dyker upp ofta i draft. legendary = max 1 kopia, designas som unika gamechangers.',
+        attack: 'Skada minionen gör varje attack. 0 = kan inte anfalla effektivt.',
+        health: 'HP-poäng. Minst 1. Noll = dör.',
+        subtype: 'Undertyp visas under kortnamnet, t.ex. "Beast" eller "Undead". Lämna tomt om ingen.',
+      },
+    },
+    {
+      name: 'Minion med FLYING',
+      description: 'Flying-minion som bara kan blockas av andra FLYING eller REACH. Bra aggro-hottar.',
+      card_type: 'minion', is_builtin: true,
+      card_data: {
+        mana:2, card_class:'Dark', rarity:'common',
+        description:'Flying.',
+        keywords:'FLYING',
+        attack:2, health:1, subtype:'Beast',
+      },
+      field_notes: {
+        keywords: 'FLYING = kan bara blockas av FLYING eller REACH. Skriv alltid VERSALER. Flera keywords: "FLYING, RAPID".',
+        description: 'Kortets regeltext. Skriv ut keywords här med stor bokstav för tydlighet: "Flying."',
+        attack: '2 attack med 1 health = fragil men hotfull. Svårt att blocka utan FLYING/REACH.',
+        subtype: 'Beast = tematisk för flygande djur. Kan ge synergier med beastsynergikort.',
+      },
+    },
+    {
+      name: 'Minion med RAPID (anfaller direkt)',
+      description: 'Kan anfalla omedelbart när den spelas — går direkt till FRONT_LINE utan att vänta en tur.',
+      card_type: 'minion', is_builtin: true,
+      card_data: {
+        mana:3, card_class:'Wasteland', rarity:'uncommon',
+        description:'Rapid.',
+        keywords:'RAPID',
+        attack:3, health:2, subtype:'',
+      },
+      field_notes: {
+        keywords: 'RAPID = ingen "summoning sickness". Anfaller direkt på den tur den spelas.',
+        mana: '3 mana för en 3/2 med RAPID är balanserat — tempovärdet är högt.',
+        attack: '3 attack = kan döda de flesta 2-mana-minions direkt. Bra för att ta board control.',
+      },
+    },
+    {
+      name: 'Tank-minion (hög health, låg attack)',
+      description: 'Defensiv minion som är svår att ta bort. Blockerar hot och absorberar skada.',
+      card_type: 'minion', is_builtin: true,
+      card_data: {
+        mana:3, card_class:'Forest', rarity:'common',
+        description:'',
+        attack:1, health:6, subtype:'',
+      },
+      field_notes: {
+        attack: '1 attack = minimal offensiv kraft. Designad för att blocka, inte anfalla.',
+        health: '6 health för 3 mana = extremt defensivt. Kostar fienden mycket resurser att ta bort.',
+        mana: '3 mana 1/6 är en klassisk "wall"-minion. Bra i defensiva decks.',
+      },
+    },
+    {
+      name: 'Activate — Gör 3 skada (Soul Weaver)',
+      description: 'Aktiverbar förmåga: Spelaren klickar manuellt och betalar 1 mana för att göra 2 skada mot valfritt mål.',
+      card_type: 'minion', is_builtin: true,
+      card_data: {
+        mana:4, card_class:'Dark', rarity:'rare',
+        description:'Activate (1): Deal 2 damage to any target.',
+        keywords:'VAMPIRISM',
+        attack:3, health:4, subtype:'Specter',
+        ability_id:'deal_damage', ability_trigger:'activate',
+        ability_cost:1, ability_target_mode:'any_target',
+        ability_targeting_mode:'explicit', ability_value:2,
+      },
+      field_notes: {
+        ability_trigger: 'activate = spelaren klickar manuellt och betalar kostnaden. Kan bara aktiveras en gång per tur och INTE samma tur minionen anföll.',
+        ability_cost: '1 = kostar 1 mana ATT AKTIVERA, utöver kortets spelkostnad på 4. Totalt: 4 mana att spela + 1 mana att aktivera.',
+        ability_id: 'deal_damage = gör X skada mot ett mål.',
+        ability_value: '2 = skadan som görs. Öka för kraftigare förmåga (och höj mana/cost).',
+        ability_target_mode: 'any_target = spelaren väljer minion ELLER hjälte fritt.',
+        ability_targeting_mode: 'explicit = spelaren klickar manuellt på målet.',
+        keywords: 'VAMPIRISM = läker ägaren med lika mycket skada som minionen gör. Kombineras fint med activate.',
+      },
+    },
+    {
+      name: 'Activate — Läk hjälten (Discard-kostnad)',
+      description: 'Aktiveras genom att kasta ett kort istället för mana. Kraftfull men riskabel.',
+      card_type: 'minion', is_builtin: true,
+      card_data: {
+        mana:3, card_class:'Dark', rarity:'uncommon',
+        description:'Activate (discard 1): Restore 4 health to your hero.',
+        attack:2, health:4, subtype:'Shaman',
+        ability_id:'heal', ability_trigger:'activate',
+        ability_cost:0, ability_target_mode:'friendly_hero',
+        ability_targeting_mode:'auto', ability_value:4,
+        ability_arg:'cost:discard:1',
+      },
+      field_notes: {
+        ability_arg: 'cost:discard:1 = spelaren måste kasta 1 kort (väljer själv vilket) för att aktivera. Sätt ability_cost till 0 när du använder discard-kostnad.',
+        ability_cost: '0 = ingen manakostnad. Kostnaden är istället ability_arg (discard 1).',
+        ability_id: 'heal = återställer X HP till ett mål.',
+        ability_value: '4 = mängden HP som läks.',
+        ability_target_mode: 'friendly_hero = läker bara din hjälte.',
+        ability_targeting_mode: 'auto = inget manuellt val behövs. Läker automatiskt rätt mål.',
+      },
+    },
+    {
+      name: 'Activate — Dra ett kort',
+      description: 'Betala 1 mana för att dra ett kort. Ger kortdragning på en stabil minion.',
+      card_type: 'minion', is_builtin: true,
+      card_data: {
+        mana:3, card_class:'The Blue', rarity:'uncommon',
+        description:'Activate (1): Draw a card.',
+        attack:1, health:3, subtype:'Scholar',
+        ability_id:'draw_card', ability_trigger:'activate',
+        ability_cost:1, ability_target_mode:'self',
+        ability_targeting_mode:'auto', ability_value:1,
+      },
+      field_notes: {
+        ability_id: 'draw_card = drar X kort från ditt deck till handen.',
+        ability_value: '1 = dra ett kort. Sätt till 2 för dubbeldragning (höj cost).',
+        ability_target_mode: 'self = kortet drar till ägaren. Inget målval visas.',
+        ability_targeting_mode: 'auto = ingen dialog. Drar direkt.',
+        ability_cost: '1 = betala 1 mana extra per dragning. Balanserat.',
+      },
+    },
+    {
+      name: 'On_play — Slumpmässig skada (Battlecry)',
+      description: 'Triggar automatiskt vid inläggning och gör 2 skada mot en slumpmässig fiendes minion.',
+      card_type: 'minion', is_builtin: true,
+      card_data: {
+        mana:3, card_class:'Wasteland', rarity:'uncommon',
+        description:'Battlecry: Deal 2 damage to a random enemy minion.',
+        attack:2, health:3,
+        ability_id:'deal_damage', ability_trigger:'on_play',
+        ability_cost:0, ability_target_mode:'enemy_minion',
+        ability_targeting_mode:'random', ability_value:2,
+      },
+      field_notes: {
+        ability_trigger: 'on_play = triggar direkt när kortet spelas. Inga extra kostnader — effekten ingår i grundkostnaden.',
+        ability_targeting_mode: 'random = servern väljer ett slumpmässigt giltigt mål automatiskt. Spelaren klickar ingenting.',
+        ability_target_mode: 'enemy_minion = bara fiendens minions är giltiga mål. Hjältar träffas inte.',
+        ability_value: '2 = skada. Lagom mot 2-mana-minions. 3 dödar de flesta 3-hälsa-minions.',
+      },
+    },
+    {
+      name: 'On_death — Dra ett kort (Deathrattle)',
+      description: 'Deathrattle: kortet drar ett kort när minionen dör. Belönar fienden för att ta bort den.',
+      card_type: 'minion', is_builtin: true,
+      card_data: {
+        mana:3, card_class:'Wasteland', rarity:'rare',
+        description:'Deathrattle: Draw a card.',
+        attack:2, health:2, subtype:'Specter',
+        ability_id:'draw_card', ability_trigger:'on_death',
+        ability_cost:0, ability_targeting_mode:'auto', ability_value:1,
+      },
+      field_notes: {
+        ability_trigger: 'on_death = triggar när minionen dör. Löser sig efter stridsupplösning — minionen är redan borta.',
+        ability_id: 'draw_card = drar kort till ägarens hand.',
+        ability_value: '1 = ett kort. Sätt 2 för kraftig deathrattle (höj manakostnad).',
+        ability_targeting_mode: 'auto = inget val. Kortet dras direkt.',
+        mana: '3 mana 2/2 med deathrattle är fair — effekten kompenserar de svaga statsarna.',
+      },
+    },
+    {
+      name: 'On_attack — Vampirism-trigger',
+      description: 'Varje gång minionen anfaller triggar förmågan. Här: läker ägaren för 1 per attack.',
+      card_type: 'minion', is_builtin: true,
+      card_data: {
+        mana:3, card_class:'Dark', rarity:'rare',
+        description:'On Attack: Restore 1 health to your hero.',
+        attack:3, health:3,
+        ability_id:'heal', ability_trigger:'on_attack',
+        ability_cost:0, ability_target_mode:'friendly_hero',
+        ability_targeting_mode:'auto', ability_value:1,
+      },
+      field_notes: {
+        ability_trigger: 'on_attack = triggar VARJE GÅNG minionen anfaller — inte bara en gång. Kan stapla upp läkning.',
+        ability_id: 'heal = läker målet.',
+        ability_value: '1 = läker 1 HP per attack. Litet men konstant. Öka för starkare effekt.',
+        ability_target_mode: 'friendly_hero = läker din hjälte varje gång minionen anfaller.',
+      },
+    },
+    {
+      name: 'TOXIC + FIRST_STRIKE (enkel removal)',
+      description: 'TOXIC dödar allt den skadar. FIRST_STRIKE slår innan motståndaren. Dödlig kombination.',
+      card_type: 'minion', is_builtin: true,
+      card_data: {
+        mana:4, card_class:'Dark', rarity:'rare',
+        description:'First Strike. Toxic.',
+        keywords:'FIRST_STRIKE, TOXIC',
+        attack:1, health:3, subtype:'Demon',
+      },
+      field_notes: {
+        keywords: 'FIRST_STRIKE + TOXIC = slår sin 1-skada INNAN motståndaren och dödar den direkt oavsett health. Extremt effektiv removal.',
+        attack: '1 attack räcker med TOXIC — varje poäng skada dödar. Håll attack låg och kompensera med health.',
+        health: '3 health = överlever de flesta 2-mana-minions utan TOXIC/FIRST_STRIKE.',
+        mana: '4 mana för dessa keywords är rätt balanserat — effekterna är starka.',
+      },
+    },
+    {
+      name: 'CANT_ATTACK + hög health (Pure Tank)',
+      description: 'Kan aldrig anfalla men absorberar enormt mycket skada. Köper tid för din strategi.',
+      card_type: 'minion', is_builtin: true,
+      card_data: {
+        mana:2, card_class:'Forest', rarity:'common',
+        description:'Can\'t Attack.',
+        keywords:'CANT_ATTACK',
+        attack:0, health:8, subtype:'',
+      },
+      field_notes: {
+        keywords: 'CANT_ATTACK = minionen kan ALDRIG deklarera attacker. Kan fortfarande blockera och använda activate-förmågor.',
+        health: '8 health för 2 mana är extremt. Balansen = noll offensiv kraft. Bra för time-stalling.',
+        attack: '0 attack = meningslöst att anfalla med. Håll alltid på 0 för CANT_ATTACK-minions.',
+      },
+    },
+
+    // ── SPELLS ──────────────────────────────────────────────────────────
+    {
+      name: 'Enkel skadespell — 3 skada',
+      description: 'Grundläggande skadespell. Spelaren väljer målet. Kan träffa minion eller hjälte.',
+      card_type: 'spell', is_builtin: true,
+      card_data: {
+        mana:2, card_class:'Dark', rarity:'common',
+        description:'Deal 3 damage to any target.',
+        effect_id:'deal_damage', effect_value:3,
+        target_mode:'any_target', targeting_mode:'explicit',
+        school:'Shadow', repeat_count:1, repeat_mode:'same_target',
+      },
+      field_notes: {
+        effect_id: 'deal_damage = gör X skada.',
+        effect_value: '3 = mängden skada. Tumregel: 3 för 2 mana, 4–5 för 3 mana, 6–7 för 4 mana.',
+        target_mode: 'any_target = spelaren väljer minion eller hjälte fritt. Mest flexibelt.',
+        targeting_mode: 'explicit = spelaren klickar på målet. Alltid explicit när spelaren ska välja.',
+        school: 'Shadow = magiskola för flavortext. Påverkar inte gameplay direkt.',
+        repeat_count: '1 = träffar en gång. Öka för multi-hit (kombinera med repeat_mode).',
+      },
+    },
+    {
+      name: 'Riktat mot minion — inte hjälte',
+      description: 'Removal-spell som bara kan träffa minions. Bra för board clear utan face-skada.',
+      card_type: 'spell', is_builtin: true,
+      card_data: {
+        mana:2, card_class:'Forest', rarity:'common',
+        description:'Deal 4 damage to a minion.',
+        effect_id:'deal_damage', effect_value:4,
+        target_mode:'target_minion', targeting_mode:'explicit',
+        school:'Nature', repeat_count:1, repeat_mode:'same_target',
+      },
+      field_notes: {
+        target_mode: 'target_minion = kan bara träffa minions (vän eller fiende), INTE hjältar. Bra removal.',
+        effect_value: '4 skada för 2 mana när det bara kan träffa minions — mer värde per mana.',
+        targeting_mode: 'explicit = spelaren klickar på vilken minion de vill ta bort.',
+      },
+    },
+    {
+      name: 'Slumpmässig fiendes minion',
+      description: 'Träffar en slumpmässig fiendes minion automatiskt. Spelaren väljer inget mål.',
+      card_type: 'spell', is_builtin: true,
+      card_data: {
+        mana:1, card_class:'Wasteland', rarity:'common',
+        description:'Deal 2 damage to a random enemy minion.',
+        effect_id:'deal_damage', effect_value:2,
+        target_mode:'enemy_minion', targeting_mode:'random',
+        school:'Dark', repeat_count:1, repeat_mode:'same_target',
+      },
+      field_notes: {
+        targeting_mode: 'random = servern slumpar ett mål automatiskt. Spelaren klickar ingenting.',
+        target_mode: 'enemy_minion = slumpar BARA bland fiendens minions. Hjälten är aldrig mål.',
+        mana: '1 mana för 2 slumpmässig skada = hög effektivitet men osäkert mål.',
+      },
+    },
+    {
+      name: 'AOE-spell — träffar 4 minions',
+      description: 'Gör 1 skada mot 4 slumpmässiga fiendes minions (kan träffa samma igen). Bra mot wide boards.',
+      card_type: 'spell', is_builtin: true,
+      card_data: {
+        mana:3, card_class:'The Blue', rarity:'uncommon',
+        description:'Deal 1 damage to 4 random enemy minions.',
+        effect_id:'deal_damage', effect_value:1,
+        target_mode:'enemy_minion', targeting_mode:'random',
+        school:'Storm', repeat_count:4, repeat_mode:'reroll_each_time',
+      },
+      field_notes: {
+        repeat_count: '4 = träffar 4 gånger. Totalt 4 skada fördelat på 1–4 minions.',
+        repeat_mode: 'reroll_each_time = nytt slumpmål för varje träff. En minion kan träffas flera gånger om det inte finns 4 stycken.',
+        targeting_mode: 'random + reroll = klassisk AOE-spell. Ingen spelarkontroll på fördelning.',
+        effect_value: '1 per träff. Dödar tokens och svaga minions. Öka för hårdare AOE (och höj mana).',
+      },
+    },
+    {
+      name: 'Kedjebolt — studsar 2 gånger (Chain Lightning)',
+      description: 'Spelaren väljer originalmålet. Blixtbulten studsar sedan till 2 slumpmässiga extra mål.',
+      card_type: 'spell', is_builtin: true,
+      card_data: {
+        mana:3, card_class:'The Blue', rarity:'rare',
+        description:'Deal 2 damage. Bounces to 2 additional random targets.',
+        effect_id:'chain', effect_value:2,
+        target_mode:'any_target', targeting_mode:'explicit',
+        school:'Storm', repeat_count:2, repeat_mode:'reroll_each_time',
+      },
+      field_notes: {
+        effect_id: 'chain = effekten studsar till extra mål efter originalet.',
+        repeat_count: '2 = studsar till 2 EXTRA mål. Totalt 3 träffar (1 original + 2 studsar).',
+        repeat_mode: 'reroll_each_time = nytt slumpmål per studs. Kan träffa vänner eller fiender beroende på target_mode.',
+        targeting_mode: 'explicit = spelaren väljer originalmålet. Studsarna är alltid slumpmässiga.',
+        effect_value: '2 per träff inklusive studsar.',
+      },
+    },
+    {
+      name: 'Läkespell — återställ 5 HP',
+      description: 'Läker ägarens hjälte för 5 HP. Enkel och pålitlig defensiv stavning.',
+      card_type: 'spell', is_builtin: true,
+      card_data: {
+        mana:2, card_class:'Forest', rarity:'common',
+        description:'Restore 5 health to your hero.',
+        effect_id:'heal', effect_value:5,
+        target_mode:'friendly_hero', targeting_mode:'auto',
+        school:'Blood', repeat_count:1, repeat_mode:'same_target',
+      },
+      field_notes: {
+        effect_id: 'heal = återställer X HP till målet.',
+        effect_value: '5 = mängden HP som läks. Mer än kortets manakostnad = bra deal.',
+        target_mode: 'friendly_hero = läker bara din hjälte. Fienden kan inte väljas.',
+        targeting_mode: 'auto = ingen dialog visas. Läker direkt vid cast.',
+      },
+    },
+    {
+      name: 'Läkespell — valfritt mål',
+      description: 'Läker valfri minion eller hjälte. Spelaren väljer vad som ska läkas.',
+      card_type: 'spell', is_builtin: true,
+      card_data: {
+        mana:2, card_class:'Forest', rarity:'common',
+        description:'Restore 4 health to any target.',
+        effect_id:'heal', effect_value:4,
+        target_mode:'any_target', targeting_mode:'explicit',
+        school:'Nature', repeat_count:1, repeat_mode:'same_target',
+      },
+      field_notes: {
+        target_mode: 'any_target = spelaren väljer vad som läks — hjälte, vänlig minion eller fiendens minion.',
+        targeting_mode: 'explicit = spelaren klickar på målet.',
+        effect_value: '4 = lagom för att hålla en tuff minion i livet.',
+      },
+    },
+    {
+      name: 'Kortdragning — dra 2 kort',
+      description: 'Drar 2 kort direkt utan målval. Enkel och stark kortdragning.',
+      card_type: 'spell', is_builtin: true,
+      card_data: {
+        mana:3, card_class:'The Blue', rarity:'uncommon',
+        description:'Draw 2 cards.',
+        effect_id:'draw_card', effect_value:2,
+        target_mode:'self', targeting_mode:'auto',
+        school:'Void', repeat_count:1, repeat_mode:'same_target',
+      },
+      field_notes: {
+        effect_id: 'draw_card = drar X kort till ägarens hand.',
+        effect_value: '2 = dra 2 kort. Standard draw-spell.',
+        target_mode: 'self = "målet" är spelaren själv. Inget val visas.',
+        targeting_mode: 'auto = drar direkt utan klick.',
+        school: 'Void = tematisk skola för mystisk/mörk magi.',
+      },
+    },
+    {
+      name: 'INSTANT-spell — spelas som reaktion',
+      description: 'Kan spelas under blockfönstret (fiendens tur). Bra motåtgärd mot aggro.',
+      card_type: 'spell', is_builtin: true,
+      card_data: {
+        mana:1, card_class:'The Blue', rarity:'uncommon',
+        description:'Instant. Deal 2 damage to any target.',
+        keywords:'INSTANT',
+        effect_id:'deal_damage', effect_value:2,
+        target_mode:'any_target', targeting_mode:'explicit',
+        school:'Storm', repeat_count:1, repeat_mode:'same_target',
+      },
+      field_notes: {
+        keywords: 'INSTANT = kan spelas UTANFÖR din tur, under blockfönstret. Enda keyword som gäller stavningar.',
+        mana: '1 mana INSTANT är mycket starkt — kan döda en anfallande minion mitt i en attack.',
+        effect_value: '2 skada för 1 mana är rättvist som INSTANT-kostnad.',
+      },
+    },
+
+    // ── STRUCTURES ──────────────────────────────────────────────────────
+    {
+      name: 'Torn — skjuter varje tur (Tower)',
+      description: 'Skjuter automatiskt 1 skada mot fiendens hjälte i slutet av varje dragskede. Klassiskt torn.',
+      card_type: 'structure', is_builtin: true,
+      card_data: {
+        mana:3, card_class:'Dark', rarity:'uncommon',
+        description:'At the start of your turn: deal 1 damage to the enemy hero.',
+        armor:5, s_subtype:'Tower', maintenance_cost:1,
+        repair_cost:1, repair_value:2,
+        trigger_id:'deal_damage', trigger_value:1, trigger_target_mode:'enemy_hero',
+      },
+      field_notes: {
+        armor: '5 armor = strukturens HP. Fienden måste lägga ned 5 skada för att förstöra tornet.',
+        s_subtype: 'Tower = undertypens namn. Visas som "Structure — Tower" på kortet.',
+        maintenance_cost: '1 = betala 1 mana per tur för att hålla tornet aktivt. 0 = gratis.',
+        trigger_id: 'deal_damage = triggar automatiskt och gör X skada.',
+        trigger_value: '1 = 1 skada per tur. Staplar upp — om fienden inte tar bort tornet förlorar de HP kontinuerligt.',
+        trigger_target_mode: 'enemy_hero = tornet skjuter direkt på fiendens hjälte varje tur.',
+        repair_cost: '1 mana för att reparera manuellt.',
+        repair_value: '2 armor återfås per reparation.',
+      },
+    },
+    {
+      name: 'Verkstad med Activate (Workshop)',
+      description: 'Kan aktiveras för att dra ett kort. Ger kontinuerlig kortdragning om den överlever.',
+      card_type: 'structure', is_builtin: true,
+      card_data: {
+        mana:4, card_class:'The Blue', rarity:'rare',
+        description:'Activate (2): Draw a card.',
+        armor:6, s_subtype:'Workshop', maintenance_cost:2,
+        s_ability_id:'draw_card', s_ability_cost:2,
+        s_ability_target_mode:'self', s_ability_targeting_mode:'auto', s_ability_value:1,
+        repair_cost:2, repair_value:3,
+      },
+      field_notes: {
+        armor: '6 armor = robust. Svår att ta bort snabbt.',
+        maintenance_cost: '2 = betala 2 mana per tur. Dyr underhållskostnad men stark effekt.',
+        s_ability_id: 'draw_card = drar kort. Fälten för strukturens förmåga börjar med s_ för att skilja från trigger.',
+        s_ability_cost: '2 = kosta 2 mana ATT AKTIVERA (utöver maintenance). Totalkostnad per tur: 2 maintenance + 2 activate = 4.',
+        s_ability_target_mode: 'self = drar till ägaren. Inget mål väljs.',
+        s_ability_targeting_mode: 'auto = inget klick. Drar direkt.',
+        repair_cost: '2 mana för reparation.',
+        repair_value: '3 armor per reparation.',
+      },
+    },
+    {
+      name: 'Totem — läker slumpmässig vänlig minion',
+      description: 'Passiv trigger som läker en slumpmässig vänlig minion i slutet av varje tur.',
+      card_type: 'structure', is_builtin: true,
+      card_data: {
+        mana:3, card_class:'Forest', rarity:'uncommon',
+        description:'At end of turn: restore 1 health to a random friendly minion.',
+        armor:4, s_subtype:'Totem', maintenance_cost:0,
+        repair_cost:2, repair_value:2,
+        trigger_id:'heal', trigger_value:1, trigger_target_mode:'friendly_minion',
+      },
+      field_notes: {
+        s_subtype: 'Totem = undertypens namn.',
+        maintenance_cost: '0 = gratis att hålla aktiv. Inget att betala per tur.',
+        trigger_id: 'heal = läker ett mål varje gång triggern utlöses.',
+        trigger_value: '1 HP per tur. Litet men konstant — håller minions vid liv längre.',
+        trigger_target_mode: 'friendly_minion = läker en av dina egna minions, slumpmässigt vald.',
+      },
+    },
+    {
+      name: 'Fortification — skada mot fiendes minions',
+      description: 'Trigger som gör 1 slumpmässig skada mot fiendes minions varje tur. Board control utan attack.',
+      card_type: 'structure', is_builtin: true,
+      card_data: {
+        mana:4, card_class:'Wasteland', rarity:'rare',
+        description:'At end of turn: deal 1 damage to a random enemy minion.',
+        armor:5, s_subtype:'Fortification', maintenance_cost:1,
+        repair_cost:2, repair_value:2,
+        trigger_id:'deal_damage', trigger_value:1, trigger_target_mode:'enemy_minion',
+      },
+      field_notes: {
+        trigger_target_mode: 'enemy_minion = skjuter mot fiendens minions, INTE hjälten. Jämför med Tower som skjuter mot enemy_hero.',
+        trigger_value: '1 skada per tur. Dödar svaga tokens och pressar fienden att ta bort strukturen.',
+        maintenance_cost: '1 mana per tur. Bör placeras tidigt så den ger värde under många turer.',
+      },
+    },
+  ];
+
+  await sb.from('card_templates').insert(seed);
+}
+
+document.querySelector('nav button[data-page="page-templates"]').addEventListener('click', async () => {
+  await seedTemplatesIfEmpty();
+  renderTplGrid();
+});
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 initAuth();
 

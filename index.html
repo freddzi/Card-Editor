@@ -32,6 +32,7 @@
     <button data-page="page-add">Lägg till kort</button>
     <button data-page="page-export">Exportera SQL</button>
     <button data-page="page-design">Speldesign</button>
+    <button data-page="page-templates">Mallar</button>
   </nav>
   <button class="btn btn-secondary" id="btn-logout" style="margin-left:auto;font-size:12px;padding:6px 12px">Logga ut</button>
 </header>
@@ -527,6 +528,280 @@
         <button class="btn btn-danger" id="btn-doc-delete" style="display:none;margin-right:auto">Ta bort</button>
         <button class="btn btn-secondary" id="btn-doc-cancel">Avbryt</button>
         <button class="btn btn-primary" id="btn-doc-save">Spara</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── MALLAR ── -->
+<section id="page-templates" class="page">
+  <div class="templates-wrap">
+
+    <div class="templates-header">
+      <div>
+        <h2>Mallar &amp; Guide</h2>
+        <p class="templates-subtitle">Lär dig hur kortsystemet fungerar och använd mallar för att snabbt skapa nya kort.</p>
+      </div>
+    </div>
+
+    <!-- Tabb-navigation -->
+    <div class="tpl-page-tabs">
+      <button class="tpl-tab-btn active" data-tab="mallar">Mallar</button>
+      <button class="tpl-tab-btn" data-tab="guide">Regelguide</button>
+    </div>
+
+    <!-- ── TABB: MALLAR ── -->
+    <div id="tpl-tab-mallar" class="tpl-tab-content active">
+      <div class="tpl-mallar-toolbar">
+        <div class="tpl-filter-bar">
+          <button class="tpl-type-btn active" data-type="">Alla</button>
+          <button class="tpl-type-btn" data-type="minion">Minion</button>
+          <button class="tpl-type-btn" data-type="spell">Spell</button>
+          <button class="tpl-type-btn" data-type="structure">Structure</button>
+        </div>
+        <button class="btn btn-primary" id="btn-new-tpl">+ Ny mall</button>
+      </div>
+      <div id="tpl-grid"></div>
+    </div>
+
+    <!-- ── TABB: REGELGUIDE ── -->
+    <div id="tpl-tab-guide" class="tpl-tab-content">
+      <div class="guide-wrap">
+
+        <!-- INTRO -->
+        <div class="guide-intro">
+          <p>Den här guiden förklarar alla fält i kortformuläret. Läs den en gång så förstår du hur allt hänger ihop.
+          Varje kort består av en <strong>gemensam del</strong> (namn, mana, klass…) och en <strong>typspecifik del</strong>
+          beroende på om det är en minion, stavning eller struktur.</p>
+        </div>
+
+        <!-- KORTETS ID -->
+        <div class="guide-section">
+          <div class="guide-section-title">Kortets ID</div>
+          <div class="guide-codebox">Format: [SET][LÖPNUMMER] &nbsp;→&nbsp; A00001 &nbsp;·&nbsp; B00042</div>
+          <ul class="guide-list">
+            <li><strong>SET</strong> — en bokstav som identifierar kortset. A = Dark Set 01, B = nästa set osv.</li>
+            <li><strong>LÖPNUMMER</strong> — fem siffror med nollpadding. A00001, A00002 … A99999.</li>
+          </ul>
+          <div class="guide-tip">Verktyget genererar nästa lediga ID automatiskt — du behöver nästan aldrig ändra det.</div>
+        </div>
+
+        <!-- GEMENSAMMA FÄLT -->
+        <div class="guide-section">
+          <div class="guide-section-title">Gemensamma fält — gäller alla korttyper</div>
+          <table class="guide-table">
+            <thead><tr><th>Fält</th><th>Typ</th><th>Obligatorisk?</th><th>Förklaring</th></tr></thead>
+            <tbody>
+              <tr><td><code>id</code></td><td>text</td><td class="req">Ja</td><td>Unikt kort-ID, se format ovan</td></tr>
+              <tr><td><code>name</code></td><td>text</td><td class="req">Ja</td><td>Kortets namn som visas i spelet och UI</td></tr>
+              <tr><td><code>mana</code></td><td>heltal ≥ 0</td><td class="req">Ja</td><td>Manakostnad för att spela kortet. 0 = gratis, max är vanligen 10.</td></tr>
+              <tr><td><code>card_class</code></td><td>text</td><td class="req">Ja</td><td>Klassidentifierare: <code>Dark</code>, <code>Wasteland</code>, <code>The Blue</code>, <code>Forest</code> eller <code>Neutral</code></td></tr>
+              <tr><td><code>card_type</code></td><td>text</td><td class="req">Ja</td><td>Måste vara exakt <code>minion</code>, <code>spell</code> eller <code>structure</code> — små bokstäver!</td></tr>
+              <tr><td><code>description</code></td><td>text</td><td></td><td>Kortets regeltext som visas på kortet. Skriv som: "Activate (2): Deal 3 damage."</td></tr>
+              <tr><td><code>rarity</code></td><td>text</td><td></td><td><code>common</code> · <code>uncommon</code> · <code>rare</code> · <code>epic</code> · <code>legendary</code></td></tr>
+              <tr><td><code>keywords</code></td><td>text</td><td></td><td>Kommaseparerade nyckelord i VERSALER, t.ex. <code>FLYING, RAPID</code>. Se listan nedan.</td></tr>
+              <tr><td><code>draft_tag</code></td><td>text</td><td></td><td>Grupperingsnamn för draft, t.ex. <code>dark_set_01</code>. Används för att hålla set åtskilda.</td></tr>
+            </tbody>
+          </table>
+          <div class="guide-warn">card_type MÅSTE vara i gemener: <code>minion</code>, inte <code>Minion</code>. Samma för targeting_mode, ability_id osv.</div>
+        </div>
+
+        <!-- KEYWORDS -->
+        <div class="guide-section">
+          <div class="guide-section-title">Keywords — nyckelord</div>
+          <p class="guide-p">Skriv keywords som en kommaseparerad sträng i VERSALER i fältet Keywords. Ordningen spelar ingen roll.</p>
+          <table class="guide-table">
+            <thead><tr><th>Keyword</th><th>Vad det gör</th></tr></thead>
+            <tbody>
+              <tr><td><code>FLYING</code></td><td>Kan bara blockas av FLYING eller REACH. Kan anfalla andra FLYING-minions direkt.</td></tr>
+              <tr><td><code>REACH</code></td><td>Kan blocka FLYING-minions trots att den inte flyger.</td></tr>
+              <tr><td><code>RAPID</code></td><td>Kan anfalla direkt när den spelas — går direkt till FRONT_LINE utan att vänta en tur.</td></tr>
+              <tr><td><code>RANGE</code></td><td>Ignorerar alltid blockers och anfaller direkt mot hjälten.</td></tr>
+              <tr><td><code>FIRST_STRIKE</code></td><td>Slår sin skada innan motståndaren i strid. Dör motståndaren av det, svarar den aldrig.</td></tr>
+              <tr><td><code>DOUBLE_STRIKE</code></td><td>Anfaller två gånger per strid (first strike-skada + normal skada).</td></tr>
+              <tr><td><code>TWINSTRIKE</code></td><td>Slår två separata mål i en och samma attack.</td></tr>
+              <tr><td><code>CANT_ATTACK</code></td><td>Kan aldrig anfalla. Kan fortfarande blockera och använda aktiverade förmågor.</td></tr>
+              <tr><td><code>PARRY</code></td><td>Minskar inkommande skada. Kan ha värde: <code>PARRY_2</code> reducerar all skada med 2.</td></tr>
+              <tr><td><code>IRON_SKIN</code></td><td>Ignorerar liten skada (under ett tröskelvärde).</td></tr>
+              <tr><td><code>TOXIC</code></td><td>Dödar omedelbart allt den skadar, oavsett hur mycket HP målet har.</td></tr>
+              <tr><td><code>VAMPIRISM</code></td><td>Läker ägaren med samma mängd skada den gör (lifesteal).</td></tr>
+              <tr><td><code>INSTANT</code></td><td>Enbart stavningar — kan spelas under blockfönstret (som en reaktion).</td></tr>
+            </tbody>
+          </table>
+          <div class="guide-tip">Exempel: skriv <code>FLYING, RAPID</code> eller <code>DOUBLE_STRIKE, VAMPIRISM</code> i keywords-fältet.</div>
+        </div>
+
+        <!-- MINION -->
+        <div class="guide-section">
+          <div class="guide-section-title">Minionkort — extra fält</div>
+          <p class="guide-p">Varje minion har stats (attack + health) och kan ha en valfri förmåga.</p>
+          <table class="guide-table">
+            <thead><tr><th>Fält</th><th>Typ</th><th>Förklaring</th></tr></thead>
+            <tbody>
+              <tr><td><code>attack</code></td><td>heltal ≥ 0</td><td>Skada minionen gör varje gång den anfaller. 0 = kan inte anfalla effektivt.</td></tr>
+              <tr><td><code>health</code></td><td>heltal ≥ 1</td><td>HP-poäng. Når health 0 dör minionen direkt.</td></tr>
+              <tr><td><code>subtype</code></td><td>text</td><td>Undertyp, t.ex. <code>Beast</code>, <code>Undead</code>, <code>Demon</code>, <code>Knight</code>. Visas under kortnamnet.</td></tr>
+              <tr><td><code>ability_id</code></td><td>text</td><td>Vilken effekt förmågan gör: <code>deal_damage</code>, <code>draw_card</code>, <code>heal</code>, <code>chain</code>. Tom = ingen förmåga.</td></tr>
+              <tr><td><code>ability_trigger</code></td><td>text</td><td>Hur förmågan aktiveras. Se listan nedan.</td></tr>
+              <tr><td><code>ability_cost</code></td><td>heltal ≥ 0</td><td>Extra manakostnad för att aktivera förmågan (utöver kortets grundkostnad).</td></tr>
+              <tr><td><code>ability_target_mode</code></td><td>text</td><td>Vad förmågan kan riktas mot. Se mållägen längre ner.</td></tr>
+              <tr><td><code>ability_targeting_mode</code></td><td>text</td><td><code>explicit</code> = spelaren väljer · <code>random</code> = servern slumpar · <code>auto</code> = automatiskt</td></tr>
+              <tr><td><code>ability_value</code></td><td>heltal</td><td>Numeriskt värde: hur mycket skada, hur många kort, hur mycket läkning.</td></tr>
+              <tr><td><code>ability_arg</code></td><td>text</td><td>Specialkostnader. Tom = normal manakostnad. Se ability_arg-sektionen nedan.</td></tr>
+            </tbody>
+          </table>
+
+          <div class="guide-subsection-title">ability_trigger — hur förmågan aktiveras</div>
+          <table class="guide-table">
+            <thead><tr><th>Värde</th><th>Förklaring</th></tr></thead>
+            <tbody>
+              <tr><td><code>activate</code></td><td>Spelaren klickar manuellt på minionen och betalar kostnaden. Kan aktiveras en gång per tur. Minionen får en lysande glow-effekt för att visa att den är aktiverbar.</td></tr>
+              <tr><td><code>on_play</code></td><td>Triggar automatiskt när kortet läggs ner från handen. Ingen extra kostnad.</td></tr>
+              <tr><td><code>on_death</code></td><td>Triggar när minionen dör (deathrattle). Löser sig efter stridsupplösning.</td></tr>
+              <tr><td><code>on_attack</code></td><td>Triggar varje gång minionen anfaller.</td></tr>
+              <tr><td><em>tom</em></td><td>Ingen förmåga — lämna tomt för vanliga minions utan ability.</td></tr>
+            </tbody>
+          </table>
+
+          <div class="guide-subsection-title">ability_arg — specialkostnader</div>
+          <p class="guide-p">Normalt är ability_arg tomt och kostnaden räknas i mana via ability_cost. Men med ability_arg kan du sätta en annan kostnad:</p>
+          <table class="guide-table">
+            <thead><tr><th>Format</th><th>Vad det gör</th><th>Exempel</th></tr></thead>
+            <tbody>
+              <tr><td><em>tom</em></td><td>Normal manakostnad via ability_cost</td><td><code>''</code></td></tr>
+              <tr><td><code>cost:discard:N</code></td><td>Spelaren måste kasta N kort (väljer själv vilka) för att aktivera</td><td><code>cost:discard:1</code></td></tr>
+              <tr><td><code>cost:discard_random:N</code></td><td>N slumpmässiga kort kastas automatiskt vid aktivering</td><td><code>cost:discard_random:2</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- SPELL -->
+        <div class="guide-section">
+          <div class="guide-section-title">Stavningskort — extra fält</div>
+          <p class="guide-p">Stavningar spelas direkt och försvinner. De har ingen attack eller health — bara en effekt.</p>
+          <table class="guide-table">
+            <thead><tr><th>Fält</th><th>Typ</th><th>Förklaring</th></tr></thead>
+            <tbody>
+              <tr><td><code>effect_id</code></td><td>text</td><td>Effekten som sker: <code>deal_damage</code>, <code>heal</code>, <code>draw_card</code>, <code>chain</code></td></tr>
+              <tr><td><code>effect_value</code></td><td>heltal</td><td>Numeriskt värde: skada, HP, antal kort osv.</td></tr>
+              <tr><td><code>target_mode</code></td><td>text</td><td>Vad stavningen kan riktas mot. Se mållägen nedan.</td></tr>
+              <tr><td><code>targeting_mode</code></td><td>text</td><td><code>explicit</code> = spelaren klickar · <code>random</code> = slumpmässigt · <code>auto</code> = automatiskt</td></tr>
+              <tr><td><code>school</code></td><td>text</td><td>Magiskola för flavortext/gruppering: <code>Shadow</code>, <code>Blood</code>, <code>Void</code>, <code>Storm</code> osv.</td></tr>
+              <tr><td><code>effect_arg</code></td><td>text</td><td>Extra konfiguration (samma format som ability_arg ovan). Vanligen tom.</td></tr>
+              <tr><td><code>repeat_count</code></td><td>heltal ≥ 1</td><td>Hur många gånger effekten upprepas. 1 = en gång. 4 = träffar 4 mål.</td></tr>
+              <tr><td><code>repeat_mode</code></td><td>text</td><td><code>same_target</code> = träffar samma mål varje gång · <code>reroll_each_time</code> = nytt slumpmål varje gång</td></tr>
+            </tbody>
+          </table>
+          <div class="guide-tip">repeat_count + reroll_each_time = AOE/studs-stavning. repeat_count + same_target = multi-hit mot ett mål.</div>
+        </div>
+
+        <!-- MÅLLÄGEN -->
+        <div class="guide-section">
+          <div class="guide-section-title">Mållägen — target_mode / ability_target_mode</div>
+          <p class="guide-p">Samma lista gäller för <code>ability_target_mode</code> (minions/structures) och <code>target_mode</code> (stavningar).</p>
+          <table class="guide-table">
+            <thead><tr><th>Värde</th><th>Vad det kan träffa</th></tr></thead>
+            <tbody>
+              <tr><td><code>any_target</code></td><td>Valfri minion eller hjälte (vän eller fiende)</td></tr>
+              <tr><td><code>target_minion</code></td><td>Valfri minion (vän eller fiende), inte hjältar</td></tr>
+              <tr><td><code>enemy_minion</code></td><td>En av fiendens minions</td></tr>
+              <tr><td><code>friendly_minion</code></td><td>En av dina egna minions</td></tr>
+              <tr><td><code>enemy_hero</code></td><td>Fiendens hjälte</td></tr>
+              <tr><td><code>friendly_hero</code></td><td>Din egen hjälte</td></tr>
+              <tr><td><code>enemy_player</code></td><td>Alias för enemy_hero</td></tr>
+              <tr><td><code>friendly_player</code></td><td>Alias för friendly_hero</td></tr>
+              <tr><td><code>self</code></td><td>Kortet/minionen självt — ingen målvalsdialog visas</td></tr>
+              <tr><td><em>tom</em></td><td>Inget mål krävs (t.ex. draw_card som bara drar ett kort)</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- STRUCTURE -->
+        <div class="guide-section">
+          <div class="guide-section-title">Strukturkort — extra fält</div>
+          <p class="guide-p">Strukturer är fasta byggnader på planen. De kan inte anfalla men kan ha passiva triggers och aktiverbara förmågor. De har <code>armor</code> istället för health/attack.</p>
+          <table class="guide-table">
+            <thead><tr><th>Fält</th><th>Typ</th><th>Förklaring</th></tr></thead>
+            <tbody>
+              <tr><td><code>armor</code></td><td>heltal ≥ 1</td><td>Strukturens "HP". Noll armor = förstörd.</td></tr>
+              <tr><td><code>subtype</code></td><td>text</td><td>T.ex. <code>Tower</code>, <code>Totem</code>, <code>Workshop</code>, <code>Fortification</code></td></tr>
+              <tr><td><code>maintenance_cost</code></td><td>heltal ≥ 0</td><td>Mana att betala varje tur för att behålla strukturen aktiv. 0 = gratis.</td></tr>
+              <tr><td><code>ability_id</code></td><td>text</td><td>Aktiverbar förmåga (samma effekt-ID som stavningar)</td></tr>
+              <tr><td><code>ability_cost</code></td><td>heltal ≥ 0</td><td>Manakostnad för att aktivera förmågan</td></tr>
+              <tr><td><code>ability_target_mode</code></td><td>text</td><td>Målläge för förmågan</td></tr>
+              <tr><td><code>ability_targeting_mode</code></td><td>text</td><td><code>explicit</code> · <code>random</code> · <code>auto</code></td></tr>
+              <tr><td><code>ability_value</code></td><td>heltal</td><td>Numeriskt värde på förmågan</td></tr>
+              <tr><td><code>repair_cost</code></td><td>heltal ≥ 0</td><td>Mana för att reparera strukturen manuellt</td></tr>
+              <tr><td><code>repair_value</code></td><td>heltal ≥ 0</td><td>Armor som återfås per reparation</td></tr>
+              <tr><td><code>trigger_id</code></td><td>text</td><td>Passiv effekt som triggar automatiskt. Samma effekt-ID som stavningar.</td></tr>
+              <tr><td><code>trigger_value</code></td><td>heltal</td><td>Värde på trigger-effekten</td></tr>
+              <tr><td><code>trigger_target_mode</code></td><td>text</td><td>Mål för triggern. Vanligen <code>enemy_hero</code> för ett torn som skjuter.</td></tr>
+            </tbody>
+          </table>
+          <div class="guide-tip">En struktur kan ha BÅDE en aktiverbar förmåga (ability_*) OCH en passiv trigger (trigger_*) samtidigt.</div>
+        </div>
+
+        <!-- VANLIGA MISSTAG -->
+        <div class="guide-section">
+          <div class="guide-section-title">Vanliga misstag att undvika</div>
+          <table class="guide-table">
+            <thead><tr><th>Misstag</th><th>Konsekvens</th><th>Rätt</th></tr></thead>
+            <tbody>
+              <tr><td>card_type = <code>'Minion'</code> (stor M)</td><td>Kortet laddas inte, constraint-fel</td><td><code>'minion'</code></td></tr>
+              <tr><td>ability_trigger = <code>'activate'</code> men ability_id är tomt</td><td>Kortet visas med glow men gör ingenting</td><td>Fyll alltid i ability_id när du sätter en trigger</td></tr>
+              <tr><td>targeting_mode = <code>'Explicit'</code> (stor E)</td><td>Constraint-fel</td><td><code>'explicit'</code></td></tr>
+              <tr><td>keywords = <code>'flying'</code> (liten bokstav)</td><td>Tolkas inte — kortet får inte FLYING-regeln</td><td><code>'FLYING'</code></td></tr>
+              <tr><td>repeat_count = <code>0</code></td><td>Constraint-fel, stavningen sparas inte</td><td>Minst <code>1</code></td></tr>
+              <tr><td>Glömmer sätta ability_id när trigger är satt</td><td>Förmåga triggas men inget händer</td><td>ability_id och ability_trigger ska alltid sättas tillsammans</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div><!-- /tpl-tab-guide -->
+
+  </div><!-- /templates-wrap -->
+
+  <!-- Template editor overlay -->
+  <div class="tpl-editor-overlay" id="tpl-editor-overlay">
+    <div class="tpl-editor">
+      <div class="tpl-editor-header">
+        <h3 id="tpl-editor-title">Ny mall</h3>
+        <button class="card-detail-close" id="btn-tpl-close">✕</button>
+      </div>
+      <div class="field-row" style="margin-bottom:12px">
+        <div class="field">
+          <label>Korttyp</label>
+          <select id="tpl-card-type">
+            <option value="minion">Minion</option>
+            <option value="spell">Spell</option>
+            <option value="structure">Structure</option>
+          </select>
+        </div>
+        <div class="field" style="flex:2">
+          <label>Mallnamn *</label>
+          <input id="tpl-name" placeholder="t.ex. Battlecry Minion">
+        </div>
+      </div>
+      <div class="field" style="margin-bottom:12px">
+        <label>Beskrivning</label>
+        <textarea id="tpl-description" rows="2" placeholder="Vad visar den här mallen?"></textarea>
+      </div>
+      <div class="field" style="margin-bottom:12px">
+        <label>Kortdata (JSON)</label>
+        <textarea id="tpl-card-data" rows="10" placeholder='{"mana":3,"card_class":"Dark","attack":2,"health":3}'
+          style="font-family:monospace;font-size:12px"></textarea>
+      </div>
+      <div class="field" style="margin-bottom:16px">
+        <label>Fältnoter (JSON) — valfritt, visas i guidetabellen</label>
+        <textarea id="tpl-field-notes" rows="5" placeholder='{"mana":"Kostnaden för att spela kortet"}'
+          style="font-family:monospace;font-size:12px"></textarea>
+      </div>
+      <div id="tpl-json-error" style="color:var(--danger);font-size:13px;margin-bottom:12px;display:none"></div>
+      <div class="form-actions">
+        <button class="btn btn-danger" id="btn-tpl-delete" style="display:none;margin-right:auto">Ta bort</button>
+        <button class="btn btn-secondary" id="btn-tpl-cancel">Avbryt</button>
+        <button class="btn btn-primary" id="btn-tpl-save">Spara mall</button>
       </div>
     </div>
   </div>

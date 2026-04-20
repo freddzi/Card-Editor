@@ -57,6 +57,17 @@ CREATE TABLE structure_cards (
     trigger_target_mode      TEXT    NOT NULL DEFAULT 'enemy_hero'
 );
 
+CREATE TABLE card_templates (
+    id           BIGSERIAL PRIMARY KEY,
+    name         TEXT    NOT NULL,
+    description  TEXT    NOT NULL DEFAULT '',
+    card_type    TEXT    NOT NULL DEFAULT 'minion',
+    card_data    JSONB   NOT NULL DEFAULT '{}',
+    field_notes  JSONB   NOT NULL DEFAULT '{}',
+    is_builtin   BOOLEAN NOT NULL DEFAULT false,
+    created_at   TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Tillåt publik läsning och skrivning (anon key)
 ALTER TABLE cards           ENABLE ROW LEVEL SECURITY;
 ALTER TABLE minion_cards    ENABLE ROW LEVEL SECURITY;
@@ -67,3 +78,5 @@ CREATE POLICY "public_all" ON cards           FOR ALL USING (true) WITH CHECK (t
 CREATE POLICY "public_all" ON minion_cards    FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "public_all" ON spell_cards     FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "public_all" ON structure_cards FOR ALL USING (true) WITH CHECK (true);
+ALTER TABLE card_templates ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public_all" ON card_templates FOR ALL USING (true) WITH CHECK (true);
