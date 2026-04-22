@@ -638,6 +638,17 @@ nav button.active { background: var(--surface2); color: var(--gold); font-weight
 .cat-suggestion { background: #1a3a3a; color: #7fd4d4; }
 .cat-misc       { background: #2a2a2a; color: #aaa; }
 
+.doc-detail-panel { max-width: 720px; }
+
+.doc-detail-body {
+  font-size: 15px;
+  line-height: 1.8;
+  color: var(--text);
+  white-space: pre-wrap;
+  padding: 20px 0 4px;
+  min-height: 80px;
+}
+
 /* Doc editor overlay */
 .doc-editor-overlay {
   display: none;

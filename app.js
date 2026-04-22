@@ -844,14 +844,19 @@ const CAT_ORDER = ['keyword', 'effect', 'ability', 'rule', 'suggestion', 'misc']
 let activeCat  = '';
 let editingDoc = null;
 
-const docList          = document.getElementById('doc-list');
-const docEditorOverlay = document.getElementById('doc-editor-overlay');
-const docEditorTitle   = document.getElementById('doc-editor-title');
-const docCategory      = document.getElementById('doc-category');
-const docTitleEl       = document.getElementById('doc-title');
-const docBodyEl        = document.getElementById('doc-body');
-const docTagsEl        = document.getElementById('doc-tags');
-const btnDocDelete     = document.getElementById('btn-doc-delete');
+const docList           = document.getElementById('doc-list');
+const docEditorOverlay  = document.getElementById('doc-editor-overlay');
+const docEditorTitle    = document.getElementById('doc-editor-title');
+const docCategory       = document.getElementById('doc-category');
+const docTitleEl        = document.getElementById('doc-title');
+const docBodyEl         = document.getElementById('doc-body');
+const docTagsEl         = document.getElementById('doc-tags');
+const btnDocDelete      = document.getElementById('btn-doc-delete');
+const docDetailOverlay  = document.getElementById('doc-detail-overlay');
+const docDetailTitle    = document.getElementById('doc-detail-title');
+const docDetailBadge    = document.getElementById('doc-detail-badge');
+const docDetailBody     = document.getElementById('doc-detail-body');
+const docDetailTags     = document.getElementById('doc-detail-tags');
 
 async function loadDocs() {
   let q = sb.from('game_docs').select('*').order('category').order('title');
@@ -892,7 +897,7 @@ async function renderDocs() {
   docList.querySelectorAll('.doc-card').forEach(card => {
     card.addEventListener('click', () => {
       const doc = docs.find(d => d.id == card.dataset.id);
-      if (doc) openDocEditor(doc);
+      if (doc) openDocDetail(doc);
     });
   });
 }
@@ -912,6 +917,34 @@ function closeDocEditor() {
   docEditorOverlay.classList.remove('open');
   editingDoc = null;
 }
+
+let viewingDoc = null;
+
+function openDocDetail(doc) {
+  viewingDoc = doc;
+  docDetailTitle.textContent = doc.title;
+  docDetailBadge.textContent = CAT_LABELS[doc.category] || doc.category;
+  docDetailBadge.className = `doc-cat-badge cat-${doc.category}`;
+  docDetailBody.textContent = doc.body || '';
+  docDetailTags.innerHTML = doc.tags
+    ? doc.tags.split(',').map(t => `<span class="doc-tag">${t.trim()}</span>`).join('')
+    : '';
+  docDetailOverlay.classList.add('open');
+}
+
+function closeDocDetail() {
+  docDetailOverlay.classList.remove('open');
+  viewingDoc = null;
+}
+
+document.getElementById('btn-doc-detail-cancel').addEventListener('click', closeDocDetail);
+document.getElementById('btn-doc-detail-close').addEventListener('click', closeDocDetail);
+document.getElementById('btn-doc-detail-edit').addEventListener('click', () => {
+  const doc = viewingDoc;
+  closeDocDetail();
+  openDocEditor(doc);
+});
+docDetailOverlay.addEventListener('click', e => { if (e.target === docDetailOverlay) closeDocDetail(); });
 
 document.getElementById('btn-new-doc').addEventListener('click', () => openDocEditor());
 document.getElementById('btn-doc-cancel').addEventListener('click', closeDocEditor);

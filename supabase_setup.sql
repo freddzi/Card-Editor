@@ -80,3 +80,16 @@ CREATE POLICY "public_all" ON spell_cards     FOR ALL USING (true) WITH CHECK (t
 CREATE POLICY "public_all" ON structure_cards FOR ALL USING (true) WITH CHECK (true);
 ALTER TABLE card_templates ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "public_all" ON card_templates FOR ALL USING (true) WITH CHECK (true);
+
+CREATE TABLE game_docs (
+    id          BIGSERIAL PRIMARY KEY,
+    category    TEXT        NOT NULL DEFAULT 'keyword',
+    title       TEXT        NOT NULL,
+    body        TEXT        NOT NULL DEFAULT '',
+    tags        TEXT        NOT NULL DEFAULT '',
+    updated_at  TIMESTAMPTZ DEFAULT NOW(),
+    created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE game_docs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public_all" ON game_docs FOR ALL USING (true) WITH CHECK (true);

@@ -492,6 +492,25 @@
     <div id="doc-list"></div>
   </div>
 
+  <!-- Doc detail panel (read-only) -->
+  <div class="doc-editor-overlay" id="doc-detail-overlay">
+    <div class="doc-editor doc-detail-panel">
+      <div class="doc-editor-header">
+        <div style="display:flex;align-items:center;gap:10px">
+          <h3 id="doc-detail-title">–</h3>
+          <span id="doc-detail-badge" class="doc-cat-badge"></span>
+        </div>
+        <button class="card-detail-close" id="btn-doc-detail-close">✕</button>
+      </div>
+      <div id="doc-detail-body" class="doc-detail-body"></div>
+      <div id="doc-detail-tags" class="doc-card-tags" style="margin-top:16px"></div>
+      <div class="form-actions" style="margin-top:24px">
+        <button class="btn btn-secondary" id="btn-doc-detail-cancel">Avbryt</button>
+        <button class="btn btn-primary" id="btn-doc-detail-edit">Redigera</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Doc editor panel -->
   <div class="doc-editor-overlay" id="doc-editor-overlay">
     <div class="doc-editor">
