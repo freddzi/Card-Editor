@@ -150,14 +150,54 @@ document.getElementById('btn-logout').addEventListener('click', async () => {
 const pages   = document.querySelectorAll('.page');
 const navBtns = document.querySelectorAll('nav button[data-page]');
 
+const DROPDOWN_PARENTS = {
+  'page-overview':        'nav-btn-overview',
+  'page-overview-skills': 'nav-btn-overview',
+  'page-add':             'nav-btn-add',
+  'page-add-skill':       'nav-btn-add',
+};
+
 function showPage(id) {
   pages.forEach(p => p.classList.toggle('active', p.id === id));
   navBtns.forEach(b => b.classList.toggle('active', b.dataset.page === id));
-  if (id === 'page-overview') renderGrid();
-  if (id === 'page-export')   renderExport();
+
+  document.querySelectorAll('.nav-dropdown-btn').forEach(btn => btn.classList.remove('active'));
+  const parentId = DROPDOWN_PARENTS[id];
+  if (parentId) document.getElementById(parentId).classList.add('active');
+
+  if (id === 'page-overview')        renderGrid();
+  if (id === 'page-overview-skills') renderSkillsGrid();
+  if (id === 'page-list')            renderCardList();
+  if (id === 'page-export')          renderExport();
 }
 
-navBtns.forEach(b => b.addEventListener('click', () => showPage(b.dataset.page)));
+navBtns.forEach(b => b.addEventListener('click', () => {
+  showPage(b.dataset.page);
+  closeAllDropdowns();
+  if (b.dataset.scroll) {
+    setTimeout(() => {
+      const el = document.getElementById(b.dataset.scroll);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  }
+}));
+
+// ── Dropdown toggle ───────────────────────────────────────────────────────────
+function closeAllDropdowns() {
+  document.querySelectorAll('.nav-dropdown').forEach(d => d.classList.remove('open'));
+}
+
+document.querySelectorAll('.nav-dropdown-btn').forEach(btn => {
+  btn.addEventListener('click', e => {
+    e.stopPropagation();
+    const dropdown = btn.closest('.nav-dropdown');
+    const wasOpen  = dropdown.classList.contains('open');
+    closeAllDropdowns();
+    if (!wasOpen) dropdown.classList.add('open');
+  });
+});
+
+document.addEventListener('click', closeAllDropdowns);
 
 // ── Toast ─────────────────────────────────────────────────────────────────────
 const toast = document.getElementById('toast');
@@ -395,24 +435,41 @@ const delModal    = document.getElementById('delete-modal');
 const delCardName = document.getElementById('del-card-name');
 const btnDelCancel = document.getElementById('btn-del-cancel');
 const btnDelOk    = document.getElementById('btn-del-ok');
-let pendingDelId  = null;
+let pendingDelId   = null;
+let pendingDelType = 'card';
 
 async function confirmDelete(id) {
   const cards = await loadCards();
   const card  = cards.find(c => c.id === id);
   if (!card) return;
-  pendingDelId = id;
+  pendingDelId   = id;
+  pendingDelType = 'card';
   delCardName.textContent = `"${card.name}" (${id})`;
+  delModal.classList.add('open');
+}
+
+function confirmDeleteSkill(id, description) {
+  pendingDelId   = id;
+  pendingDelType = 'skill';
+  delCardName.textContent = description ? `"${description.slice(0, 40)}${description.length > 40 ? '…' : ''}"` : 'detta skill';
   delModal.classList.add('open');
 }
 
 btnDelCancel.addEventListener('click', () => delModal.classList.remove('open'));
 btnDelOk.addEventListener('click', async () => {
   if (!pendingDelId) return;
-  const ok = await deleteCard(pendingDelId);
-  delModal.classList.remove('open');
-  pendingDelId = null;
-  if (ok) { showToast('Kort borttaget.'); renderGrid(); }
+  let ok;
+  if (pendingDelType === 'skill') {
+    ok = await deleteSkill(pendingDelId);
+    delModal.classList.remove('open');
+    pendingDelId = null;
+    if (ok) { showToast('Skill borttaget.'); renderSkillsGrid(); }
+  } else {
+    ok = await deleteCard(pendingDelId);
+    delModal.classList.remove('open');
+    pendingDelId = null;
+    if (ok) { listAllCards = []; showToast('Kort borttaget.'); renderGrid(); }
+  }
 });
 
 // ── Keyword picker ────────────────────────────────────────────────────────────
@@ -722,6 +779,7 @@ form.addEventListener('submit', async e => {
   submitBtn.textContent = editingId ? 'Spara ändringar' : 'Spara kort';
 
   if (ok) {
+    listAllCards = [];
     showToast(editingId ? `"${base.name}" uppdaterat!` : `"${base.name}" sparat!`);
     await resetForm();
     showPage('page-overview');
@@ -832,6 +890,35 @@ document.getElementById('btn-export-json').addEventListener('click', async () =>
   });
   a.click();
   showToast('JSON nedladdat!');
+});
+
+// ── Rarity migration ─────────────────────────────────────────────────────────
+const RARITY_MAP = { common: 'Basic', uncommon: 'Superior', rare: 'Supreme', epic: 'Supreme', legendary: 'Legendary' };
+
+document.getElementById('btn-migrate-rarity').addEventListener('click', async () => {
+  const btn    = document.getElementById('btn-migrate-rarity');
+  const status = document.getElementById('migrate-status');
+  btn.disabled = true;
+  status.textContent = 'Kör…';
+
+  const cards = await loadCards();
+  const toMigrate = cards.filter(c => RARITY_MAP[c.rarity]);
+
+  if (!toMigrate.length) {
+    status.textContent = 'Inga kort behöver migreras.';
+    btn.disabled = false;
+    return;
+  }
+
+  let updated = 0;
+  for (const card of toMigrate) {
+    const { error } = await sb.from('cards').update({ rarity: RARITY_MAP[card.rarity] }).eq('id', card.id);
+    if (!error) updated++;
+  }
+
+  status.textContent = `${updated} av ${toMigrate.length} kort uppdaterade.`;
+  btn.disabled = false;
+  showToast(`Migrering klar! ${updated} kort uppdaterade.`);
 });
 
 // ── Speldesign ────────────────────────────────────────────────────────────────
@@ -1726,6 +1813,541 @@ document.querySelector('nav button[data-page="page-templates"]').addEventListene
   await seedTemplatesIfEmpty();
   renderTplGrid();
 });
+
+// ── Skills ────────────────────────────────────────────────────────────────────
+const skillForm            = document.getElementById('skill-form');
+const skillArtworkInput    = document.getElementById('skill-artwork-input');
+const skillArtworkPreview  = document.getElementById('skill-artwork-preview');
+const skillArtworkFilename = document.getElementById('skill-artwork-filename');
+const skillNameEl          = document.getElementById('skill-name');
+const skillDescEl          = document.getElementById('skill-description');
+const skillCountEl         = document.getElementById('skill-count');
+const skillsGrid           = document.getElementById('skills-grid');
+
+let selectedSkillImageFile = null;
+
+skillArtworkPreview.addEventListener('click', () => skillArtworkInput.click());
+skillArtworkInput.addEventListener('change', () => {
+  const file = skillArtworkInput.files[0];
+  if (!file) return;
+  selectedSkillImageFile = file;
+  skillArtworkFilename.textContent = file.name;
+  const reader = new FileReader();
+  reader.onload = e => { skillArtworkPreview.innerHTML = `<img src="${e.target.result}" alt="preview">`; };
+  reader.readAsDataURL(file);
+});
+
+function resetSkillForm() {
+  skillForm.reset();
+  selectedSkillImageFile = null;
+  skillArtworkPreview.innerHTML = '🖼';
+  skillArtworkFilename.textContent = '';
+  skillNameEl.value = '';
+  skillDescEl.value = '';
+}
+
+document.getElementById('btn-skill-reset').addEventListener('click', resetSkillForm);
+
+async function loadSkills() {
+  const { data, error } = await sb.from('skills').select('*').order('created_at');
+  if (error) { console.error(error); return []; }
+  return data || [];
+}
+
+async function saveSkill(name, imagePath, description) {
+  const { error } = await sb.from('skills').insert({ name, image_path: imagePath, description });
+  if (error) { showToast('Fel: ' + error.message); return false; }
+  return true;
+}
+
+async function deleteSkill(id) {
+  const { error } = await sb.from('skills').delete().eq('id', id);
+  if (error) { showToast('Fel: ' + error.message); return false; }
+  return true;
+}
+
+async function renderSkillsGrid() {
+  const skills = await loadSkills();
+  skillCountEl.textContent = `${skills.length} skill${skills.length !== 1 ? 's' : ''}`;
+
+  if (!skills.length) {
+    skillsGrid.innerHTML = '<div class="empty-state">🎯<p>Inga skills ännu.</p></div>';
+    return;
+  }
+
+  skillsGrid.innerHTML = skills.map(s => {
+    const imgSrc = s.image_path ? imgUrl(s.image_path) : null;
+    const imgContent = imgSrc
+      ? `<img src="${imgSrc}" alt="skill">`
+      : `<div class="no-img" style="font-size:32px">🎯</div>`;
+    return `
+      <div class="skill-tile" data-skill-id="${s.id}">
+        <button class="tile-del skill-del-btn" data-skill-del="${s.id}">✕</button>
+        <div class="skill-tile-img">${imgContent}</div>
+        <div class="skill-tile-desc">${s.name || '<em style="color:var(--muted)">Ingen titel</em>'}</div>
+      </div>`;
+  }).join('');
+
+  skillsGrid.querySelectorAll('.skill-del-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const skill = skills.find(s => s.id === btn.dataset.skillDel);
+      confirmDeleteSkill(btn.dataset.skillDel, skill?.name || skill?.description || '');
+    });
+  });
+
+  skillsGrid.querySelectorAll('.skill-tile').forEach(tile => {
+    tile.addEventListener('click', () => {
+      const skill = skills.find(s => s.id === tile.dataset.skillId);
+      if (skill) openSkillDetail(skill);
+    });
+  });
+}
+
+// ── Skill detail modal ────────────────────────────────────────────────────────
+const skillDetailModal  = document.getElementById('skill-detail-modal');
+const skillDetailImages = document.getElementById('skill-detail-images');
+const skillDetailName   = document.getElementById('skill-detail-name');
+const skillDetailDesc   = document.getElementById('skill-detail-desc');
+
+document.getElementById('btn-skill-detail-close').addEventListener('click', () => skillDetailModal.classList.remove('open'));
+skillDetailModal.addEventListener('click', e => { if (e.target === skillDetailModal) skillDetailModal.classList.remove('open'); });
+
+function openSkillDetail(skill) {
+  skillDetailImages.innerHTML = skill.image_path
+    ? `<img src="${imgUrl(skill.image_path)}" alt="skill">`
+    : '<div style="color:var(--muted);text-align:center;padding:40px">Ingen bild</div>';
+  skillDetailName.textContent = skill.name || '—';
+  skillDetailDesc.textContent = skill.description || '';
+  skillDetailModal.classList.add('open');
+}
+
+skillForm.addEventListener('submit', async e => {
+  e.preventDefault();
+  const submitBtn = skillForm.querySelector('button[type="submit"]');
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Sparar…';
+
+  let imagePath = null;
+  if (selectedSkillImageFile) {
+    const file = selectedSkillImageFile;
+    const ext  = file.name.split('.').pop();
+    const path = `skills/skill_${Date.now()}.${ext}`;
+    const { error: uploadErr } = await sb.storage.from(BUCKET).upload(path, file, { upsert: true });
+    if (uploadErr) {
+      showToast('Bilduppladdning misslyckades: ' + uploadErr.message);
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Spara skill';
+      return;
+    }
+    imagePath = path;
+  }
+
+  const name        = skillNameEl.value.trim();
+  const description = skillDescEl.value.trim();
+
+  if (!name) {
+    showToast('Titel krävs.');
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Spara skill';
+    return;
+  }
+
+  const ok = await saveSkill(name, imagePath, description);
+
+  submitBtn.disabled = false;
+  submitBtn.textContent = 'Spara skill';
+
+  if (ok) {
+    showToast('Skill sparat!');
+    resetSkillForm();
+    showPage('page-overview');
+  }
+});
+
+// ── Card list view ────────────────────────────────────────────────────────────
+let listAllCards  = [];
+let listSort      = { col: 'mana', dir: 'asc' };
+let listSearchVal = '';
+
+const listTbody   = document.getElementById('list-tbody');
+const listCount   = document.getElementById('list-count');
+const listSearch  = document.getElementById('list-search');
+
+const LIST_COLS = ['id','name','mana','card_class','card_type','rarity','attack','health','armor','keywords','description','ability_id','draft_tag'];
+
+async function renderCardList() {
+  if (!listAllCards.length) {
+    listAllCards = await loadCards();
+  }
+  applyListSort();
+}
+
+function applyListSort() {
+  const q = listSearchVal.toLowerCase();
+  let cards = listAllCards.filter(c =>
+    !q ||
+    c.name.toLowerCase().includes(q) ||
+    c.id.toLowerCase().includes(q) ||
+    (c.card_class || '').toLowerCase().includes(q) ||
+    (c.card_type  || '').toLowerCase().includes(q) ||
+    (c.rarity     || '').toLowerCase().includes(q) ||
+    (c.keywords   || '').toLowerCase().includes(q)
+  );
+
+  const { col, dir } = listSort;
+  cards = [...cards].sort((a, b) => {
+    let va = a[col] ?? '';
+    let vb = b[col] ?? '';
+    if (typeof va === 'number' || typeof vb === 'number') {
+      va = Number(va) || 0;
+      vb = Number(vb) || 0;
+      return dir === 'asc' ? va - vb : vb - va;
+    }
+    va = String(va).toLowerCase();
+    vb = String(vb).toLowerCase();
+    return dir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+  });
+
+  listCount.textContent = `${cards.length} kort`;
+
+  listTbody.innerHTML = cards.map(c => `
+    <tr class="list-row" data-id="${c.id}">
+      <td class="list-id">${c.id}</td>
+      <td class="list-name">${c.name}</td>
+      <td class="list-center">${c.mana ?? 0}</td>
+      <td>${c.card_class || '—'}</td>
+      <td><span class="badge badge-${c.card_type}">${c.card_type}</span></td>
+      <td><span class="badge badge-${c.rarity}">${c.rarity}</span></td>
+      <td class="list-center">${c.card_type === 'minion'     ? (c.attack ?? '—') : '—'}</td>
+      <td class="list-center">${c.card_type === 'minion'     ? (c.health ?? '—') : '—'}</td>
+      <td class="list-center">${c.card_type === 'structure'  ? (c.armor  ?? '—') : '—'}</td>
+      <td class="list-keywords">${c.keywords || '—'}</td>
+      <td class="list-desc">${c.description || '—'}</td>
+      <td>${c.ability_id || c.effect_id || '—'}</td>
+      <td>${c.draft_tag || '—'}</td>
+    </tr>`).join('');
+
+  listTbody.querySelectorAll('.list-row').forEach(row => {
+    row.addEventListener('click', () => {
+      const card = cards.find(c => c.id === row.dataset.id);
+      if (card) openCardDetail(card);
+    });
+  });
+
+  // Uppdatera sort-indikatorer i header
+  document.querySelectorAll('#list-table thead th').forEach(th => {
+    th.classList.remove('sort-asc', 'sort-desc');
+    if (th.dataset.col === listSort.col) {
+      th.classList.add(listSort.dir === 'asc' ? 'sort-asc' : 'sort-desc');
+    }
+  });
+}
+
+document.querySelectorAll('#list-table thead th').forEach(th => {
+  th.addEventListener('click', () => {
+    const col = th.dataset.col;
+    if (listSort.col === col) {
+      listSort.dir = listSort.dir === 'asc' ? 'desc' : 'asc';
+    } else {
+      listSort = { col, dir: 'asc' };
+    }
+    applyListSort();
+  });
+});
+
+listSearch.addEventListener('input', () => {
+  listSearchVal = listSearch.value.trim();
+  applyListSort();
+});
+
+// Rensa cache när ett kort sparas/uppdateras så listan alltid är färsk
+const _origRenderGrid = renderGrid;
+
+// ── Smart Templates ───────────────────────────────────────────────────────────
+
+const SMART_KW = [
+  { id:'FLYING',        label:'FLYING',        tip:'Kan bara blockas av FLYING/REACH' },
+  { id:'RAPID',         label:'RAPID',         tip:'Anfaller direkt när spelad' },
+  { id:'RANGE',         label:'RANGE',         tip:'Ignorerar blockers helt' },
+  { id:'FIRST_STRIKE',  label:'FIRST_STRIKE',  tip:'Slår före motståndaren' },
+  { id:'DOUBLE_STRIKE', label:'DOUBLE_STRIKE', tip:'Anfaller två gånger' },
+  { id:'VAMPIRISM',     label:'VAMPIRISM',     tip:'Läker ägaren med skada den gör' },
+  { id:'TOXIC',         label:'TOXIC',         tip:'Dödar allt den skadar direkt' },
+  { id:'CANT_ATTACK',   label:'CANT_ATTACK',   tip:'Kan inte anfalla' },
+];
+
+const SMART_AB = [
+  { id:'act_dmg',   label:'Activate: Damage',   short:'Activate (1): Deal 2 damage to any target.',        d:{ ability_id:'deal_damage', ability_trigger:'activate',  ability_cost:1, ability_target_mode:'any_target',    ability_targeting_mode:'explicit', ability_value:2 } },
+  { id:'act_heal',  label:'Activate: Heal',     short:'Activate (1): Restore 3 health to your hero.',      d:{ ability_id:'heal',        ability_trigger:'activate',  ability_cost:1, ability_target_mode:'friendly_hero', ability_targeting_mode:'auto',     ability_value:3 } },
+  { id:'act_draw',  label:'Activate: Draw',     short:'Activate (1): Draw a card.',                        d:{ ability_id:'draw_card',   ability_trigger:'activate',  ability_cost:1, ability_target_mode:'self',          ability_targeting_mode:'auto',     ability_value:1 } },
+  { id:'play_dmg',  label:'Battlecry: Damage',  short:'Battlecry: Deal 2 damage to a random enemy minion.',d:{ ability_id:'deal_damage', ability_trigger:'on_play',   ability_cost:0, ability_target_mode:'enemy_minion',  ability_targeting_mode:'random',   ability_value:2 } },
+  { id:'play_heal', label:'Battlecry: Heal',    short:'Battlecry: Restore 2 health to your hero.',         d:{ ability_id:'heal',        ability_trigger:'on_play',   ability_cost:0, ability_target_mode:'friendly_hero', ability_targeting_mode:'auto',     ability_value:2 } },
+  { id:'death_draw',label:'Deathrattle: Draw',  short:'Deathrattle: Draw a card.',                         d:{ ability_id:'draw_card',   ability_trigger:'on_death',  ability_cost:0, ability_target_mode:'self',          ability_targeting_mode:'auto',     ability_value:1 } },
+  { id:'atk_heal',  label:'On Attack: Heal',    short:'On Attack: Restore 1 health to your hero.',         d:{ ability_id:'heal',        ability_trigger:'on_attack', ability_cost:0, ability_target_mode:'friendly_hero', ability_targeting_mode:'auto',     ability_value:1 } },
+  { id:'atk_dmg',   label:'On Attack: Damage',  short:'On Attack: Deal 1 damage to a random enemy minion.',d:{ ability_id:'deal_damage', ability_trigger:'on_attack', ability_cost:0, ability_target_mode:'enemy_minion',  ability_targeting_mode:'random',   ability_value:1 } },
+];
+
+const SMART_SAB = [
+  { id:'sact_dmg',  label:'Activate: Damage',  short:'Activate (1): Deal 2 damage to any target.',   d:{ s_ability_id:'deal_damage', s_ability_cost:1, s_ability_target_mode:'any_target',    s_ability_targeting_mode:'explicit', s_ability_value:2 } },
+  { id:'sact_heal', label:'Activate: Heal',    short:'Activate (1): Restore 3 health to your hero.', d:{ s_ability_id:'heal',        s_ability_cost:1, s_ability_target_mode:'friendly_hero', s_ability_targeting_mode:'auto',     s_ability_value:3 } },
+  { id:'sact_draw', label:'Activate: Draw',    short:'Activate (2): Draw a card.',                   d:{ s_ability_id:'draw_card',   s_ability_cost:2, s_ability_target_mode:'self',          s_ability_targeting_mode:'auto',     s_ability_value:1 } },
+];
+
+const SMART_TRIG = [
+  { id:'trig_dmg_hero', label:'EoT: Damage Hero',   short:'End of turn: deal 1 damage to enemy hero.',       d:{ trigger_id:'deal_damage', trigger_value:1, trigger_target_mode:'enemy_hero' } },
+  { id:'trig_dmg_min',  label:'EoT: Damage Minion', short:'End of turn: deal 1 damage (random enemy minion).',d:{ trigger_id:'deal_damage', trigger_value:1, trigger_target_mode:'enemy_minion' } },
+  { id:'trig_heal',     label:'EoT: Heal Hero',     short:'End of turn: restore 1 health to your hero.',     d:{ trigger_id:'heal',        trigger_value:1, trigger_target_mode:'friendly_hero' } },
+  { id:'trig_draw',     label:'EoT: Draw',          short:'End of turn: draw a card.',                       d:{ trigger_id:'draw_card',   trigger_value:1, trigger_target_mode:'self' } },
+];
+
+const SMART_EFFECTS = [
+  { id:'eff_dmg_hero',  label:'Damage: Hero',      short:'Deal 3 damage to the enemy hero.',            d:{ effect_id:'deal_damage', effect_value:3, target_mode:'enemy_hero',   targeting_mode:'explicit', repeat_count:1, repeat_mode:'same_target' } },
+  { id:'eff_dmg_any',   label:'Damage: Any',       short:'Deal 2 damage to any target.',                d:{ effect_id:'deal_damage', effect_value:2, target_mode:'any_target',   targeting_mode:'explicit', repeat_count:1, repeat_mode:'same_target' } },
+  { id:'eff_dmg_rand',  label:'Damage: Random',    short:'Deal 2 damage to a random enemy.',            d:{ effect_id:'deal_damage', effect_value:2, target_mode:'enemy_minion', targeting_mode:'random',   repeat_count:1, repeat_mode:'same_target' } },
+  { id:'eff_dmg_aoe',   label:'Damage: AOE x3',    short:'Deal 1 damage to 3 random enemies.',          d:{ effect_id:'deal_damage', effect_value:1, target_mode:'enemy_minion', targeting_mode:'random',   repeat_count:3, repeat_mode:'reroll_each_time' } },
+  { id:'eff_heal',      label:'Heal: Hero',        short:'Restore 4 health to your hero.',              d:{ effect_id:'heal',        effect_value:4, target_mode:'friendly_hero',targeting_mode:'auto',     repeat_count:1, repeat_mode:'same_target' } },
+  { id:'eff_heal_any',  label:'Heal: Any',         short:'Restore 3 health to any target.',             d:{ effect_id:'heal',        effect_value:3, target_mode:'any_target',   targeting_mode:'explicit', repeat_count:1, repeat_mode:'same_target' } },
+  { id:'eff_draw1',     label:'Draw 1',            short:'Draw 1 card.',                                d:{ effect_id:'draw_card',   effect_value:1, target_mode:'',             targeting_mode:'auto',     repeat_count:1, repeat_mode:'same_target' } },
+  { id:'eff_draw2',     label:'Draw 2',            short:'Draw 2 cards.',                               d:{ effect_id:'draw_card',   effect_value:2, target_mode:'',             targeting_mode:'auto',     repeat_count:1, repeat_mode:'same_target' } },
+  { id:'eff_chain',     label:'Chain x3',          short:'Deal 2 damage, bouncing to 3 targets.',       d:{ effect_id:'chain',       effect_value:2, target_mode:'any_target',   targeting_mode:'explicit', repeat_count:3, repeat_mode:'reroll_each_time' } },
+];
+
+const SMART_MINION_STATS = [
+  { id:'s11', label:'1/1',  tip:'Mana 1', d:{ attack:1, health:1, mana:1 } },
+  { id:'s21', label:'2/1',  tip:'Mana 1', d:{ attack:2, health:1, mana:1 } },
+  { id:'s12', label:'1/2',  tip:'Mana 1', d:{ attack:1, health:2, mana:1 } },
+  { id:'s22', label:'2/2',  tip:'Mana 2', d:{ attack:2, health:2, mana:2 } },
+  { id:'s23', label:'2/3',  tip:'Mana 3', d:{ attack:2, health:3, mana:3 } },
+  { id:'s32', label:'3/2',  tip:'Mana 3', d:{ attack:3, health:2, mana:3 } },
+];
+
+const SMART_COMBO_STATS = [
+  { id:'c22', label:'2/2',  tip:'Mana 3', d:{ attack:2, health:2, mana:3 } },
+  { id:'c23', label:'2/3',  tip:'Mana 4', d:{ attack:2, health:3, mana:4 } },
+  { id:'c33', label:'3/3',  tip:'Mana 4', d:{ attack:3, health:3, mana:4 } },
+  { id:'c34', label:'3/4',  tip:'Mana 5', d:{ attack:3, health:4, mana:5 } },
+  { id:'c43', label:'4/3',  tip:'Mana 5', d:{ attack:4, health:3, mana:5 } },
+];
+
+const SMART_STRUCT_STATS = [
+  { id:'a3', label:'Armor 3', tip:'Mana 2', d:{ armor:3, mana:2 } },
+  { id:'a5', label:'Armor 5', tip:'Mana 3', d:{ armor:5, mana:3 } },
+  { id:'a7', label:'Armor 7', tip:'Mana 4', d:{ armor:7, mana:4 } },
+];
+
+const SMART_SPELL_MANA = [
+  { id:'m1', label:'1', d:{ mana:1 } },
+  { id:'m2', label:'2', d:{ mana:2 } },
+  { id:'m3', label:'3', d:{ mana:3 } },
+  { id:'m4', label:'4', d:{ mana:4 } },
+  { id:'m5', label:'5', d:{ mana:5 } },
+];
+
+function kwDesc(kw) {
+  const map = { FLYING:'Flying.', RAPID:'Rapid.', RANGE:'Range.', FIRST_STRIKE:'First Strike.',
+    DOUBLE_STRIKE:'Double Strike.', VAMPIRISM:'Vampirism.', TOXIC:'Toxic.', CANT_ATTACK:"Can't Attack." };
+  return map[kw] || '';
+}
+
+function buildSmartSection(sectionCfg, state, onchange) {
+  const wrap = document.createElement('div');
+  wrap.className = 'smart-section';
+
+  const labelRow = document.createElement('div');
+  labelRow.className = 'smart-section-label';
+  labelRow.innerHTML = `${sectionCfg.label}${sectionCfg.required
+    ? ' <span class="smart-req">obligatorisk</span>'
+    : ' <span class="smart-limit">max 1</span>'}`;
+  wrap.appendChild(labelRow);
+
+  const opts = document.createElement('div');
+  opts.className = 'smart-opts';
+  wrap.appendChild(opts);
+
+  const preview = document.createElement('div');
+  preview.className = 'smart-preview';
+  wrap.appendChild(preview);
+
+  sectionCfg.options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'smart-opt-btn';
+    btn.textContent = opt.label;
+    if (opt.tip) btn.title = opt.tip;
+
+    btn.addEventListener('click', () => {
+      const wasActive = btn.classList.contains('active');
+      opts.querySelectorAll('.smart-opt-btn').forEach(b => b.classList.remove('active'));
+      if (!wasActive) {
+        btn.classList.add('active');
+        state[sectionCfg.key] = opt.id;
+        preview.textContent = opt.short || opt.tip || '';
+      } else {
+        state[sectionCfg.key] = null;
+        preview.textContent = '';
+      }
+      onchange();
+    });
+    opts.appendChild(btn);
+  });
+
+  return wrap;
+}
+
+function buildSmartCard(cfg) {
+  const state = {};
+  cfg.sections.forEach(s => { state[s.key] = s.default || null; });
+
+  const card = document.createElement('div');
+  card.className = 'smart-tpl-card';
+  card.innerHTML = `
+    <div class="smart-tpl-header">
+      <span class="smart-tpl-icon">${cfg.icon}</span>
+      <div>
+        <div class="smart-tpl-title">${cfg.title}</div>
+        <div class="smart-tpl-subtitle">${cfg.subtitle}</div>
+      </div>
+    </div>`;
+
+  cfg.sections.forEach(secCfg => {
+    card.appendChild(buildSmartSection(secCfg, state, updateBtn));
+  });
+
+  const footer = document.createElement('div');
+  footer.className = 'smart-tpl-footer';
+
+  const comboPreview = document.createElement('div');
+  comboPreview.className = 'smart-combo-label';
+  footer.appendChild(comboPreview);
+
+  const applyBtn = document.createElement('button');
+  applyBtn.className = 'btn btn-primary';
+  applyBtn.textContent = 'Använd mall →';
+  footer.appendChild(applyBtn);
+  card.appendChild(footer);
+
+  function updateBtn() {
+    const requiredMet = cfg.sections.filter(s => s.required).every(s => state[s.key]);
+    applyBtn.disabled = !requiredMet;
+
+    if (cfg.showCombo) {
+      const parts = cfg.sections
+        .map(s => { const o = s.options.find(o => o.id === state[s.key]); return o?.label || null; })
+        .filter(Boolean);
+      comboPreview.textContent = parts.length > 1 ? `Combo: ${parts.join(' + ')}` : '';
+    }
+  }
+
+  applyBtn.addEventListener('click', async () => {
+    const data = cfg.buildData(state);
+    await applyTemplate({ name: cfg.title, card_type: data.card_type, card_data: data });
+  });
+
+  updateBtn();
+  return card;
+}
+
+function initSmartTemplates() {
+  const grid = document.getElementById('smart-tpl-grid');
+  grid.innerHTML = '';
+
+  // ── Minion Basic ──────────────────────────────────────────────────────────
+  grid.appendChild(buildSmartCard({
+    icon: '⚔️', title: 'Minion Basic', subtitle: 'Välj stats, valfritt keyword och/eller ability',
+    showCombo: false,
+    sections: [
+      { key:'stats',   label:'Stats',   required:true,  options: SMART_MINION_STATS },
+      { key:'keyword', label:'Keyword', required:false, options: SMART_KW },
+      { key:'ability', label:'Ability', required:false, options: SMART_AB },
+    ],
+    buildData(state) {
+      const stats  = SMART_MINION_STATS.find(s => s.id === state.stats) || SMART_MINION_STATS[3];
+      const ab     = SMART_AB.find(a => a.id === state.ability);
+      const kwStr  = state.keyword || '';
+      const desc   = [kwStr ? kwDesc(kwStr) : '', ab?.short || ''].filter(Boolean).join(' ');
+      return {
+        card_type:'minion', card_class:'Neutral', rarity:'Basic',
+        ...stats.d,
+        keywords: kwStr,
+        description: desc,
+        ...(ab ? ab.d : {}),
+      };
+    },
+  }));
+
+  // ── Minion Combo ──────────────────────────────────────────────────────────
+  grid.appendChild(buildSmartCard({
+    icon: '⚡', title: 'Minion Combo', subtitle: 'Välj stats + 1 keyword + 1 ability (båda obligatoriska)',
+    showCombo: true,
+    sections: [
+      { key:'stats',   label:'Stats',   required:true,  options: SMART_COMBO_STATS },
+      { key:'keyword', label:'Keyword', required:true,  options: SMART_KW },
+      { key:'ability', label:'Ability', required:true,  options: SMART_AB },
+    ],
+    buildData(state) {
+      const stats = SMART_COMBO_STATS.find(s => s.id === state.stats) || SMART_COMBO_STATS[2];
+      const ab    = SMART_AB.find(a => a.id === state.ability);
+      const kwStr = state.keyword || '';
+      const desc  = [kwStr ? kwDesc(kwStr) : '', ab?.short || ''].filter(Boolean).join(' ');
+      return {
+        card_type:'minion', card_class:'Neutral', rarity:'Superior',
+        ...stats.d,
+        keywords: kwStr,
+        description: desc,
+        ...(ab ? ab.d : {}),
+      };
+    },
+  }));
+
+  // ── Structure ─────────────────────────────────────────────────────────────
+  grid.appendChild(buildSmartCard({
+    icon: '🏰', title: 'Structure', subtitle: 'Välj armor, valfri activate-ability och/eller trigger',
+    showCombo: false,
+    sections: [
+      { key:'stats',   label:'Armor',   required:true,  options: SMART_STRUCT_STATS },
+      { key:'ability', label:'Ability (Activate)', required:false, options: SMART_SAB },
+      { key:'trigger', label:'Trigger (End of Turn)', required:false, options: SMART_TRIG },
+    ],
+    buildData(state) {
+      const stats = SMART_STRUCT_STATS.find(s => s.id === state.stats) || SMART_STRUCT_STATS[1];
+      const ab    = SMART_SAB.find(a => a.id === state.ability);
+      const trig  = SMART_TRIG.find(t => t.id === state.trigger);
+      const descParts = [ab?.short || '', trig?.short || ''].filter(Boolean);
+      return {
+        card_type:'structure', card_class:'Neutral', rarity:'Basic',
+        ...stats.d,
+        description: descParts.join(' '),
+        maintenance_cost: 0,
+        repair_cost: 0, repair_value: 0,
+        ...(ab ? ab.d : {}),
+        ...(trig ? trig.d : {}),
+      };
+    },
+  }));
+
+  // ── Spell ─────────────────────────────────────────────────────────────────
+  grid.appendChild(buildSmartCard({
+    icon: '✨', title: 'Spell', subtitle: 'Välj manakostnad och effekt',
+    showCombo: false,
+    sections: [
+      { key:'mana',   label:'Mana',    required:true,  options: SMART_SPELL_MANA },
+      { key:'effect', label:'Effekt',  required:true,  options: SMART_EFFECTS },
+    ],
+    buildData(state) {
+      const mana = SMART_SPELL_MANA.find(m => m.id === state.mana) || SMART_SPELL_MANA[1];
+      const eff  = SMART_EFFECTS.find(e => e.id === state.effect);
+      return {
+        card_type:'spell', card_class:'Neutral', rarity:'Basic',
+        mana: mana.d.mana,
+        description: eff?.short || '',
+        school: '',
+        ...(eff ? eff.d : {}),
+      };
+    },
+  }));
+}
+
+document.querySelector('.tpl-tab-btn[data-tab="smart"]').addEventListener('click', initSmartTemplates);
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 initAuth();

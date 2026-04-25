@@ -28,13 +28,27 @@
 <header>
   <h1>Card Editor</h1>
   <nav>
-    <button data-page="page-overview" class="active">Översikt</button>
-    <button data-page="page-add">Lägg till kort</button>
+    <div class="nav-dropdown">
+      <button class="nav-dropdown-btn active" id="nav-btn-overview">Översikt ▾</button>
+      <div class="nav-dropdown-menu">
+        <button data-page="page-overview" data-scroll="card-grid">Kort</button>
+        <button data-page="page-overview-skills">Skills</button>
+      </div>
+    </div>
+    <div class="nav-dropdown">
+      <button class="nav-dropdown-btn" id="nav-btn-add">Lägg till ▾</button>
+      <div class="nav-dropdown-menu">
+        <button data-page="page-add">Lägg till kort</button>
+        <button data-page="page-add-skill">Lägg till skill</button>
+      </div>
+    </div>
+    <button data-page="page-list">Listade kort</button>
     <button data-page="page-export">Exportera SQL</button>
     <button data-page="page-design">Speldesign</button>
     <button data-page="page-templates">Mallar</button>
   </nav>
-  <button class="btn btn-secondary" id="btn-logout" style="margin-left:auto;font-size:12px;padding:6px 12px">Logga ut</button>
+  <button class="btn donate-btn" id="btn-donate" style="font-size:12px;padding:6px 14px">Donate Fredde 💸</button>
+  <button class="btn btn-secondary" id="btn-logout" style="font-size:12px;padding:6px 12px">Logga ut</button>
 </header>
 
 <!-- ── OVERVIEW ── -->
@@ -62,11 +76,10 @@
     </select>
     <select id="filter-rarity">
       <option value="">Alla sällsyntheter</option>
-      <option value="common">Common</option>
-      <option value="uncommon">Uncommon</option>
-      <option value="rare">Rare</option>
-      <option value="epic">Epic</option>
-      <option value="legendary">Legendary</option>
+      <option value="Basic">Basic</option>
+      <option value="Superior">Superior</option>
+      <option value="Supreme">Supreme</option>
+      <option value="Legendary">Legendary</option>
     </select>
     <select id="filter-effect">
       <option value="">Alla effekter</option>
@@ -81,6 +94,90 @@
     <button class="btn btn-secondary" id="btn-clear-filters" style="white-space:nowrap">Rensa filter</button>
   </div>
   <div class="card-grid" id="card-grid"></div>
+</section>
+
+<!-- ── OVERVIEW SKILLS ── -->
+<section id="page-overview-skills" class="page">
+  <div class="grid-header">
+    <h2>Skills</h2>
+    <span class="card-count" id="skill-count">0 skills</span>
+  </div>
+  <div id="skills-grid"></div>
+</section>
+
+<!-- ── LIST VIEW ── -->
+<section id="page-list" class="page">
+  <div class="list-header">
+    <h2>Listade kort</h2>
+    <span id="list-count" class="card-count">0 kort</span>
+    <input id="list-search" type="search" placeholder="Sök namn, ID, klass…" style="margin-left:16px;padding:6px 12px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:13px;width:220px">
+  </div>
+  <div class="list-table-wrap">
+    <table class="list-table" id="list-table">
+      <thead>
+        <tr>
+          <th data-col="id">ID</th>
+          <th data-col="name">Namn</th>
+          <th data-col="mana">Mana</th>
+          <th data-col="card_class">Klass</th>
+          <th data-col="card_type">Typ</th>
+          <th data-col="rarity">Sällsynthet</th>
+          <th data-col="attack">Attack</th>
+          <th data-col="health">Health</th>
+          <th data-col="armor">Armor</th>
+          <th data-col="keywords">Keywords</th>
+          <th data-col="description">Beskrivning</th>
+          <th data-col="ability_id">Ability</th>
+          <th data-col="draft_tag">Draft Tag</th>
+        </tr>
+      </thead>
+      <tbody id="list-tbody"></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ── ADD SKILL ── -->
+<section id="page-add-skill" class="page">
+  <div class="form-wrap">
+    <h2>Lägg till skill</h2>
+    <form id="skill-form" autocomplete="off">
+      <div class="form-section">
+        <div class="field-row">
+          <div class="field field-full">
+            <legend>Skillbild</legend>
+            <div class="artwork-upload">
+              <div class="artwork-preview" id="skill-artwork-preview">🖼</div>
+              <div class="artwork-right">
+                <label>Bild</label>
+                <div class="btn-upload" onclick="document.getElementById('skill-artwork-input').click()">Välj fil…</div>
+                <input type="file" id="skill-artwork-input" accept="image/*" style="display:none">
+                <span id="skill-artwork-filename" style="font-size:12px;color:var(--muted)"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="form-section">
+        <legend>Info</legend>
+        <div class="field-row">
+          <div class="field field-full">
+            <label>Titel *</label>
+            <input id="skill-name" placeholder="t.ex. Eldkontroll" required>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field field-full">
+            <label>Beskrivning</label>
+            <textarea id="skill-description" placeholder="Beskriv skillet…" rows="4"></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" id="btn-skill-reset">Återställ</button>
+        <button type="submit" class="btn btn-primary">Spara skill</button>
+      </div>
+    </form>
+  </div>
 </section>
 
 <!-- ── ADD CARD ── -->
@@ -158,11 +255,10 @@
           <div class="field">
             <label>Sällsynthet</label>
             <select name="rarity">
-              <option value="common">Common</option>
-              <option value="uncommon">Uncommon</option>
-              <option value="rare">Rare</option>
-              <option value="epic">Epic</option>
-              <option value="legendary">Legendary</option>
+              <option value="Basic">Basic</option>
+              <option value="Superior">Superior</option>
+              <option value="Supreme">Supreme</option>
+              <option value="Legendary">Legendary</option>
             </select>
           </div>
         </div>
@@ -468,6 +564,13 @@
       <button class="btn btn-secondary" id="btn-export-json">Ladda ner JSON</button>
     </div>
     <pre id="sql-output">-- Laddar…</pre>
+
+    <div style="margin-top:32px;padding-top:24px;border-top:1px solid var(--border)">
+      <h3 style="font-size:14px;color:var(--blue);margin-bottom:8px">Migrera sällsynheter</h3>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:12px">Konverterar gamla värden: common→Basic, uncommon→Superior, rare/epic→Supreme, legendary→Legendary.</p>
+      <button class="btn btn-secondary" id="btn-migrate-rarity">Kör migrering</button>
+      <span id="migrate-status" style="margin-left:12px;font-size:13px;color:var(--muted)"></span>
+    </div>
   </div>
 </section>
 
@@ -566,7 +669,13 @@
     <!-- Tabb-navigation -->
     <div class="tpl-page-tabs">
       <button class="tpl-tab-btn active" data-tab="mallar">Mallar</button>
+      <button class="tpl-tab-btn" data-tab="smart">Smarta mallar</button>
       <button class="tpl-tab-btn" data-tab="guide">Regelguide</button>
+    </div>
+
+    <!-- ── TABB: SMARTA MALLAR ── -->
+    <div id="tpl-tab-smart" class="tpl-tab-content">
+      <div id="smart-tpl-grid" class="smart-tpl-grid"></div>
     </div>
 
     <!-- ── TABB: MALLAR ── -->
@@ -617,7 +726,7 @@
               <tr><td><code>card_class</code></td><td>text</td><td class="req">Ja</td><td>Klassidentifierare: <code>Dark</code>, <code>Wasteland</code>, <code>The Blue</code>, <code>Forest</code> eller <code>Neutral</code></td></tr>
               <tr><td><code>card_type</code></td><td>text</td><td class="req">Ja</td><td>Måste vara exakt <code>minion</code>, <code>spell</code> eller <code>structure</code> — små bokstäver!</td></tr>
               <tr><td><code>description</code></td><td>text</td><td></td><td>Kortets regeltext som visas på kortet. Skriv som: "Activate (2): Deal 3 damage."</td></tr>
-              <tr><td><code>rarity</code></td><td>text</td><td></td><td><code>common</code> · <code>uncommon</code> · <code>rare</code> · <code>epic</code> · <code>legendary</code></td></tr>
+              <tr><td><code>rarity</code></td><td>text</td><td></td><td><code>Basic</code> · <code>Superior</code> · <code>Supreme</code> · <code>Legendary</code></td></tr>
               <tr><td><code>keywords</code></td><td>text</td><td></td><td>Kommaseparerade nyckelord i VERSALER, t.ex. <code>FLYING, RAPID</code>. Se listan nedan.</td></tr>
               <tr><td><code>draft_tag</code></td><td>text</td><td></td><td>Grupperingsnamn för draft, t.ex. <code>dark_set_01</code>. Används för att hålla set åtskilda.</td></tr>
             </tbody>
@@ -854,6 +963,20 @@
     <div class="modal-actions">
       <button class="btn btn-secondary" id="btn-del-cancel">Avbryt</button>
       <button class="btn btn-danger" id="btn-del-ok">Ta bort</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── SKILL DETAIL MODAL ── -->
+<div class="card-detail-modal" id="skill-detail-modal">
+  <div class="card-detail" style="max-width:500px">
+    <div class="card-detail-images" id="skill-detail-images"></div>
+    <div class="card-detail-info">
+      <div class="card-detail-header">
+        <button class="card-detail-close" id="btn-skill-detail-close">✕</button>
+        <div class="card-detail-title" id="skill-detail-name"></div>
+      </div>
+      <div class="card-detail-desc" id="skill-detail-desc" style="font-size:14px;line-height:1.6;margin-top:12px;color:var(--muted)"></div>
     </div>
   </div>
 </div>
