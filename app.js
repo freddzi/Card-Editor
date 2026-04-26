@@ -1096,18 +1096,105 @@ async function seedDocsIfEmpty() {
     { category:'keyword', title:'TOXIC', body:'Varje poäng skada den här minionen delar ut dödar målet direkt, oavsett hur mycket HP målet har kvar.', tags:'combat,removal' },
     { category:'keyword', title:'VAMPIRISM', body:'Minionen återfår HP lika med den skada den delar ut. Lifesteal.', tags:'combat,sustain' },
     { category:'keyword', title:'INSTANT', body:'Spellen med INSTANT kan spelas utanför din tur, som en reaktion.', tags:'timing,spell' },
+    { category:'keyword', title:'STUN', body:'Minionen är bedövad och kan varken attackera eller blockera under sin bedövade tur.\nSTUN löser sig i slutet av ägarens tur.', tags:'combat,restriction' },
+    { category:'keyword', title:'SCARE', body:'Minionen skrämmer fiender vid kontakt — det skrämda målet tvingas till BACK_LINE och kan inte attackera den turen.\nSCARE triggar vanligen on_attack eller passivt (first_attacker).', tags:'combat,control' },
+    { category:'keyword', title:'GUARDIAN', body:'Minionen kan blockera attacker riktade mot din core även från BACK_LINE.\nFiender måste slå igenom GUARDIAN-minionen för att nå din core.', tags:'defense,combat' },
+    { category:'keyword', title:'STEALTH', body:'Minionen kan inte väljas som mål av motspelaren tills den attackerar eller påverkar en fiende.\nSTEALTH bryts när minionen delar ut skada.', tags:'evasion,offense' },
+    { category:'keyword', title:'CANT_BLOCK', body:'Minionen kan inte användas som blocker. Kan fortfarande attackera och använda aktiverade förmågor.', tags:'combat,restriction' },
+    { category:'keyword', title:'CONSUME', body:'När minionen dödar en fiendeminion äter den upp den och får dess attack- och/eller HP-värden.\neffect_arg styr vilka stats som absorberas.', tags:'combat,sustain' },
 
-    // Effects
+    // Effects — Skada & AOE
     { category:'effect', title:'deal_damage', body:'Delar ut X skada till ett mål.\nAnvänds av spells och minion-abilities.\neffect_value = mängd skada.\ntarget_mode avgör vad som kan träffas.', tags:'damage' },
+    { category:'effect', title:'aoe_damage_wave', body:'Delar ut skada till flera grupper i en våg.\neffect_value = skada till primär grupp (ex attackerare).\neffect_arg kan ange extra grupper: friendly_value och core_value.\nEx: Magma Tsunami — 3 till alla attacker, 2 till egna, 1 till core.', tags:'damage,aoe' },
+    { category:'effect', title:'damage_and_cant_block', body:'Delar ut X skada till ett mål och förhindrar det från att blockera den aktuella turen.\neffect_value = skada. target_mode = any_minion.', tags:'damage,control' },
+    { category:'effect', title:'on_death_splash', body:'Fäster ett emblem på en minion. När den minionen dör delar effekten ut X skada till närmaste mål.\neffect_value = splash-skada. effect_arg = splash:closest.', tags:'damage,deathrattle' },
+
+    // Effects — Kortdrag & Mana
     { category:'effect', title:'draw_card', body:'Drar X kort från ditt deck.\neffect_value = antal kort att dra.', tags:'card-draw' },
+    { category:'effect', title:'draw_random_spell', body:'Lägger till ett slumpmässigt spell från ditt deck i handen utan att dra det normalt.\neffect_value = antal spells att lägga till.', tags:'card-draw,spell' },
+    { category:'effect', title:'draw_next_turn', body:'Spelaren drar X extra kort i sin nästa DRAW-fas.\neffect_value = antal extra kort.', tags:'card-draw' },
+    { category:'effect', title:'gain_mana', body:'Ger spelaren X extra mana direkt.\neffect_arg kan begränsa till "this_turn" eller "next_turn".', tags:'mana,resource' },
+    { category:'effect', title:'pay_life_reduce_cost', body:'Spelaren förlorar X HP och alla kort kostar 1 mana mindre resten av turen.\neffect_value = HP-kostnad. effect_arg = cost_reduction:1,this_turn.', tags:'mana,life' },
+
+    // Effects — Healing & Sustain
     { category:'effect', title:'heal', body:'Återställer X HP till ett mål.\neffect_value = mängd HP.\ntarget_mode avgör vad som kan läkas.', tags:'healing' },
-    { category:'effect', title:'chain', body:'Upprepar effekten på ett nytt slumpmässigt mål efter att den första effekten löst sig.\nAntal kedjor styrs av repeat_count.', tags:'aoe,bounce' },
+    { category:'effect', title:'sacrifice_minion_heal', body:'Offrar en vänlig minion och ger spelaren X HP.\neffect_value = HP att återfå. target_mode = friendly_minion.', tags:'healing,sacrifice' },
+
+    // Effects — Buffar & Debuffar
+    { category:'effect', title:'buff_stats', body:'Ger en minion +X attack och +Y HP permanent.\neffect_value = attack-buff. effect_arg = +A/+H-format.', tags:'buff' },
+    { category:'effect', title:'buff_attack_temporary', body:'Ger en minion +X attack som varar en begränsad tid.\neffect_arg kan ange "dies_after_turn" (minionen dör efter turen) eller "fire" (skadeflagg).', tags:'buff,temporary' },
+    { category:'effect', title:'buff_attack_reduce_hp', body:'Ger en minion +X attack men sätter dess HP till 1.\neffect_value = attack-buff. effect_arg = set_hp:1.', tags:'buff,risk' },
+    { category:'effect', title:'buff_attackers', body:'Ger alla egna attackerande minions +X attack denna tur.\neffect_value = attack-buff. target_mode = all_friendly_attackers.', tags:'buff,combat' },
+    { category:'effect', title:'buff_tribe_attack', body:'Ger alla egna minions av en viss subtyp +X attack.\neffect_value = attack-buff. effect_arg = subtype:<typ>.', tags:'buff,tribal' },
+    { category:'effect', title:'debuff_stats', body:'Ger en minion -X attack och -Y HP som en aura (permanent tills kortet försvinner).\neffect_value = attack-debuff. effect_arg = -A/-H,aura.', tags:'debuff' },
+    { category:'effect', title:'recurring_debuff', body:'Ger en minion -X/-X i attack och HP i slutet av varje tur.\neffect_value = mängd per tur. effect_arg = per_turn.', tags:'debuff,dot' },
+
+    // Effects — Vanish & Rörelse
+    { category:'effect', title:'vanish_and_damage', body:'Tar bort en minion från fältet (den återkommer nästa tur) och delar ut X skada till ett annat mål.\neffect_value = skada. effect_arg anger skademålet.', tags:'vanish,damage' },
+    { category:'effect', title:'vanish_cleanse', body:'Tar bort en vänlig minion från fältet tillfälligt. När den återvänder tas alla debuffar och curses bort.\neffect_value = antal turer borta.', tags:'vanish,cleanse' },
+    { category:'effect', title:'vanish_to_lantern', body:'Tar bort en minion och spawnar en 0/4-struktur på FRONT_LINE i dess ställe.\nNär strukturen förstörs återkommer minionen.\ntarget_mode = any_minion.', tags:'vanish,structure' },
+    { category:'effect', title:'skip_turn_vanish', body:'Spelaren hoppar över sin tur. Alla egna minions vanishar och återkommer nästa tur. Spelaren tar ingen skada under hoppad tur.\neffect_arg = immune_damage.', tags:'vanish,control' },
+    { category:'effect', title:'bounce_attackers', body:'Skickar tillbaka alla fiendeattackerare till motståndarens hand.\ntarget_mode = all_enemy_attackers.', tags:'bounce,control' },
+
+    // Effects — Spawn & Nekromans
+    { category:'effect', title:'spawn_tokens', body:'Spawnar X tokens med specificerade stats på fältet.\neffect_value = antal tokens. effect_arg = attack/hp/namn/flaggor.', tags:'spawn,tokens' },
+    { category:'effect', title:'resurrect_dead_this_turn', body:'Alla minions som dog under denna tur återkommer till ägarens BACK_LINE.\ntarget_mode = self (påverkar alla egna döda den turen).', tags:'resurrect,necro' },
+    { category:'effect', title:'banish_grave_spawn', body:'Tar bort X slumpmässiga minions från fiendens gravhög permanent och spawnar ett Skeleton per borttagen minion.\neffect_value = antal. effect_arg = spawn:<stats/typ>.', tags:'grave,spawn' },
+    { category:'effect', title:'mass_reanimate_as_spirit', body:'Tar bort X minions från den egna gravhögen och spawnar en kraftfull Spirit-minion. Ger dessutom +1 attack till alla egna minions.\neffect_value = antal från graven. effect_arg = spawn:<stats> och buff.', tags:'grave,spawn,buff' },
+    { category:'effect', title:'on_death_spawn_spirit', body:'Fäster en deathrattle på en vänlig minion. När den dör spawnas en Spirit med angivna stats och RAPID.\neffect_arg = spawn:<stats/typ>/RAPID.', tags:'deathrattle,spawn' },
+    { category:'effect', title:'sacrifice_tribe_buff_hp', body:'Offrar alla egna minions av en viss subtyp och ger en vänlig minion +HP lika med antal offrade (max X).\neffect_arg = subtype:<typ>,max:<X>.', tags:'sacrifice,buff,tribal' },
+    { category:'effect', title:'sacrifice_tribe_draw', body:'Dödar alla egna minions av en viss subtyp och drar ett kort per dödad.\neffect_arg = subtype:<typ>.', tags:'sacrifice,card-draw,tribal' },
+    { category:'effect', title:'shuffle_tribe_on_death', body:'Alla minions av en viss subtyp som dör denna tur blandas tillbaka i decket istället för att gå till graven.\neffect_arg = subtype:<typ>,this_turn.', tags:'grave,shuffle,tribal' },
+
+    // Effects — Kontroll & Special
+    { category:'effect', title:'clone_minion', body:'Kopierar en minion och lägger kopian på ditt fält. Kopians stats sätts till angivet värde.\neffect_arg = set_stats:A/H.', tags:'copy,spawn' },
+    { category:'effect', title:'destroy_structure', body:'Förstör omedelbart en vald struktur.\ntarget_mode = any_structure.', tags:'removal,structure' },
+    { category:'effect', title:'transform_minion', body:'Förvandlar en minion med X eller lägre attack till en ny minion med angivna stats.\neffect_arg = max_attack:<X>,into:<A>/<H>/<Namn>.', tags:'transform,removal' },
+    { category:'effect', title:'force_attack_hero', body:'Tvingar en fiendeминion att attackera din hero nästa attackfas istället för att välja mål fritt.\ntarget_mode = enemy_minion.', tags:'control,combat' },
+    { category:'effect', title:'cant_block', body:'Förhindrar en minion från att blockera under sin nästa blockfas.\neffect_value = antal turer. target_mode = enemy_minion.', tags:'control,combat' },
+    { category:'effect', title:'trap_minion', body:'Låser en minion i en fälla i X turer. Om minionen dör i fällan spawnas en Spectre för dig.\neffect_value = turer. effect_arg = on_death_spawn:<stats/typ>/friendly.', tags:'trap,control' },
+    { category:'effect', title:'lock_then_release', body:'Låser en minion i X turer, sedan får den +3/+3 och tvingas attackera din core.\neffect_value = låsturer. effect_arg = buff:3/3,force_attack_core.', tags:'control,buff' },
+    { category:'effect', title:'give_stealth', body:'Ger en vänlig minion STEALTH i X turer — kan inte väljas som mål av motspelaren.\neffect_value = antal turer.', tags:'stealth,evasion' },
+    { category:'effect', title:'give_spell_absorb', body:'Ger en vänlig minion SPELL_ABSORB — nästa spell som riktas mot minionen absorberas och nekas.\ntarget_mode = friendly_minion.', tags:'protection,magic' },
+    { category:'effect', title:'punish_card_play', body:'Nästa tur tar fienden X skada för varje kort de spelar.\neffect_value = skada per kort. effect_arg = per_card,next_turn.', tags:'control,damage' },
+    { category:'effect', title:'conditional_spawn', body:'Spawnar en kraftfull minion om ett villkor är uppfyllt (ex spelaren är under X HP).\neffect_arg = condition:<typ>:<värde>,spawn:<A>/<H>/<Namn>/<keyword>.', tags:'spawn,conditional' },
+    { category:'effect', title:'absorb_convert_to_attack', body:'Absorberar all inkommande skada till en vänlig minion under en tur och ger den lika mycket i attackbuff nästa tur.\ntarget_mode = friendly_minion.', tags:'defense,buff' },
+    { category:'effect', title:'stasis_minion', body:'Sätter en skadad minion till 1 HP och gör den omöjlig att attackera tills ägarens nästa tur.\neffect_value = HP att sätta. effect_arg = untargetable.', tags:'protection,stasis' },
+    { category:'effect', title:'survive_lethal', body:'Om en vänlig minion tar exakt dödlig skada (skada = nuvarande HP) överlever den med 1 HP den turen.\neffect_arg = condition:exact_lethal.', tags:'protection,combat' },
+    { category:'effect', title:'core_trap', body:'Din core tar max 1 skada per attacker denna tur. Dessutom tar alla attackerande fiender X skada som svar.\neffect_value = svarsskada. effect_arg = max_core_damage:1,retaliate_all_attackers.', tags:'defense,damage' },
 
     // Abilities
     { category:'ability', title:'activate', body:'Triggern "activate" innebär att spelaren manuellt aktiverar förmågan under sin tur mot en kostnad (ability_cost mana).\nMinionen måste vara i FRONT_LINE eller BACK_LINE — den kan inte ha attackerat samma tur.', tags:'trigger,active' },
     { category:'ability', title:'on_play', body:'Förmågan triggar automatiskt när minionen spelas från handen.\nIngen extra kostnad — effekten sker direkt.', tags:'trigger,passive' },
     { category:'ability', title:'on_death', body:'Förmågan triggar när minionen dör.\nDeathrattle-effekter löser sig efter striden.', tags:'trigger,deathrattle' },
     { category:'ability', title:'on_attack', body:'Förmågan triggar varje gång minionen attackerar.', tags:'trigger,passive' },
+    { category:'ability', title:'on_damage', body:'Förmågan triggar när minionen tar skada (oavsett källa).', tags:'trigger,reactive' },
+    { category:'ability', title:'on_kill', body:'Förmågan triggar när minionen dödar en annan minion i strid.', tags:'trigger,combat' },
+    { category:'ability', title:'on_core_hit', body:'Förmågan triggar när minionen träffar motståndarens core direkt.', tags:'trigger,combat' },
+    { category:'ability', title:'on_deal_damage', body:'Förmågan triggar varje gång minionen delar ut skada (inkl. ability-skada).', tags:'trigger,damage' },
+    { category:'ability', title:'on_draw', body:'Förmågan triggar när kortens ägare drar ett kort.', tags:'trigger,card-draw' },
+    { category:'ability', title:'on_tribe_death', body:'Förmågan triggar när en vänlig minion av en specifik subtyp dör.\nability_arg = subtype:<typ>.', tags:'trigger,tribal' },
+    { category:'ability', title:'on_survive_turn', body:'Förmågan triggar om minionen överlever till slutet av ägarens tur (den var vid liv vid turstarten och levde kvar).', tags:'trigger,endurance' },
+    { category:'ability', title:'passive', body:'Förmågan är alltid aktiv och kräver ingen trigger.\nGäller konstant så länge minionen/strukturen är på fältet.', tags:'trigger,passive' },
+    { category:'ability', title:'return_to_hand', body:'Skickar minionen tillbaka till ägarens hand.\nAble_id används vanligen med trigger on_damage eller on_attack.\nAll buffar som applicerats på fältet försvinner.', tags:'bounce,defense' },
+    { category:'ability', title:'vanish_after_attack', body:'Minionen försvinner från fältet efter sin attack och återkommer i BACK_LINE i nästa tur.\nability_arg = duration:1_turn.', tags:'vanish,evasion' },
+    { category:'ability', title:'phantom_damage', body:'Minionen delar ut X skada som "phantom" — skadan beräknas separat och kan penetrera visst försvar.\nability_value = phantomskada.', tags:'damage,piercing' },
+    { category:'ability', title:'swap_sides', body:'Om minionen överlever sin attack byter den och målet sida — de kontrolleras nu av respektive motståndare.\nability_arg = condition:self_survives.', tags:'control,combat' },
+    { category:'ability', title:'consume', body:'När minionen dödar en fiende äter den upp dem och absorberar stats.\nability_arg styr vilka stats som tas (attack/health/both).', tags:'combat,growth' },
+    { category:'ability', title:'tribe_buff_attack', body:'Passiv aura: minionen får +X attack per vänlig minion av viss subtyp på fältet.\nability_arg = subtype:<typ>,max:<X>.', tags:'passive,buff,tribal' },
+    { category:'ability', title:'give_stealth', body:'Ger minionen STEALTH under en angiven period (ex denna attack).\nability_trigger = on_attack → aktiv under attackfasen.', tags:'stealth,evasion' },
+    { category:'ability', title:'reduce_spell_cost', body:'Passiv aura: spells i ägarens hand kostar X mana mindre.\nability_value = kostnadsreduktion.', tags:'passive,mana,spell' },
+    { category:'ability', title:'gain_mana', body:'Ger spelaren X extra mana.\nKan triggas av on_attack, on_core_hit, on_draw, on_tribe_death etc.\nability_arg kan ange "next_turn" eller "extra".', tags:'mana,resource' },
+    { category:'ability', title:'heal_on_kill', body:'Minionen återfår X HP varje gång den dödar en fiende i strid.\nability_value = HP att återfå.', tags:'sustain,combat' },
+    { category:'ability', title:'aoe_damage', body:'Delar ut X skada till alla måls i en grupp (ex all_enemy_minions).\nability_trigger anger när effekten utlöses.\nability_target_mode anger gruppen.', tags:'damage,aoe' },
+    { category:'ability', title:'buff_attack_if_first', body:'Om minionen är den första att attackera denna tur får den +X attack under turen.\nability_arg = condition:first_attacker,duration:1_turn.', tags:'buff,combat,conditional' },
+    { category:'ability', title:'dies_after_damage', body:'Minionen dör omedelbart efter att den delar ut skada (oavsett om den träffas tillbaka).\nability_trigger = on_deal_damage.', tags:'sacrifice,aggressive' },
+    { category:'ability', title:'draw_card', body:'Drar X kort från decket.\nability_trigger anger när draget sker (ex on_tribe_death, on_core_hit).', tags:'card-draw' },
+    { category:'ability', title:'spawn_mine', body:'Spawnar en 0/1-struktur (mina) i FRONT_LINE. Minan attackerar den första angriparen och delar ut X skada.\nability_value = skada. ability_arg = stats/typ/beteende.', tags:'spawn,trap,structure' },
+    { category:'ability', title:'fear_to_backline', body:'Tvingar alla fiendeминions att dra sig tillbaka till BACK_LINE och förlora sin attackdeklaration.\nability_trigger = on_attack. ability_target_mode = all_enemy_minions.', tags:'control,fear' },
+    { category:'ability', title:'block_cost', body:'Motspelaren måste betala X mana för att blockera den här minionen.\nOm motspelaren inte kan eller vill betala kan minionen inte blockas.\nability_value = manakostnad.', tags:'evasion,cost' },
+    { category:'ability', title:'shock_aura', body:'Alla fiender som möter minionen i strid tar X skada innan slags löses.\nability_value = preshock-skada.', tags:'damage,aura,combat' },
+    { category:'ability', title:'grab', body:'Om minionen delar ut skada till ett mål som överlever kan det målet inte blockera under resten av attackfasen.\nability_trigger = on_deal_damage. ability_arg = condition:target_survives.', tags:'control,combat' },
 
     // Regler
     { category:'rule', title:'Zoner — FRONT_LINE & BACK_LINE', body:'Alla minions börjar i BACK_LINE när de spelas (om de inte har RAPID).\nFrån FRONT_LINE kan de attackera.\nFlytt sker automatiskt i slutet av ägarens tur.', tags:'zones,movement' },
@@ -1855,7 +1942,7 @@ async function loadSkills() {
 }
 
 async function saveSkill(name, imagePath, description) {
-  const { error } = await sb.from('skills').insert({ name, image_path: imagePath, description });
+  const { error } = await sb.from('skills').insert({ name, image_path: imagePath, description, text: description });
   if (error) { showToast('Fel: ' + error.message); return false; }
   return true;
 }

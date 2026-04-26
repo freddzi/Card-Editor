@@ -93,3 +93,15 @@ CREATE TABLE game_docs (
 
 ALTER TABLE game_docs ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "public_all" ON game_docs FOR ALL USING (true) WITH CHECK (true);
+
+CREATE TABLE skills (
+    id          BIGSERIAL PRIMARY KEY,
+    name        TEXT    NOT NULL,
+    image_path  TEXT    NOT NULL DEFAULT '',
+    description TEXT    NOT NULL DEFAULT '',
+    text        TEXT    NOT NULL DEFAULT '',
+    created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE skills ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public_all" ON skills FOR ALL USING (true) WITH CHECK (true);
