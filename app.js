@@ -1978,14 +1978,14 @@ async function renderSkillsGrid() {
   skillsGrid.querySelectorAll('.skill-del-btn').forEach(btn => {
     btn.addEventListener('click', e => {
       e.stopPropagation();
-      const skill = skills.find(s => s.id === btn.dataset.skillDel);
+      const skill = skills.find(s => String(s.id) === btn.dataset.skillDel);
       confirmDeleteSkill(btn.dataset.skillDel, skill?.name || skill?.description || '');
     });
   });
 
   skillsGrid.querySelectorAll('.skill-tile').forEach(tile => {
     tile.addEventListener('click', () => {
-      const skill = skills.find(s => s.id === tile.dataset.skillId);
+      const skill = skills.find(s => String(s.id) === tile.dataset.skillId);
       if (skill) openSkillDetail(skill);
     });
   });
