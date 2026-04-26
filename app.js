@@ -146,15 +146,44 @@ document.getElementById('btn-logout').addEventListener('click', async () => {
   showLogin();
 });
 
+// ── Theme ─────────────────────────────────────────────────────────────────────
+function applyTheme(theme) {
+  document.body.classList.remove('theme-dark', 'theme-light');
+  if (theme === 'dark' || theme === 'light') document.body.classList.add(`theme-${theme}`);
+  localStorage.setItem('ce-theme', theme);
+  document.querySelectorAll('.theme-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.theme === theme);
+  });
+}
+
+applyTheme(localStorage.getItem('ce-theme') || 'standard');
+
+document.querySelectorAll('.theme-btn').forEach(btn => {
+  btn.addEventListener('click', () => applyTheme(btn.dataset.theme));
+});
+
+function applyFont(font) {
+  document.body.style.fontFamily = font === 'default' ? '' : `'${font}', sans-serif`;
+  localStorage.setItem('ce-font', font);
+  document.querySelectorAll('.font-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.font === font);
+  });
+}
+
+applyFont(localStorage.getItem('ce-font') || 'default');
+
+document.querySelectorAll('.font-btn').forEach(btn => {
+  btn.addEventListener('click', () => applyFont(btn.dataset.font));
+});
+
 // ── Navigation ────────────────────────────────────────────────────────────────
 const pages   = document.querySelectorAll('.page');
 const navBtns = document.querySelectorAll('nav button[data-page]');
 
 const DROPDOWN_PARENTS = {
-  'page-overview':        'nav-btn-overview',
-  'page-overview-skills': 'nav-btn-overview',
-  'page-add':             'nav-btn-add',
-  'page-add-skill':       'nav-btn-add',
+  'page-add':       'nav-btn-add',
+  'page-add-skill': 'nav-btn-add',
+  'page-export':    'nav-btn-advanced',
 };
 
 function showPage(id) {
@@ -475,8 +504,33 @@ btnDelOk.addEventListener('click', async () => {
 // ── Keyword picker ────────────────────────────────────────────────────────────
 const ALL_KEYWORDS = [
   'FLYING','RAPID','RANGE','REACH','FIRST_STRIKE','DOUBLE_STRIKE',
-  'TWINSTRIKE','CANT_ATTACK','PARRY','IRON_SKIN','TOXIC','VAMPIRISM','INSTANT'
+  'TWINSTRIKE','CANT_ATTACK','PARRY','IRON_SKIN','TOXIC','VAMPIRISM','INSTANT',
+  'STUN','SCARE','GUARDIAN','STEALTH','CANT_BLOCK','CONSUME'
 ];
+
+const EFFECT_GROUPS = [
+  { group: 'Skada', items: ['deal_damage','aoe_damage_wave','damage_and_cant_block','on_death_splash'] },
+  { group: 'Kortdrag & Mana', items: ['draw_card','draw_random_spell','draw_next_turn','gain_mana','pay_life_reduce_cost'] },
+  { group: 'Läkning', items: ['heal','sacrifice_minion_heal'] },
+  { group: 'Buffs & Debuffs', items: ['buff_stats','buff_attack_temporary','buff_attack_reduce_hp','buff_attackers','buff_tribe_attack','tribe_buff_attack','debuff_stats','recurring_debuff','reduce_spell_cost'] },
+  { group: 'Vanish & Rörelse', items: ['vanish_and_damage','vanish_cleanse','vanish_to_lantern','skip_turn_vanish','vanish_after_attack','bounce_attackers','return_to_hand'] },
+  { group: 'Spawn & Nekromans', items: ['spawn_tokens','resurrect_dead_this_turn','banish_grave_spawn','mass_reanimate_as_spirit','on_death_spawn_spirit','sacrifice_tribe_buff_hp','sacrifice_tribe_draw','shuffle_tribe_on_death'] },
+  { group: 'Kontroll & Special', items: ['clone_minion','destroy_structure','transform_minion','force_attack_hero','cant_block','trap_minion','lock_then_release','give_stealth','give_spell_absorb','punish_card_play','conditional_spawn','absorb_convert_to_attack','stasis_minion','survive_lethal','core_trap','phantom_damage','swap_sides','consume','chain'] },
+];
+
+function buildEffectOptions() {
+  let html = '<option value="">— ingen —</option>';
+  for (const { group, items } of EFFECT_GROUPS) {
+    html += `<optgroup label="${group}">`;
+    for (const id of items) html += `<option value="${id}">${id}</option>`;
+    html += '</optgroup>';
+  }
+  return html;
+}
+
+['[name="ability_id"]','[name="effect_id"]','[name="s_ability_id"]','[name="trigger_id"]'].forEach(sel => {
+  document.querySelectorAll(sel).forEach(el => { el.innerHTML = buildEffectOptions(); });
+});
 
 const kwPicker = document.getElementById('keyword-picker');
 const kwHidden = document.getElementById('keywords-hidden');
@@ -892,6 +946,59 @@ document.getElementById('btn-export-json').addEventListener('click', async () =>
   showToast('JSON nedladdat!');
 });
 
+document.getElementById('btn-download-images').addEventListener('click', async () => {
+  const statusEl = document.getElementById('download-images-status');
+  const [cards, skills] = await Promise.all([loadCards(), loadSkills()]);
+
+  const imagePaths = [
+    ...cards.flatMap(c => {
+      const paths = c.artwork_path ? c.artwork_path.split(',').map(p => p.trim()).filter(Boolean) : [];
+      const type  = (c.card_type  || 'unknown').toLowerCase();
+      const cls   = (c.card_class || 'unknown').toLowerCase().replace(/\s+/g, '_');
+      return paths.map(p => ({ path: p, folder: `${type}/${cls}` }));
+    }),
+    ...skills.filter(s => s.image_path).map(s => ({ path: s.image_path, folder: 'skills' })),
+  ];
+
+  const zip = new JSZip();
+
+  const TYPES   = ['minion', 'spell', 'structure'];
+  const CLASSES = ['dark', 'wasteland', 'the_blue', 'forest'];
+  for (const t of TYPES)
+    for (const c of CLASSES)
+      zip.folder(`${t}/${c}`);
+  zip.folder('skills');
+
+  let done = 0;
+  const total = imagePaths.length;
+  statusEl.textContent = `0 / ${total}`;
+
+  for (const { path, folder } of imagePaths) {
+    try {
+      const url  = imgUrl(path);
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error(resp.statusText);
+      const buf      = await resp.arrayBuffer();
+      const filename = path.split('/').pop();
+      zip.folder(folder).file(filename, buf);
+    } catch (err) {
+      console.warn('Kunde inte ladda ner', path, err);
+    }
+    done++;
+    statusEl.textContent = `${done} / ${total}`;
+  }
+
+  statusEl.textContent = 'Packar zip...';
+  const blob = await zip.generateAsync({ type: 'blob' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'card-images.zip';
+  a.click();
+
+  statusEl.textContent = `Klart! ${done} bilder i zip.`;
+  showToast('Zip nedladdad!');
+});
+
 // ── Rarity migration ─────────────────────────────────────────────────────────
 const RARITY_MAP = { common: 'Basic', uncommon: 'Superior', rare: 'Supreme', epic: 'Supreme', legendary: 'Legendary' };
 
@@ -1026,6 +1133,13 @@ function closeDocDetail() {
 
 document.getElementById('btn-doc-detail-cancel').addEventListener('click', closeDocDetail);
 document.getElementById('btn-doc-detail-close').addEventListener('click', closeDocDetail);
+document.getElementById('btn-doc-detail-delete').addEventListener('click', async () => {
+  if (!viewingDoc) return;
+  await sb.from('game_docs').delete().eq('id', viewingDoc.id);
+  showToast('Borttaget.');
+  closeDocDetail();
+  renderDocs();
+});
 document.getElementById('btn-doc-detail-edit').addEventListener('click', () => {
   const doc = viewingDoc;
   closeDocDetail();

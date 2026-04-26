@@ -132,6 +132,128 @@ nav button.active { background: var(--surface2); color: var(--gold); font-weight
 
 .nav-dropdown-menu button:last-child { border-bottom: none; }
 
+/* ── SETTINGS DROPDOWN ── */
+.settings-dd .settings-menu {
+  left: auto;
+  right: 0;
+  min-width: 230px;
+  padding: 10px;
+}
+
+.settings-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 2px 4px 8px;
+}
+
+.settings-theme-row {
+  display: flex;
+  gap: 6px;
+  padding-bottom: 4px;
+}
+
+.settings-menu .theme-btn {
+  flex: 1;
+  padding: 7px 4px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  border-bottom: 1px solid var(--border);
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  width: auto;
+  display: inline-block;
+  text-align: center;
+}
+
+.settings-menu .theme-btn:hover { background: var(--surface2); color: var(--text); }
+.settings-menu .theme-btn.active {
+  background: var(--surface2);
+  color: var(--gold);
+  border-color: var(--gold);
+  font-weight: 700;
+}
+
+.settings-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 8px 0;
+}
+
+.settings-font-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  max-height: 200px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.settings-menu .font-btn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 7px 8px;
+  background: none;
+  border: none;
+  border-bottom: none;
+  border-radius: 6px;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.15s;
+}
+
+.settings-menu .font-btn:hover  { background: var(--surface2); color: var(--text); }
+.settings-menu .font-btn.active { background: var(--surface2); color: var(--gold); font-weight: 700; }
+
+.settings-menu .settings-logout-btn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 9px 8px;
+  background: none;
+  border: none;
+  border-bottom: none;
+  border-radius: 7px;
+  color: var(--danger);
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.15s;
+}
+
+.settings-menu .settings-logout-btn:hover { background: rgba(224,85,85,0.1); }
+
+/* ── THEMES ── */
+body.theme-dark {
+  --bg:      #05050d;
+  --surface:  #09091a;
+  --surface2: #0d0d22;
+  --border:   #141430;
+  --text:     #b8c4de;
+  --muted:    #4a5a90;
+}
+
+body.theme-light {
+  --bg:       #edf0f8;
+  --surface:  #ffffff;
+  --surface2: #dde5f5;
+  --border:   #aabbd8;
+  --gold:     #7a4f0e;
+  --blue:     #2350c0;
+  --text:     #0d1830;
+  --muted:    #445080;
+  --danger:   #b52020;
+  --green:    #2a7830;
+}
+
 /* ── PAGES ── */
 .page { display: none; padding: 24px; }
 .page.active { display: block; }
@@ -1395,6 +1517,28 @@ nav button.active { background: var(--surface2); color: var(--gold); font-weight
   50%       { opacity: 0.6; box-shadow: 0 0 2px #f5a623; }
 }
 
+@keyframes sig-shimmer {
+  0%   { background-position: 0% center; }
+  100% { background-position: 200% center; }
+}
+
+.project-sig {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  background: linear-gradient(90deg, #c9a96e 0%, #f5e0a0 35%, #8ab4f8 55%, #c9a96e 100%);
+  background-size: 250% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: sig-shimmer 5s linear infinite;
+  filter: drop-shadow(0 0 6px rgba(201,169,110,0.45));
+  user-select: none;
+}
+
 .donate-btn {
   background: linear-gradient(135deg, #f5a623, #e8880a);
   color: #1a0a00;
@@ -1403,7 +1547,6 @@ nav button.active { background: var(--surface2); color: var(--gold); font-weight
   border-radius: var(--radius);
   cursor: pointer;
   animation: donate-blink 1.4s ease-in-out infinite;
-  margin-left: auto;
 }
 
 /* ── LIST VIEW ── */

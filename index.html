@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Card Editor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Roboto:wght@400;500;700&family=Open+Sans:wght@400;600;700&family=Lato:wght@400;700&family=Poppins:wght@400;500;600&family=Nunito:wght@400;600;700&family=Raleway:wght@400;600;700&family=Montserrat:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -28,13 +31,8 @@
 <header>
   <h1>Card Editor</h1>
   <nav>
-    <div class="nav-dropdown">
-      <button class="nav-dropdown-btn active" id="nav-btn-overview">Översikt ▾</button>
-      <div class="nav-dropdown-menu">
-        <button data-page="page-overview" data-scroll="card-grid">Kort</button>
-        <button data-page="page-overview-skills">Skills</button>
-      </div>
-    </div>
+    <button data-page="page-overview" data-scroll="card-grid" class="active">Kort</button>
+    <button data-page="page-overview-skills">Skills</button>
     <div class="nav-dropdown">
       <button class="nav-dropdown-btn" id="nav-btn-add">Lägg till ▾</button>
       <div class="nav-dropdown-menu">
@@ -43,12 +41,44 @@
       </div>
     </div>
     <button data-page="page-list">Listade kort</button>
-    <button data-page="page-export">Exportera SQL</button>
     <button data-page="page-design">Speldesign</button>
     <button data-page="page-templates">Mallar</button>
+    <div class="nav-dropdown">
+      <button class="nav-dropdown-btn" id="nav-btn-advanced">Avancerat ▾</button>
+      <div class="nav-dropdown-menu">
+        <button data-page="page-export">Exportera SQL</button>
+      </div>
+    </div>
   </nav>
+  <span class="project-sig">✦ Project Card Game ✦</span>
   <button class="btn donate-btn" id="btn-donate" style="font-size:12px;padding:6px 14px">Donate Fredde 💸</button>
-  <button class="btn btn-secondary" id="btn-logout" style="font-size:12px;padding:6px 12px">Logga ut</button>
+  <div class="nav-dropdown settings-dd">
+    <button class="nav-dropdown-btn" id="btn-settings">⚙ Inställningar ▾</button>
+    <div class="nav-dropdown-menu settings-menu">
+      <div class="settings-label">Tema</div>
+      <div class="settings-theme-row">
+        <button class="theme-btn" data-theme="standard">Standard</button>
+        <button class="theme-btn" data-theme="dark">Mörkt</button>
+        <button class="theme-btn" data-theme="light">Ljust</button>
+      </div>
+      <div class="settings-divider"></div>
+      <div class="settings-label">Font</div>
+      <div class="settings-font-list">
+        <button class="font-btn" data-font="default"      style="font-family:'Segoe UI',sans-serif">Segoe UI (standard)</button>
+        <button class="font-btn" data-font="Inter"        style="font-family:'Inter',sans-serif">Inter</button>
+        <button class="font-btn" data-font="Roboto"       style="font-family:'Roboto',sans-serif">Roboto</button>
+        <button class="font-btn" data-font="Open Sans"    style="font-family:'Open Sans',sans-serif">Open Sans</button>
+        <button class="font-btn" data-font="Lato"         style="font-family:'Lato',sans-serif">Lato</button>
+        <button class="font-btn" data-font="Poppins"      style="font-family:'Poppins',sans-serif">Poppins</button>
+        <button class="font-btn" data-font="Nunito"       style="font-family:'Nunito',sans-serif">Nunito</button>
+        <button class="font-btn" data-font="Raleway"      style="font-family:'Raleway',sans-serif">Raleway</button>
+        <button class="font-btn" data-font="Montserrat"   style="font-family:'Montserrat',sans-serif">Montserrat</button>
+        <button class="font-btn" data-font="Source Sans 3" style="font-family:'Source Sans 3',sans-serif">Source Sans 3</button>
+      </div>
+      <div class="settings-divider"></div>
+      <button id="btn-logout" class="settings-logout-btn">Logga ut</button>
+    </div>
+  </div>
 </header>
 
 <!-- ── OVERVIEW ── -->
@@ -571,6 +601,13 @@
       <button class="btn btn-secondary" id="btn-migrate-rarity">Kör migrering</button>
       <span id="migrate-status" style="margin-left:12px;font-size:13px;color:var(--muted)"></span>
     </div>
+
+    <div style="margin-top:32px;padding-top:24px;border-top:1px solid var(--border)">
+      <h3 style="font-size:14px;color:var(--blue);margin-bottom:8px">Ladda ner bilder</h3>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:12px">Laddar ner alla kort- och skill-bilder från Supabase till en mapp du väljer. Sparas i undermapparna <code>cards/</code> och <code>skills/</code>.</p>
+      <button class="btn btn-primary" id="btn-download-images">Ladda ner bilder (.zip)</button>
+      <span id="download-images-status" style="margin-left:12px;font-size:13px;color:var(--muted)"></span>
+    </div>
   </div>
 </section>
 
@@ -608,6 +645,7 @@
       <div id="doc-detail-body" class="doc-detail-body"></div>
       <div id="doc-detail-tags" class="doc-card-tags" style="margin-top:16px"></div>
       <div class="form-actions" style="margin-top:24px">
+        <button class="btn btn-danger" id="btn-doc-detail-delete" style="margin-right:auto">Ta bort</button>
         <button class="btn btn-secondary" id="btn-doc-detail-cancel">Avbryt</button>
         <button class="btn btn-primary" id="btn-doc-detail-edit">Redigera</button>
       </div>
@@ -986,6 +1024,7 @@
 </div> <!-- #app -->
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
