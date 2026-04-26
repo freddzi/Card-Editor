@@ -533,9 +533,12 @@ function buildEffectOptions() {
 });
 
 const kwPicker = document.getElementById('keyword-picker');
-const kwHidden = document.getElementById('keywords-hidden');
+const kwDropdown = document.getElementById('kw-dropdown');
+const kwAddBtn   = document.getElementById('kw-add-btn');
+const kwHidden   = document.getElementById('keywords-hidden');
 
-ALL_KEYWORDS.forEach(kw => {
+function addKwPill(kw) {
+  if (kwPicker.querySelector(`[data-kw="${kw}"]`)) return;
   const tag = document.createElement('span');
   tag.className = 'kw-tag';
   tag.textContent = kw;
@@ -546,11 +549,62 @@ ALL_KEYWORDS.forEach(kw => {
       .map(t => t.dataset.kw).join(', ');
   });
   kwPicker.appendChild(tag);
+}
+
+ALL_KEYWORDS.forEach(addKwPill);
+
+async function openKwDropdown() {
+  kwDropdown.hidden = false;
+  kwDropdown.innerHTML = '<span class="kw-dropdown-empty">Laddar…</span>';
+  const { data } = await sb.from('game_docs').select('title').eq('category', 'keyword').order('title');
+  const titles = (data || []).map(d => d.title);
+  kwDropdown.innerHTML = '';
+  if (!titles.length) {
+    const e = document.createElement('span');
+    e.className = 'kw-dropdown-empty';
+    e.textContent = 'Inga keywords i speldesign ännu';
+    kwDropdown.appendChild(e);
+    return;
+  }
+  titles.forEach(kw => {
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'kw-dropdown-item';
+    item.textContent = kw;
+    item.addEventListener('click', () => {
+      addKwPill(kw);
+      const pill = kwPicker.querySelector(`[data-kw="${kw}"]`);
+      if (pill && !pill.classList.contains('active')) pill.click();
+      closeKwDropdown();
+    });
+    kwDropdown.appendChild(item);
+  });
+}
+
+function closeKwDropdown() {
+  kwDropdown.hidden = true;
+  kwAddBtn.textContent = '+ Lägg till';
+  kwAddBtn.classList.remove('active');
+}
+
+kwAddBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  if (!kwDropdown.hidden) { closeKwDropdown(); return; }
+  kwAddBtn.textContent = '× Stäng';
+  kwAddBtn.classList.add('active');
+  openKwDropdown();
+});
+
+document.addEventListener('click', (e) => {
+  if (!kwDropdown.hidden && !kwDropdown.contains(e.target) && e.target !== kwAddBtn) {
+    closeKwDropdown();
+  }
 });
 
 function resetKeywords() {
   kwPicker.querySelectorAll('.kw-tag').forEach(t => t.classList.remove('active'));
   kwHidden.value = '';
+  closeKwDropdown();
 }
 
 // ── Duplicate check ───────────────────────────────────────────────────────────
@@ -679,9 +733,10 @@ async function openEditForm(card) {
   // Keywords
   resetKeywords();
   if (card.keywords) {
-    card.keywords.split(',').map(k => k.trim()).forEach(kw => {
-      const tag = kwPicker.querySelector(`[data-kw="${kw}"]`);
-      if (tag) tag.classList.add('active');
+    card.keywords.split(',').map(k => k.trim()).filter(Boolean).forEach(kw => {
+      addKwPill(kw);
+      const pill = kwPicker.querySelector(`[data-kw="${kw}"]`);
+      if (pill) pill.classList.add('active');
     });
     kwHidden.value = card.keywords;
   }
@@ -1418,9 +1473,10 @@ async function applyTemplate(tpl) {
     if (k === 'keywords') {
       resetKeywords();
       if (v) {
-        v.split(',').map(kw => kw.trim()).forEach(kw => {
-          const tag = kwPicker.querySelector(`[data-kw="${kw}"]`);
-          if (tag) tag.classList.add('active');
+        v.split(',').map(kw => kw.trim()).filter(Boolean).forEach(kw => {
+          addKwPill(kw);
+          const pill = kwPicker.querySelector(`[data-kw="${kw}"]`);
+          if (pill) pill.classList.add('active');
         });
         kwHidden.value = v;
       }
