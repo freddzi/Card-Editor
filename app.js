@@ -532,29 +532,54 @@ function buildEffectOptions() {
   document.querySelectorAll(sel).forEach(el => { el.innerHTML = buildEffectOptions(); });
 });
 
-const kwPicker = document.getElementById('keyword-picker');
+const kwPicker   = document.getElementById('keyword-picker');
 const kwDropdown = document.getElementById('kw-dropdown');
 const kwAddBtn   = document.getElementById('kw-add-btn');
 const kwHidden   = document.getElementById('keywords-hidden');
 
-function addKwPill(kw) {
-  if (kwPicker.querySelector(`[data-kw="${kw}"]`)) return;
+function syncKwHidden() {
+  kwHidden.value = [...kwPicker.querySelectorAll('.kw-tag.active')]
+    .map(t => t.dataset.kw).join(', ');
+}
+
+function createKwPill(kw, active = false) {
+  if (kwPicker.querySelector(`[data-kw="${CSS.escape(kw)}"]`)) return;
   const tag = document.createElement('span');
-  tag.className = 'kw-tag';
-  tag.textContent = kw;
+  tag.className = 'kw-tag' + (active ? ' active' : '');
   tag.dataset.kw = kw;
-  tag.addEventListener('click', () => {
-    tag.classList.toggle('active');
-    kwHidden.value = [...kwPicker.querySelectorAll('.kw-tag.active')]
-      .map(t => t.dataset.kw).join(', ');
+
+  const label = document.createElement('span');
+  label.className = 'kw-tag-label';
+  label.textContent = kw;
+  label.addEventListener('click', () => { tag.classList.toggle('active'); syncKwHidden(); });
+
+  const rm = document.createElement('button');
+  rm.type = 'button';
+  rm.className = 'kw-tag-remove';
+  rm.textContent = '×';
+  rm.addEventListener('click', () => {
+    if (!confirm(`Ta bort "${kw}" från listan?`)) return;
+    tag.remove();
+    syncKwHidden();
   });
+
+  tag.appendChild(label);
+  tag.appendChild(rm);
   kwPicker.appendChild(tag);
 }
 
-ALL_KEYWORDS.forEach(addKwPill);
+ALL_KEYWORDS.forEach(kw => createKwPill(kw));
+
+function closeKwDropdown() {
+  kwDropdown.hidden = true;
+  kwAddBtn.textContent = '+ Lägg till';
+  kwAddBtn.classList.remove('active');
+}
 
 async function openKwDropdown() {
   kwDropdown.hidden = false;
+  kwAddBtn.textContent = '× Stäng';
+  kwAddBtn.classList.add('active');
   kwDropdown.innerHTML = '<span class="kw-dropdown-empty">Laddar…</span>';
   const { data } = await sb.from('game_docs').select('title').eq('category', 'keyword').order('title');
   const titles = (data || []).map(d => d.title);
@@ -572,26 +597,16 @@ async function openKwDropdown() {
     item.className = 'kw-dropdown-item';
     item.textContent = kw;
     item.addEventListener('click', () => {
-      addKwPill(kw);
-      const pill = kwPicker.querySelector(`[data-kw="${kw}"]`);
-      if (pill && !pill.classList.contains('active')) pill.click();
+      createKwPill(kw);
       closeKwDropdown();
     });
     kwDropdown.appendChild(item);
   });
 }
 
-function closeKwDropdown() {
-  kwDropdown.hidden = true;
-  kwAddBtn.textContent = '+ Lägg till';
-  kwAddBtn.classList.remove('active');
-}
-
 kwAddBtn.addEventListener('click', (e) => {
   e.stopPropagation();
   if (!kwDropdown.hidden) { closeKwDropdown(); return; }
-  kwAddBtn.textContent = '× Stäng';
-  kwAddBtn.classList.add('active');
   openKwDropdown();
 });
 
@@ -602,7 +617,8 @@ document.addEventListener('click', (e) => {
 });
 
 function resetKeywords() {
-  kwPicker.querySelectorAll('.kw-tag').forEach(t => t.classList.remove('active'));
+  kwPicker.innerHTML = '';
+  ALL_KEYWORDS.forEach(kw => createKwPill(kw));
   kwHidden.value = '';
   closeKwDropdown();
 }
@@ -734,11 +750,11 @@ async function openEditForm(card) {
   resetKeywords();
   if (card.keywords) {
     card.keywords.split(',').map(k => k.trim()).filter(Boolean).forEach(kw => {
-      addKwPill(kw);
+      createKwPill(kw);
       const pill = kwPicker.querySelector(`[data-kw="${kw}"]`);
       if (pill) pill.classList.add('active');
     });
-    kwHidden.value = card.keywords;
+    syncKwHidden();
   }
 
   updateTypeSections();
@@ -1474,11 +1490,11 @@ async function applyTemplate(tpl) {
       resetKeywords();
       if (v) {
         v.split(',').map(kw => kw.trim()).filter(Boolean).forEach(kw => {
-          addKwPill(kw);
+          createKwPill(kw);
           const pill = kwPicker.querySelector(`[data-kw="${kw}"]`);
           if (pill) pill.classList.add('active');
         });
-        kwHidden.value = v;
+        syncKwHidden();
       }
     } else {
       setFieldVal(k, v);
