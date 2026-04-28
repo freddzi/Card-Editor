@@ -756,7 +756,64 @@ body.theme-light {
 
 .doc-card:hover { border-color: var(--blue); background: var(--surface2); }
 
+.doc-card.in-godot {
+  border-color: #2a5a3a;
+  background: #0d1f14;
+}
+.doc-card.in-godot:hover {
+  border-color: #3a8a5a;
+  background: #122a1c;
+}
+
 .doc-card-left {}
+.doc-card-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.doc-godot-toggle {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  padding: 0;
+  flex-shrink: 0;
+}
+.doc-godot-toggle:hover {
+  border-color: #5ab87a;
+  color: #7fd490;
+}
+.doc-godot-toggle.is-inlagd {
+  border-color: #3a8a5a;
+  background: #1a3a2a;
+  color: #7fd490;
+}
+
+.doc-godot-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text);
+  user-select: none;
+}
+.doc-godot-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #5ab87a;
+  cursor: pointer;
+}
 
 .doc-card-title {
   font-size: 15px;

@@ -87,9 +87,13 @@ CREATE TABLE game_docs (
     title       TEXT        NOT NULL,
     body        TEXT        NOT NULL DEFAULT '',
     tags        TEXT        NOT NULL DEFAULT '',
+    in_godot    BOOLEAN     NOT NULL DEFAULT false,
     updated_at  TIMESTAMPTZ DEFAULT NOW(),
     created_at  TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Migration (kör om tabellen redan finns):
+-- ALTER TABLE game_docs ADD COLUMN IF NOT EXISTS in_godot BOOLEAN NOT NULL DEFAULT false;
 
 ALTER TABLE game_docs ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "public_all" ON game_docs FOR ALL USING (true) WITH CHECK (true);

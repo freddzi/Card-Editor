@@ -1123,12 +1123,45 @@ const docDetailBadge    = document.getElementById('doc-detail-badge');
 const docDetailBody     = document.getElementById('doc-detail-body');
 const docDetailTags     = document.getElementById('doc-detail-tags');
 
+const GODOT_CATS = new Set(['keyword', 'effect', 'ability']);
+
 async function loadDocs() {
   let q = sb.from('game_docs').select('*').order('category').order('title');
   if (activeCat) q = q.eq('category', activeCat);
   const { data, error } = await q;
   if (error) { console.error(error); return []; }
   return data || [];
+}
+
+function renderDocCard(d, showToggle) {
+  const tagsHtml = d.tags
+    ? `<div class="doc-card-tags">${d.tags.split(',').map(t => `<span class="doc-tag">${t.trim()}</span>`).join('')}</div>`
+    : '';
+  const toggleBtn = showToggle
+    ? `<button class="doc-godot-toggle${d.in_godot ? ' is-inlagd' : ''}" data-id="${d.id}" title="${d.in_godot ? 'Markera som ej inlagd' : 'Markera som inlagd i Godot'}">
+        ${d.in_godot ? '✓' : '○'}
+       </button>`
+    : '';
+  return `
+    <div class="doc-card${d.in_godot ? ' in-godot' : ''}" data-id="${d.id}">
+      <div class="doc-card-left">
+        <div class="doc-card-title">${d.title}</div>
+        <div class="doc-card-body">${d.body || '<em style="color:var(--muted)">Ingen beskrivning</em>'}</div>
+        ${tagsHtml}
+      </div>
+      <div class="doc-card-right">
+        <span class="doc-cat-badge cat-${d.category}">${CAT_LABELS[d.category]}</span>
+        ${toggleBtn}
+      </div>
+    </div>`;
+}
+
+function renderDocGroupHtml(title, items, showToggle) {
+  return `
+    <div class="doc-group">
+      <div class="doc-group-title">${title}</div>
+      ${items.map(d => renderDocCard(d, showToggle)).join('')}
+    </div>`;
 }
 
 async function renderDocs() {
@@ -1139,30 +1172,54 @@ async function renderDocs() {
     return;
   }
 
-  const groups = {};
-  CAT_ORDER.forEach(c => groups[c] = []);
-  docs.forEach(d => { if (groups[d.category]) groups[d.category].push(d); });
+  let html = '';
 
-  docList.innerHTML = CAT_ORDER
-    .filter(cat => groups[cat].length)
-    .map(cat => `
-      <div class="doc-group">
-        <div class="doc-group-title">${CAT_LABELS[cat]}</div>
-        ${groups[cat].map(d => `
-          <div class="doc-card" data-id="${d.id}">
-            <div class="doc-card-left">
-              <div class="doc-card-title">${d.title}</div>
-              <div class="doc-card-body">${d.body || '<em style="color:var(--muted)">Ingen beskrivning</em>'}</div>
-              ${d.tags ? `<div class="doc-card-tags">${d.tags.split(',').map(t => `<span class="doc-tag">${t.trim()}</span>`).join('')}</div>` : ''}
-            </div>
-            <span class="doc-cat-badge cat-${d.category}">${CAT_LABELS[d.category]}</span>
-          </div>`).join('')}
-      </div>`).join('');
+  if (!activeCat) {
+    // Alla-vyn: Inlagda, Ej inlagda, sedan övriga kategorier
+    const inlagda  = docs.filter(d => GODOT_CATS.has(d.category) && d.in_godot);
+    const ejInlagda = docs.filter(d => GODOT_CATS.has(d.category) && !d.in_godot);
+    if (inlagda.length)   html += renderDocGroupHtml('Inlagda', inlagda, true);
+    if (ejInlagda.length) html += renderDocGroupHtml('Ej inlagda', ejInlagda, true);
+    const restGroups = {};
+    CAT_ORDER.filter(c => !GODOT_CATS.has(c)).forEach(c => { restGroups[c] = []; });
+    docs.filter(d => !GODOT_CATS.has(d.category)).forEach(d => { if (restGroups[d.category]) restGroups[d.category].push(d); });
+    CAT_ORDER.filter(c => !GODOT_CATS.has(c)).forEach(cat => {
+      if (restGroups[cat].length) html += renderDocGroupHtml(CAT_LABELS[cat], restGroups[cat], false);
+    });
+  } else if (GODOT_CATS.has(activeCat)) {
+    // Keyword / Effect / Ability: dela upp i Inlagda och Ej inlagda
+    const inlagda   = docs.filter(d => d.in_godot);
+    const ejInlagda = docs.filter(d => !d.in_godot);
+    if (inlagda.length)   html += renderDocGroupHtml('Inlagda', inlagda, true);
+    if (ejInlagda.length) html += renderDocGroupHtml('Ej inlagda', ejInlagda, true);
+  } else {
+    // Regler / Förslag / Övrigt: visa normalt
+    const groups = {};
+    CAT_ORDER.forEach(c => { groups[c] = []; });
+    docs.forEach(d => { if (groups[d.category]) groups[d.category].push(d); });
+    CAT_ORDER.filter(cat => groups[cat].length).forEach(cat => {
+      html += renderDocGroupHtml(CAT_LABELS[cat], groups[cat], false);
+    });
+  }
+
+  if (!html) html = '<p style="color:var(--muted);padding:20px 0">Inga poster hittades.</p>';
+  docList.innerHTML = html;
 
   docList.querySelectorAll('.doc-card').forEach(card => {
     card.addEventListener('click', () => {
       const doc = docs.find(d => d.id == card.dataset.id);
       if (doc) openDocDetail(doc);
+    });
+  });
+
+  docList.querySelectorAll('.doc-godot-toggle').forEach(btn => {
+    btn.addEventListener('click', async e => {
+      e.stopPropagation();
+      const id = parseInt(btn.dataset.id);
+      const doc = docs.find(d => d.id === id);
+      if (!doc) return;
+      await sb.from('game_docs').update({ in_godot: !doc.in_godot }).eq('id', id);
+      renderDocs();
     });
   });
 }
@@ -1174,6 +1231,7 @@ function openDocEditor(doc = null) {
   docTitleEl.value   = doc?.title     || '';
   docBodyEl.value    = doc?.body      || '';
   docTagsEl.value    = doc?.tags      || '';
+  document.getElementById('doc-in-godot').checked = doc?.in_godot || false;
   btnDocDelete.style.display = doc ? 'inline-block' : 'none';
   docEditorOverlay.classList.add('open');
 }
@@ -1229,6 +1287,7 @@ document.getElementById('btn-doc-save').addEventListener('click', async () => {
     title:    docTitleEl.value.trim(),
     body:     docBodyEl.value.trim(),
     tags:     docTagsEl.value.trim(),
+    in_godot: document.getElementById('doc-in-godot').checked,
     updated_at: new Date().toISOString(),
   };
   if (!payload.title) { showToast('Titel krävs.'); return; }
@@ -1286,7 +1345,10 @@ async function seedDocsIfEmpty() {
     { category:'keyword', title:'GUARDIAN', body:'Minionen kan blockera attacker riktade mot din core även från BACK_LINE.\nFiender måste slå igenom GUARDIAN-minionen för att nå din core.', tags:'defense,combat' },
     { category:'keyword', title:'STEALTH', body:'Minionen kan inte väljas som mål av motspelaren tills den attackerar eller påverkar en fiende.\nSTEALTH bryts när minionen delar ut skada.', tags:'evasion,offense' },
     { category:'keyword', title:'CANT_BLOCK', body:'Minionen kan inte användas som blocker. Kan fortfarande attackera och använda aktiverade förmågor.', tags:'combat,restriction' },
-    { category:'keyword', title:'CONSUME', body:'När minionen dödar en fiendeminion äter den upp den och får dess attack- och/eller HP-värden.\neffect_arg styr vilka stats som absorberas.', tags:'combat,sustain' },
+    { category:'keyword', title:'CONSUME', body:'När minionen dödar en fiendeminion äter den upp den och får dess attack- och/eller HP-värden.\neffect_arg styr vilka stats som absorberas.', tags:'combat,sustain', in_godot:true },
+    { category:'keyword', title:'LURKER', body:'Minionen kan inte väljas som mål av motståndarens spell-effekter.\nKan heller inte attackeras direkt av fiendens minions.\nStealth-liknande skydd men utan att brytas vid attack.', tags:'evasion,defense', in_godot:true },
+    { category:'keyword', title:'SURGE', body:'När minionen attackerar får ägaren X temporär mana för den resterande turen.\nManan försvinner vid turens slut.\nFormatet är SURGE_X, t.ex. SURGE_2 ger 2 mana per attack.', tags:'mana,tempo', in_godot:true },
+    { category:'keyword', title:'PLUNDER', body:'När minionen delar ut skada direkt mot motståndarens hjälte får ägaren X temporär mana för den resterande turen.\nManan försvinner vid turens slut.\nFormatet är PLUNDER_X, t.ex. PLUNDER_1.', tags:'mana,tempo,offense', in_godot:true },
 
     // Effects — Skada & AOE
     { category:'effect', title:'deal_damage', body:'Delar ut X skada till ett mål.\nAnvänds av spells och minion-abilities.\neffect_value = mängd skada.\ntarget_mode avgör vad som kan träffas.', tags:'damage' },
