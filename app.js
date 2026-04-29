@@ -2250,16 +2250,31 @@ async function renderSkillsGrid() {
 }
 
 // ── Skill detail modal ────────────────────────────────────────────────────────
-const skillDetailModal  = document.getElementById('skill-detail-modal');
-const skillDetailImages = document.getElementById('skill-detail-images');
-const skillDetailName   = document.getElementById('skill-detail-name');
-const skillDetailDesc   = document.getElementById('skill-detail-desc');
-const skillEditForm     = document.getElementById('skill-edit-form');
-const skillViewActions  = document.getElementById('skill-view-actions');
-const skillEditName     = document.getElementById('skill-edit-name');
-const skillEditDesc     = document.getElementById('skill-edit-desc');
+const skillDetailModal    = document.getElementById('skill-detail-modal');
+const skillDetailImages   = document.getElementById('skill-detail-images');
+const skillDetailName     = document.getElementById('skill-detail-name');
+const skillDetailDesc     = document.getElementById('skill-detail-desc');
+const skillEditForm       = document.getElementById('skill-edit-form');
+const skillViewActions    = document.getElementById('skill-view-actions');
+const skillEditName       = document.getElementById('skill-edit-name');
+const skillEditDesc       = document.getElementById('skill-edit-desc');
+const skillEditImgPreview = document.getElementById('skill-edit-img-preview');
+const skillEditImgInput   = document.getElementById('skill-edit-img-input');
+const skillEditImgFilename= document.getElementById('skill-edit-img-filename');
 
-let currentSkillId = null;
+let currentSkillId        = null;
+let selectedEditImageFile = null;
+
+skillEditImgPreview.addEventListener('click', () => skillEditImgInput.click());
+skillEditImgInput.addEventListener('change', () => {
+  const file = skillEditImgInput.files[0];
+  if (!file) return;
+  selectedEditImageFile = file;
+  skillEditImgFilename.textContent = file.name;
+  const reader = new FileReader();
+  reader.onload = e => { skillEditImgPreview.innerHTML = `<img src="${e.target.result}" alt="preview" style="width:100%;height:100%;object-fit:cover">`; };
+  reader.readAsDataURL(file);
+});
 
 document.getElementById('btn-skill-detail-close').addEventListener('click', () => {
   skillDetailModal.classList.remove('open');
@@ -2275,6 +2290,13 @@ skillDetailModal.addEventListener('click', e => {
 document.getElementById('btn-skill-edit-open').addEventListener('click', () => {
   skillEditName.value = skillDetailName.textContent === '—' ? '' : skillDetailName.textContent;
   skillEditDesc.value = skillDetailDesc.textContent;
+  selectedEditImageFile = null;
+  skillEditImgInput.value = '';
+  skillEditImgFilename.textContent = '';
+  const existingImg = skillDetailImages.querySelector('img');
+  skillEditImgPreview.innerHTML = existingImg
+    ? `<img src="${existingImg.src}" alt="preview" style="width:100%;height:100%;object-fit:cover">`
+    : '🖼';
   skillEditForm.style.display = 'block';
   skillViewActions.style.display = 'none';
 });
@@ -2288,12 +2310,35 @@ document.getElementById('btn-skill-edit-save').addEventListener('click', async (
   if (!name) { showToast('Titel krävs.'); return; }
   saveBtn.disabled = true;
   saveBtn.textContent = 'Sparar…';
-  const { error } = await sb.from('skills').update({ name, description, text: description }).eq('id', currentSkillId);
+
+  let imagePath = undefined;
+  if (selectedEditImageFile) {
+    const file = selectedEditImageFile;
+    const ext  = file.name.split('.').pop();
+    const path = `skills/skill_${Date.now()}.${ext}`;
+    const { error: uploadErr } = await sb.storage.from(BUCKET).upload(path, file, { upsert: true });
+    if (uploadErr) {
+      showToast('Bilduppladdning misslyckades: ' + uploadErr.message);
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Spara';
+      return;
+    }
+    imagePath = path;
+  }
+
+  const updates = { name, description, text: description };
+  if (imagePath !== undefined) updates.image_path = imagePath;
+
+  const { error } = await sb.from('skills').update(updates).eq('id', currentSkillId);
   saveBtn.disabled = false;
   saveBtn.textContent = 'Spara';
   if (error) { showToast('Fel: ' + error.message); return; }
+
   skillDetailName.textContent = name || '—';
   skillDetailDesc.textContent = description;
+  if (imagePath !== undefined) {
+    skillDetailImages.innerHTML = `<img src="${imgUrl(imagePath)}" alt="skill">`;
+  }
   closeSkillEditForm();
   showToast('Skill uppdaterat!');
   renderSkillsGrid();
