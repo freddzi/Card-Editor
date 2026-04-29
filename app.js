@@ -1018,7 +1018,12 @@ document.getElementById('btn-export-json').addEventListener('click', async () =>
 });
 
 document.getElementById('btn-download-images').addEventListener('click', async () => {
+  const btn      = document.getElementById('btn-download-images');
   const statusEl = document.getElementById('download-images-status');
+
+  btn.disabled = true;
+  statusEl.textContent = 'Hämtar kortdata…';
+
   const [cards, skills] = await Promise.all([loadCards(), loadSkills()]);
 
   const imagePaths = [
@@ -1041,6 +1046,7 @@ document.getElementById('btn-download-images').addEventListener('click', async (
   zip.folder('skills');
 
   let done = 0;
+  let failed = 0;
   const total = imagePaths.length;
   statusEl.textContent = `0 / ${total}`;
 
@@ -1052,11 +1058,12 @@ document.getElementById('btn-download-images').addEventListener('click', async (
       const buf      = await resp.arrayBuffer();
       const filename = path.split('/').pop();
       zip.folder(folder).file(filename, buf);
+      done++;
     } catch (err) {
       console.warn('Kunde inte ladda ner', path, err);
+      failed++;
     }
-    done++;
-    statusEl.textContent = `${done} / ${total}`;
+    statusEl.textContent = `${done + failed} / ${total}`;
   }
 
   statusEl.textContent = 'Packar zip...';
@@ -1066,8 +1073,11 @@ document.getElementById('btn-download-images').addEventListener('click', async (
   a.download = 'card-images.zip';
   a.click();
 
-  statusEl.textContent = `Klart! ${done} bilder i zip.`;
-  showToast('Zip nedladdad!');
+  statusEl.textContent = failed > 0
+    ? `Klart! ${done} bilder (${failed} misslyckades)`
+    : `Klart! ${done} bilder i zip.`;
+  showToast(failed > 0 ? `Zip klar — ${failed} bilder misslyckades` : 'Zip nedladdad!');
+  btn.disabled = false;
 });
 
 // ── Rarity migration ─────────────────────────────────────────────────────────
@@ -2244,16 +2254,64 @@ const skillDetailModal  = document.getElementById('skill-detail-modal');
 const skillDetailImages = document.getElementById('skill-detail-images');
 const skillDetailName   = document.getElementById('skill-detail-name');
 const skillDetailDesc   = document.getElementById('skill-detail-desc');
+const skillEditForm     = document.getElementById('skill-edit-form');
+const skillViewActions  = document.getElementById('skill-view-actions');
+const skillEditName     = document.getElementById('skill-edit-name');
+const skillEditDesc     = document.getElementById('skill-edit-desc');
 
-document.getElementById('btn-skill-detail-close').addEventListener('click', () => skillDetailModal.classList.remove('open'));
-skillDetailModal.addEventListener('click', e => { if (e.target === skillDetailModal) skillDetailModal.classList.remove('open'); });
+let currentSkillId = null;
+
+document.getElementById('btn-skill-detail-close').addEventListener('click', () => {
+  skillDetailModal.classList.remove('open');
+  closeSkillEditForm();
+});
+skillDetailModal.addEventListener('click', e => {
+  if (e.target === skillDetailModal) {
+    skillDetailModal.classList.remove('open');
+    closeSkillEditForm();
+  }
+});
+
+document.getElementById('btn-skill-edit-open').addEventListener('click', () => {
+  skillEditName.value = skillDetailName.textContent === '—' ? '' : skillDetailName.textContent;
+  skillEditDesc.value = skillDetailDesc.textContent;
+  skillEditForm.style.display = 'block';
+  skillViewActions.style.display = 'none';
+});
+
+document.getElementById('btn-skill-edit-cancel').addEventListener('click', closeSkillEditForm);
+
+document.getElementById('btn-skill-edit-save').addEventListener('click', async () => {
+  const saveBtn = document.getElementById('btn-skill-edit-save');
+  const name = skillEditName.value.trim();
+  const description = skillEditDesc.value.trim();
+  if (!name) { showToast('Titel krävs.'); return; }
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Sparar…';
+  const { error } = await sb.from('skills').update({ name, description, text: description }).eq('id', currentSkillId);
+  saveBtn.disabled = false;
+  saveBtn.textContent = 'Spara';
+  if (error) { showToast('Fel: ' + error.message); return; }
+  skillDetailName.textContent = name || '—';
+  skillDetailDesc.textContent = description;
+  closeSkillEditForm();
+  showToast('Skill uppdaterat!');
+  renderSkillsGrid();
+});
+
+function closeSkillEditForm() {
+  skillEditForm.style.display = 'none';
+  skillViewActions.style.display = 'block';
+}
 
 function openSkillDetail(skill) {
+  currentSkillId = skill.id;
   skillDetailImages.innerHTML = skill.image_path
     ? `<img src="${imgUrl(skill.image_path)}" alt="skill">`
     : '<div style="color:var(--muted);text-align:center;padding:40px">Ingen bild</div>';
   skillDetailName.textContent = skill.name || '—';
   skillDetailDesc.textContent = skill.description || '';
+  closeSkillEditForm();
   skillDetailModal.classList.add('open');
 }
 

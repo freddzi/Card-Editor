@@ -1025,6 +1025,26 @@
         <div class="card-detail-title" id="skill-detail-name"></div>
       </div>
       <div class="card-detail-desc" id="skill-detail-desc" style="font-size:14px;line-height:1.6;margin-top:12px;color:var(--muted)"></div>
+
+      <!-- Edit form (hidden by default) -->
+      <div id="skill-edit-form" style="display:none;margin-top:16px">
+        <div style="margin-bottom:10px">
+          <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:4px">Titel</label>
+          <input id="skill-edit-name" type="text" style="width:100%;box-sizing:border-box">
+        </div>
+        <div style="margin-bottom:14px">
+          <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:4px">Beskrivning</label>
+          <textarea id="skill-edit-desc" rows="4" style="width:100%;box-sizing:border-box;resize:vertical"></textarea>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button id="btn-skill-edit-save" class="btn-primary" style="flex:1">Spara</button>
+          <button id="btn-skill-edit-cancel" class="btn-secondary" style="flex:1">Avbryt</button>
+        </div>
+      </div>
+
+      <div id="skill-view-actions" style="margin-top:16px">
+        <button id="btn-skill-edit-open" class="btn-secondary" style="width:100%">Ändra</button>
+      </div>
     </div>
   </div>
 </div>
