@@ -7,8 +7,9 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const BUCKET = 'card-images';
 
-function imgUrl(path) {
-  return sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+function imgUrl(path, bust = false) {
+  const url = sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+  return bust ? `${url}?t=${Date.now()}` : url;
 }
 
 // ── Load cards ────────────────────────────────────────────────────────────────
@@ -69,48 +70,55 @@ async function saveCard(base, extra, imageFile, imageFile2) {
 }
 
 async function deleteCard(id) {
+  const { data: cardData } = await sb.from('cards').select('artwork_path').eq('id', id).single();
+  if (cardData?.artwork_path) {
+    const paths = cardData.artwork_path.split(',').map(p => p.trim()).filter(Boolean);
+    if (paths.length) await sb.storage.from(BUCKET).remove(paths);
+  }
   const { error } = await sb.from('cards').delete().eq('id', id);
   if (error) { showToast('Fel: ' + error.message); return false; }
   return true;
 }
 
 async function updateCard(id, base, extra, imageFile, imageFile2) {
-  // Ladda upp bild
-  async function uploadImg(file, suffix) {
-    const ext  = file.name.split('.').pop();
-    const path = `${id}${suffix}_${Date.now()}.${ext}`;
+  const oldPaths = (editingArtworkPath || '')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+
+  const hasTwoImages = oldPaths.length > 1 || !!imageFile2;
+
+  async function uploadImg(file, oldPath, suffix) {
+    const ext     = file.name.split('.').pop();
+    const newPath = `${id}${suffix}.${ext}`;
+
+    if (oldPath && oldPath !== newPath) {
+      await sb.storage.from(BUCKET).remove([oldPath]);
+    }
 
     const { error } = await sb.storage
       .from(BUCKET)
-      .upload(path, file, { upsert: true });
+      .upload(newPath, file, { upsert: true });
 
     if (error) {
       showToast('Bilduppladdning misslyckades: ' + error.message);
       return null;
     }
 
-    return path;
+    return newPath;
   }
 
-  // 🔹 Hämta gamla bilder (säkert sätt)
-  const oldPaths = (editingArtworkPath || '')
-    .split(',')
-    .map(s => s.trim())
-    .filter(Boolean);
-
-  // Kopiera så vi kan modifiera
   const newPaths = [...oldPaths];
 
-  // 🔹 Bild 1
   if (imageFile) {
-    const p = await uploadImg(imageFile, imageFile2 ? '_v1' : '');
+    const suffix = hasTwoImages ? '_v1' : '';
+    const p = await uploadImg(imageFile, oldPaths[0], suffix);
     if (!p) return false;
     newPaths[0] = p;
   }
 
-  // 🔹 Bild 2
   if (imageFile2) {
-    const p = await uploadImg(imageFile2, '_v2');
+    const p = await uploadImg(imageFile2, oldPaths[1], '_v2');
     if (!p) return false;
     newPaths[1] = p;
   }
@@ -306,7 +314,7 @@ const CLASS_ORDER = ['Dark', 'Wasteland', 'The Blue', 'Forest', 'Neutral'];
 
 function cardTileHTML(c) {
   const firstPath = c.artwork_path ? c.artwork_path.split(',')[0].trim() : null;
-  const imgSrc = firstPath ? imgUrl(firstPath) : null;
+  const imgSrc = firstPath ? imgUrl(firstPath, c.id === lastUpdatedId) : null;
 
   const imgContent = imgSrc ? `<img src="${imgSrc}" alt="${c.name}">` : `<div class="no-img">🃏</div>`;
 
@@ -463,9 +471,11 @@ function openCardDetail(card) {
   currentDetailCard = card;
   // Images
   const paths = card.artwork_path ? card.artwork_path.split(',').map(p => p.trim()).filter(Boolean) : [];
+  const bust  = card.id === lastUpdatedId;
+  if (bust) lastUpdatedId = null;
   detailImages.innerHTML = paths.length
     ? paths.map((p, i) => `
-        <img src="${imgUrl(p)}" alt="Variant ${i+1}">
+        <img src="${imgUrl(p, bust)}" alt="Variant ${i+1}">
         ${paths.length > 1 ? `<div class="img-label">Variant ${i+1}</div>` : ''}
       `).join('')
     : '<div style="color:var(--muted);text-align:center;padding:40px">Ingen bild</div>';
@@ -719,6 +729,7 @@ const artworkLabel1    = document.getElementById('artwork-label-1');
 
 let selectedImageFile  = null;
 let selectedImageFile2 = null;
+let lastUpdatedId      = null;
 
 function setupArtworkUpload(input, preview, filenameEl, slot) {
   preview.addEventListener('click', () => input.click());
@@ -955,6 +966,7 @@ form.addEventListener('submit', async e => {
 
   if (ok) {
     listAllCards = [];
+    if (editingId) lastUpdatedId = editingId;
     showToast(editingId ? `"${base.name}" uppdaterat!` : `"${base.name}" sparat!`);
     await resetForm();
     showPage('page-overview');
@@ -2256,6 +2268,10 @@ async function saveSkill(name, imagePath, description) {
 }
 
 async function deleteSkill(id) {
+  const { data: skillData } = await sb.from('skills').select('image_path').eq('id', id).single();
+  if (skillData?.image_path) {
+    await sb.storage.from(BUCKET).remove([skillData.image_path]);
+  }
   const { error } = await sb.from('skills').delete().eq('id', id);
   if (error) { showToast('Fel: ' + error.message); return false; }
   return true;
