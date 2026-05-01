@@ -75,28 +75,78 @@ async function deleteCard(id) {
 }
 
 async function updateCard(id, base, extra, imageFile, imageFile2) {
-  // Ladda upp nya bilder om de valts
+  // Ladda upp bild
   async function uploadImg(file, suffix) {
     const ext  = file.name.split('.').pop();
-    const path = `${id}${suffix}.${ext}`;
-    const { error } = await sb.storage.from(BUCKET).upload(path, file, { upsert: true });
-    if (error) { showToast('Bilduppladdning misslyckades: ' + error.message); return null; }
+    const path = `${id}${suffix}_${Date.now()}.${ext}`;
+
+    const { error } = await sb.storage
+      .from(BUCKET)
+      .upload(path, file, { upsert: true });
+
+    if (error) {
+      showToast('Bilduppladdning misslyckades: ' + error.message);
+      return null;
+    }
+
     return path;
   }
 
-  const paths = [];
-  if (imageFile)  { const p = await uploadImg(imageFile,  imageFile2 ? '_v1' : ''); if (!p) return false; paths.push(p); }
-  if (imageFile2) { const p = await uploadImg(imageFile2, '_v2'); if (!p) return false; paths.push(p); }
-  base.artwork_path = paths.length ? paths.join(', ') : editingArtworkPath;
+  // 🔹 Hämta gamla bilder (säkert sätt)
+  const oldPaths = (editingArtworkPath || '')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
 
-  const { error: cardErr } = await sb.from('cards').update(base).eq('id', id);
-  if (cardErr) { showToast('Fel: ' + cardErr.message); return false; }
+  // Kopiera så vi kan modifiera
+  const newPaths = [...oldPaths];
 
-  const table = base.card_type === 'minion' ? 'minion_cards'
-              : base.card_type === 'spell'   ? 'spell_cards'
-              : 'structure_cards';
-  const { error: typeErr } = await sb.from(table).upsert({ card_id: id, ...extra });
-  if (typeErr) { showToast('Fel: ' + typeErr.message); return false; }
+  // 🔹 Bild 1
+  if (imageFile) {
+    const p = await uploadImg(imageFile, imageFile2 ? '_v1' : '');
+    if (!p) return false;
+    newPaths[0] = p;
+  }
+
+  // 🔹 Bild 2
+  if (imageFile2) {
+    const p = await uploadImg(imageFile2, '_v2');
+    if (!p) return false;
+    newPaths[1] = p;
+  }
+
+  // 🔹 Spara bilder (behåll gamla om inget ändras)
+  base.artwork_path = newPaths
+    .filter(Boolean)
+    .join(', ');
+
+  // 🔹 Uppdatera huvudkort
+  const { error: cardErr } = await sb
+    .from('cards')
+    .update(base)
+    .eq('id', id);
+
+  if (cardErr) {
+    showToast('Fel: ' + cardErr.message);
+    return false;
+  }
+
+  // 🔹 Välj rätt tabell
+  const table =
+    base.card_type === 'minion' ? 'minion_cards' :
+    base.card_type === 'spell' ? 'spell_cards' :
+    'structure_cards';
+
+  // 🔹 Uppdatera extra data
+  const { error: typeErr } = await sb
+    .from(table)
+    .upsert({ card_id: id, ...extra });
+
+  if (typeErr) {
+    showToast('Fel: ' + typeErr.message);
+    return false;
+  }
+
   return true;
 }
 
