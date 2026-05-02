@@ -124,6 +124,11 @@
     <input id="filter-mana" type="number" min="0" placeholder="Mana ≤" style="width:80px">
     <input id="filter-attack" type="number" min="0" placeholder="Attack ≥" style="width:90px">
     <input id="filter-health" type="number" min="0" placeholder="Health ≥" style="width:90px">
+    <div class="inlagd-filter-group" id="inlagd-filter-group">
+      <button class="inlagd-btn active" data-inlagd="">Alla</button>
+      <button class="inlagd-btn" data-inlagd="true">Inlagda</button>
+      <button class="inlagd-btn" data-inlagd="false">Ej inlagda</button>
+    </div>
     <button class="btn btn-secondary" id="btn-clear-filters" style="white-space:nowrap">Rensa filter</button>
   </div>
   <div class="card-grid" id="card-grid"></div>
@@ -999,8 +1004,12 @@
       <div class="card-detail-badges" id="detail-badges"></div>
       <div class="card-detail-desc" id="detail-desc"></div>
       <div class="card-detail-stats" id="detail-stats"></div>
-      <div style="margin-top:16px;display:flex;gap:10px">
-        <button class="btn btn-primary" id="btn-detail-edit">Redigera kort</button>
+      <div style="margin-top:16px;display:flex;gap:10px;align-items:center;justify-content:space-between">
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-primary" id="btn-detail-edit">Redigera kort</button>
+          <button class="btn btn-secondary" id="btn-detail-inlagd"></button>
+        </div>
+        <div class="inlagd-status-badge" id="detail-inlagd-status"></div>
       </div>
     </div>
   </div>

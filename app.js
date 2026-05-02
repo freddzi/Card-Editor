@@ -158,6 +158,13 @@ async function updateCard(id, base, extra, imageFile, imageFile2) {
   return true;
 }
 
+async function toggleInlagd(id, currentValue) {
+  const newValue = !currentValue;
+  const { error } = await sb.from('cards').update({ inlagd: newValue }).eq('id', id);
+  if (error) { showToast('Fel: ' + error.message); return null; }
+  return newValue;
+}
+
 async function nextId() {
   const cards = await loadCards();
   const nums  = cards.map(c => parseInt(c.id.replace(/\D/g, ''), 10)).filter(n => !isNaN(n));
@@ -309,6 +316,7 @@ const filterEffect   = document.getElementById('filter-effect');
 const filterMana     = document.getElementById('filter-mana');
 const filterAttack   = document.getElementById('filter-attack');
 const filterHealth   = document.getElementById('filter-health');
+let filterInlagd = '';
 
 const CLASS_ORDER = ['Dark', 'Wasteland', 'The Blue', 'Forest', 'Neutral'];
 
@@ -382,6 +390,7 @@ async function renderGrid() {
   if (mana   !== null) cards = cards.filter(c => (c.mana ?? 0) <= mana);
   if (attack !== null) cards = cards.filter(c => (c.attack ?? 0) >= attack);
   if (health !== null) cards = cards.filter(c => (c.health ?? 0) >= health);
+  if (filterInlagd !== '') cards = cards.filter(c => (c.inlagd ?? false) === (filterInlagd === 'true'));
 
   cardCount.textContent = `${cards.length} kort`;
 
@@ -447,6 +456,15 @@ let searchTimer;
   el.addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(renderGrid, 300); });
 });
 
+document.getElementById('inlagd-filter-group').querySelectorAll('.inlagd-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#inlagd-filter-group .inlagd-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    filterInlagd = btn.dataset.inlagd;
+    renderGrid();
+  });
+});
+
 // ── Card detail modal ─────────────────────────────────────────────────────────
 const detailModal  = document.getElementById('card-detail-modal');
 const detailImages = document.getElementById('detail-images');
@@ -465,7 +483,34 @@ document.getElementById('btn-detail-edit').addEventListener('click', () => {
   openEditForm(currentDetailCard);
 });
 
+document.getElementById('btn-detail-inlagd').addEventListener('click', async () => {
+  if (!currentDetailCard) return;
+  const btn = document.getElementById('btn-detail-inlagd');
+  btn.disabled = true;
+  const newVal = await toggleInlagd(currentDetailCard.id, currentDetailCard.inlagd ?? false);
+  btn.disabled = false;
+  if (newVal === null) return;
+  currentDetailCard.inlagd = newVal;
+  updateInlagdUI(newVal);
+  showToast(newVal ? '✓ Kort markerat som inlagd' : '✗ Kort markerat som ej inlagd');
+  renderGrid();
+});
+
 let currentDetailCard = null;
+
+function updateInlagdUI(isInlagd) {
+  const statusEl = document.getElementById('detail-inlagd-status');
+  const btnEl    = document.getElementById('btn-detail-inlagd');
+  if (isInlagd) {
+    statusEl.textContent = '✓ Inlagd';
+    statusEl.className   = 'inlagd-status-badge is-inlagd';
+    btnEl.textContent    = 'Markera ej inlagd';
+  } else {
+    statusEl.textContent = '✗ Ej inlagd';
+    statusEl.className   = 'inlagd-status-badge not-inlagd';
+    btnEl.textContent    = 'Markera som inlagd';
+  }
+}
 
 function openCardDetail(card) {
   currentDetailCard = card;
@@ -515,6 +560,8 @@ function openCardDetail(card) {
       <div class="stat-label">${label}</div>
       <div class="stat-value">${val}</div>
     </div>`).join('');
+
+  updateInlagdUI(card.inlagd ?? false);
 
   detailModal.classList.add('open');
 }
@@ -990,6 +1037,9 @@ document.getElementById('btn-clear-filters').addEventListener('click', () => {
   filterMana.value = '';
   filterAttack.value = '';
   filterHealth.value = '';
+  filterInlagd = '';
+  document.querySelectorAll('#inlagd-filter-group .inlagd-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('#inlagd-filter-group .inlagd-btn[data-inlagd=""]').classList.add('active');
   renderGrid();
 });
 

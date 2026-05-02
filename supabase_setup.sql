@@ -10,7 +10,8 @@ CREATE TABLE cards (
     rarity        TEXT    NOT NULL DEFAULT 'common',
     keywords      TEXT    NOT NULL DEFAULT '',
     draft_tag     TEXT    NOT NULL DEFAULT '',
-    created_at    TIMESTAMPTZ DEFAULT NOW()
+    created_at    TIMESTAMPTZ DEFAULT NOW(),
+    inlagd        BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 CREATE TABLE minion_cards (

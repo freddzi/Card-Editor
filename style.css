@@ -289,6 +289,38 @@ body.theme-light {
 
 .filter-bar input { flex: 1; min-width: 180px; }
 
+.inlagd-filter-group {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.inlagd-btn {
+  background: var(--surface);
+  border: none;
+  color: var(--muted);
+  padding: 6px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+  white-space: nowrap;
+}
+.inlagd-btn + .inlagd-btn { border-left: 1px solid var(--border); }
+.inlagd-btn.active { background: var(--surface2); color: var(--text); font-weight: 600; }
+.inlagd-btn.active[data-inlagd="true"]  { color: #22c55e; }
+.inlagd-btn.active[data-inlagd="false"] { color: #ef4444; }
+
+.inlagd-status-badge {
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+.inlagd-status-badge.is-inlagd  { background: rgba(34,197,94,.15); color: #22c55e; }
+.inlagd-status-badge.not-inlagd { background: rgba(239,68,68,.15);  color: #ef4444; }
+
 .card-grid {
   display: flex;
   flex-direction: column;
