@@ -4,15 +4,19 @@
 const PB_URL = 'https://buying-basket-catalyst-scuba.trycloudflare.com';
 const pb = new PocketBase(PB_URL);
 
-function imgUrl(record, field, index = 0, bust = false) {
+function imgUrl(record, field, index = 0, bust = false, thumb = '') {
   const val = record?.[field];
   if (!val) return null;
   const files = Array.isArray(val) ? val : [val];
   const filename = files[index];
   if (!filename) return null;
   const col = field === 'image' ? 'skills' : 'cards';
-  const url = `${PB_URL}/api/files/${col}/${record.id}/${encodeURIComponent(filename)}`;
-  return bust ? `${url}?bust=${Date.now()}` : url;
+  let url = `${PB_URL}/api/files/${col}/${record.id}/${encodeURIComponent(filename)}`;
+  const params = [];
+  if (thumb) params.push(`thumb=${thumb}`);
+  if (bust)  params.push(`bust=${Date.now()}`);
+  if (params.length) url += '?' + params.join('&');
+  return url;
 }
 
 // ── Load cards ────────────────────────────────────────────────────────────────
@@ -254,7 +258,7 @@ let filterInlagd = '';
 const CLASS_ORDER = ['Dark', 'Wasteland', 'The Blue', 'Forest', 'Neutral'];
 
 function cardTileHTML(c) {
-  const imgSrc = c.artwork?.[0] ? imgUrl(c, 'artwork', 0, c.id === lastUpdatedId) : null;
+  const imgSrc = c.artwork?.[0] ? imgUrl(c, 'artwork', 0, c.id === lastUpdatedId, '300x0') : null;
 
   const imgContent = imgSrc ? `<img src="${imgSrc}" alt="${c.name}">` : `<div class="no-img">🃏</div>`;
 
@@ -2492,7 +2496,7 @@ async function renderSkillsGrid() {
   }
 
   skillsGrid.innerHTML = skills.map(s => {
-    const imgSrc = (s.image?.[0] || (typeof s.image === 'string' && s.image)) ? imgUrl(s, 'image') : null;
+    const imgSrc = (s.image?.[0] || (typeof s.image === 'string' && s.image)) ? imgUrl(s, 'image', 0, false, '100x100') : null;
     const imgContent = imgSrc
       ? `<img src="${imgSrc}" alt="skill">`
       : `<div class="no-img" style="font-size:32px">🎯</div>`;
