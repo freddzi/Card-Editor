@@ -306,7 +306,7 @@
             <textarea name="description" placeholder="Flying. First Strike. …"></textarea>
           </div>
         </div>
-        <div class="field-row">
+        <div class="field-row" id="kw-field-row">
           <div class="field field-full">
             <div class="kw-label-row">
               <label>Keywords</label>
@@ -350,8 +350,10 @@
               <option value="">— ingen —</option>
               <option value="deal_damage">deal_damage</option>
               <option value="draw_card">draw_card</option>
+              <option value="draw_spell">draw_spell</option>
               <option value="heal">heal</option>
               <option value="chain">chain</option>
+              <option value="remove_minion">remove_minion</option>
             </select>
           </div>
           <div class="field">
@@ -402,7 +404,10 @@
         <div class="field-row">
           <div class="field field-full">
             <label>Ability Arg</label>
-            <input name="ability_arg" placeholder="valfritt extra-argument">
+            <input name="ability_arg" id="minion-ability-arg" type="hidden">
+            <div id="minion-arg-ui"></div>
+            <input name="target_filter" id="minion-target-filter" type="hidden">
+            <div id="minion-filter-ui"></div>
           </div>
         </div>
       </div>
@@ -417,8 +422,10 @@
               <option value="">— ingen —</option>
               <option value="deal_damage">deal_damage</option>
               <option value="draw_card">draw_card</option>
+              <option value="draw_spell">draw_spell</option>
               <option value="heal">heal</option>
               <option value="chain">chain</option>
+              <option value="remove_minion">remove_minion</option>
             </select>
           </div>
           <div class="field">
@@ -453,14 +460,24 @@
               <option value="explicit">explicit</option>
               <option value="random">random</option>
               <option value="auto">auto</option>
+              <option value="all">all</option>
             </select>
           </div>
         </div>
-        <div class="field-row">
-          <div class="field">
+        <div class="field-row" id="spell-arg-row">
+          <div class="field field-full">
             <label>Effect Arg</label>
-            <input name="effect_arg" placeholder="valfritt">
+            <input name="effect_arg" id="spell-effect-arg" type="hidden">
+            <div id="spell-arg-ui"></div>
           </div>
+          <div class="field field-full">
+            <label>Target Filter <span style="font-size:11px;color:var(--muted)">(valfritt, visas vid targeting_mode=all)</span></label>
+            <input name="target_filter" id="spell-target-filter" type="hidden">
+            <div id="spell-filter-ui"></div>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field" style="display:none"><!-- placeholder --></div>
           <div class="field">
             <label>Repeat Count</label>
             <input name="repeat_count" type="number" min="1" value="1">
@@ -500,8 +517,10 @@
               <option value="">— ingen —</option>
               <option value="deal_damage">deal_damage</option>
               <option value="draw_card">draw_card</option>
+              <option value="draw_spell">draw_spell</option>
               <option value="heal">heal</option>
               <option value="chain">chain</option>
+              <option value="remove_minion">remove_minion</option>
             </select>
           </div>
           <div class="field">
@@ -540,7 +559,10 @@
           </div>
           <div class="field">
             <label>Ability Arg</label>
-            <input name="s_ability_arg" placeholder="">
+            <input name="s_ability_arg" id="structure-ability-arg" type="hidden">
+            <div id="structure-arg-ui"></div>
+            <input name="target_filter" id="structure-target-filter" type="hidden">
+            <div id="structure-filter-ui"></div>
           </div>
         </div>
         <legend style="margin-top:16px">Structure — Repair &amp; Trigger</legend>
@@ -561,8 +583,10 @@
               <option value="">— ingen —</option>
               <option value="deal_damage">deal_damage</option>
               <option value="draw_card">draw_card</option>
+              <option value="draw_spell">draw_spell</option>
               <option value="heal">heal</option>
               <option value="chain">chain</option>
+              <option value="remove_minion">remove_minion</option>
             </select>
           </div>
           <div class="field">
@@ -1029,7 +1053,7 @@
 
 <!-- ── SKILL DETAIL MODAL ── -->
 <div class="card-detail-modal" id="skill-detail-modal">
-  <div class="card-detail" style="max-width:500px">
+  <div class="card-detail" style="max-width:640px">
     <div class="card-detail-images" id="skill-detail-images"></div>
     <div class="card-detail-info">
       <div class="card-detail-header">
@@ -1042,7 +1066,7 @@
       <div id="skill-edit-form" style="display:none;margin-top:16px">
         <div style="margin-bottom:10px">
           <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:4px">Bild</label>
-          <div id="skill-edit-img-preview" style="width:80px;height:80px;border:2px dashed var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;font-size:24px">🖼</div>
+          <div id="skill-edit-img-preview" style="width:160px;height:160px;border:2px dashed var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;font-size:40px">🖼</div>
           <input id="skill-edit-img-input" type="file" accept="image/*" style="display:none">
           <div id="skill-edit-img-filename" style="font-size:11px;color:var(--muted);margin-top:4px"></div>
         </div>
@@ -1072,7 +1096,7 @@
 </div> <!-- #app -->
 
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/pocketbase@0.25.0/dist/pocketbase.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="app.js"></script>
 </body>

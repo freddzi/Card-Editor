@@ -1,175 +1,104 @@
 'use strict';
 
-// ── Supabase ──────────────────────────────────────────────────────────────────
-const SUPABASE_URL = 'https://uofhyrawyjhqbdztagae.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVvZmh5cmF3eWpocWJkenRhZ2FlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY1MTgwMDEsImV4cCI6MjA5MjA5NDAwMX0.ihOsMlG6LBe71Ta13T1Pomzv38zX3Vw8YIw9Pn2FfjU';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// ── PocketBase ────────────────────────────────────────────────────────────────
+const PB_URL = 'https://buying-basket-catalyst-scuba.trycloudflare.com';
+const pb = new PocketBase(PB_URL);
 
-const BUCKET = 'card-images';
-
-function imgUrl(path, bust = false) {
-  const url = sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
-  return bust ? `${url}?t=${Date.now()}` : url;
+function imgUrl(record, field, index = 0, bust = false) {
+  const val = record?.[field];
+  if (!val) return null;
+  const files = Array.isArray(val) ? val : [val];
+  const filename = files[index];
+  if (!filename) return null;
+  const col = field === 'image' ? 'skills' : 'cards';
+  const url = `${PB_URL}/api/files/${col}/${record.id}/${encodeURIComponent(filename)}`;
+  return bust ? `${url}?bust=${Date.now()}` : url;
 }
 
 // ── Load cards ────────────────────────────────────────────────────────────────
 async function loadCards() {
-  const { data, error } = await sb.from('cards').select(`
-    *,
-    minion_cards(*),
-    spell_cards(*),
-    structure_cards(*)
-  `).order('id');
-  if (error) { console.error(error); return []; }
-  return data.map(c => {
-    const extra = c.minion_cards || c.spell_cards || c.structure_cards || {};
-    const { minion_cards, spell_cards, structure_cards, ...base } = c;
-    return { ...base, ...extra };
-  });
+  try {
+    return await pb.collection('cards').getFullList({ sort: 'id' });
+  } catch (err) {
+    console.error(err);
+    return [];
+  }
 }
 
 async function saveCard(base, extra, imageFile, imageFile2) {
-  async function uploadImg(file, suffix) {
-    const ext  = file.name.split('.').pop();
-    const path = `${base.id}${suffix}.${ext}`;
-    const { error } = await sb.storage.from(BUCKET).upload(path, file, { upsert: true });
-    if (error) { showToast('Bilduppladdning misslyckades: ' + error.message); return null; }
-    return path;
+  const formData = new FormData();
+  const allData = { ...base, ...extra };
+  delete allData.artwork;
+  for (const [k, v] of Object.entries(allData)) {
+    if (v !== undefined && v !== null) formData.append(k, v);
   }
-
-  const paths = [];
-  if (imageFile) {
-    const p = await uploadImg(imageFile, imageFile2 ? '_v1' : '');
-    if (!p) return false;
-    paths.push(p);
-  }
-  if (imageFile2) {
-    const p = await uploadImg(imageFile2, '_v2');
-    if (!p) return false;
-    paths.push(p);
-  }
-
-  if (paths.length) {
-    base.artwork_path = paths.join(', ');
-  }
-
-  const { error: cardErr } = await sb.from('cards').insert(base);
-  if (cardErr) { showToast('Fel: ' + cardErr.message); return false; }
-
-  const table = base.card_type === 'minion' ? 'minion_cards'
-              : base.card_type === 'spell'   ? 'spell_cards'
-              : 'structure_cards';
-
-  const { error: typeErr } = await sb.from(table).insert({ card_id: base.id, ...extra });
-  if (typeErr) {
-    await sb.from('cards').delete().eq('id', base.id);
-    showToast('Fel: ' + typeErr.message);
+  if (imageFile)  formData.append('artwork', imageFile);
+  if (imageFile2) formData.append('artwork', imageFile2);
+  try {
+    await pb.collection('cards').create(formData);
+    return true;
+  } catch (err) {
+    showToast('Fel: ' + err.message);
     return false;
   }
-  return true;
 }
 
 async function deleteCard(id) {
-  const { data: cardData } = await sb.from('cards').select('artwork_path').eq('id', id).single();
-  if (cardData?.artwork_path) {
-    const paths = cardData.artwork_path.split(',').map(p => p.trim()).filter(Boolean);
-    if (paths.length) await sb.storage.from(BUCKET).remove(paths);
+  try {
+    await pb.collection('cards').delete(id);
+    return true;
+  } catch (err) {
+    showToast('Fel: ' + err.message);
+    return false;
   }
-  const { error } = await sb.from('cards').delete().eq('id', id);
-  if (error) { showToast('Fel: ' + error.message); return false; }
-  return true;
 }
 
 async function updateCard(id, base, extra, imageFile, imageFile2) {
-  const oldPaths = (editingArtworkPath || '')
-    .split(',')
-    .map(s => s.trim())
-    .filter(Boolean);
-
-  const hasTwoImages = oldPaths.length > 1 || !!imageFile2;
-
-  async function uploadImg(file, oldPath, suffix) {
-    const ext     = file.name.split('.').pop();
-    const newPath = `${id}${suffix}.${ext}`;
-
-    if (oldPath && oldPath !== newPath) {
-      await sb.storage.from(BUCKET).remove([oldPath]);
-    }
-
-    const { error } = await sb.storage
-      .from(BUCKET)
-      .upload(newPath, file, { upsert: true });
-
-    if (error) {
-      showToast('Bilduppladdning misslyckades: ' + error.message);
-      return null;
-    }
-
-    return newPath;
+  const formData = new FormData();
+  const allData = { ...base, ...extra };
+  delete allData.artwork;
+  for (const [k, v] of Object.entries(allData)) {
+    if (v !== undefined && v !== null) formData.append(k, v);
   }
 
-  const newPaths = [...oldPaths];
+  const oldArtwork = Array.isArray(editingCardArtwork) ? editingCardArtwork : [];
 
-  if (imageFile) {
-    const suffix = hasTwoImages ? '_v1' : '';
-    const p = await uploadImg(imageFile, oldPaths[0], suffix);
-    if (!p) return false;
-    newPaths[0] = p;
+  if (imageFile && imageFile2) {
+    formData.append('artwork', imageFile);
+    formData.append('artwork', imageFile2);
+  } else if (imageFile) {
+    if (oldArtwork[0]) formData.append('artwork-', oldArtwork[0]);
+    formData.append('artwork+', imageFile);
+  } else if (imageFile2) {
+    if (oldArtwork[1]) formData.append('artwork-', oldArtwork[1]);
+    formData.append('artwork+', imageFile2);
   }
 
-  if (imageFile2) {
-    const p = await uploadImg(imageFile2, oldPaths[1], '_v2');
-    if (!p) return false;
-    newPaths[1] = p;
-  }
-
-  // 🔹 Spara bilder (behåll gamla om inget ändras)
-  base.artwork_path = newPaths
-    .filter(Boolean)
-    .join(', ');
-
-  // 🔹 Uppdatera huvudkort
-  const { error: cardErr } = await sb
-    .from('cards')
-    .update(base)
-    .eq('id', id);
-
-  if (cardErr) {
-    showToast('Fel: ' + cardErr.message);
+  try {
+    await pb.collection('cards').update(id, formData);
+    return true;
+  } catch (err) {
+    showToast('Fel: ' + err.message);
     return false;
   }
-
-  // 🔹 Välj rätt tabell
-  const table =
-    base.card_type === 'minion' ? 'minion_cards' :
-    base.card_type === 'spell' ? 'spell_cards' :
-    'structure_cards';
-
-  // 🔹 Uppdatera extra data
-  const { error: typeErr } = await sb
-    .from(table)
-    .upsert({ card_id: id, ...extra });
-
-  if (typeErr) {
-    showToast('Fel: ' + typeErr.message);
-    return false;
-  }
-
-  return true;
 }
 
 async function toggleInlagd(id, currentValue) {
   const newValue = !currentValue;
-  const { error } = await sb.from('cards').update({ inlagd: newValue }).eq('id', id);
-  if (error) { showToast('Fel: ' + error.message); return null; }
-  return newValue;
+  try {
+    await pb.collection('cards').update(id, { inlagd: newValue });
+    return newValue;
+  } catch (err) {
+    showToast('Fel: ' + err.message);
+    return null;
+  }
 }
 
 async function nextId() {
   const cards = await loadCards();
   const nums  = cards.map(c => parseInt(c.id.replace(/\D/g, ''), 10)).filter(n => !isNaN(n));
   const max   = nums.length ? Math.max(...nums) : 0;
-  return 'A' + String(max + 1).padStart(5, '0');
+  return 'a' + String(max + 1).padStart(14, '0');
 }
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
@@ -177,9 +106,8 @@ const loginScreen = document.getElementById('login-screen');
 const appEl       = document.getElementById('app');
 
 async function initAuth() {
-  const { data: { session } } = await sb.auth.getSession();
-  if (session) showApp();
-  else         showLogin();
+  if (pb.authStore.isValid) showApp();
+  else                      showLogin();
 }
 
 function showApp()   { loginScreen.style.display = 'none';  appEl.style.display = 'block'; }
@@ -191,8 +119,13 @@ document.getElementById('btn-login').addEventListener('click', async () => {
   const errEl    = document.getElementById('login-error');
   errEl.style.display = 'none';
 
-  const { error } = await sb.auth.signInWithPassword({ email, password });
-  if (error) {
+  let loginErr = null;
+  try {
+    await pb.collection('users').authWithPassword(email, password);
+  } catch (err) {
+    loginErr = err;
+  }
+  if (loginErr) {
     errEl.textContent = 'Fel email eller lösenord.';
     errEl.style.display = 'block';
   } else {
@@ -206,8 +139,8 @@ document.getElementById('login-password').addEventListener('keydown', e => {
   if (e.key === 'Enter') document.getElementById('btn-login').click();
 });
 
-document.getElementById('btn-logout').addEventListener('click', async () => {
-  await sb.auth.signOut();
+document.getElementById('btn-logout').addEventListener('click', () => {
+  pb.authStore.clear();
   showLogin();
 });
 
@@ -321,8 +254,7 @@ let filterInlagd = '';
 const CLASS_ORDER = ['Dark', 'Wasteland', 'The Blue', 'Forest', 'Neutral'];
 
 function cardTileHTML(c) {
-  const firstPath = c.artwork_path ? c.artwork_path.split(',')[0].trim() : null;
-  const imgSrc = firstPath ? imgUrl(firstPath, c.id === lastUpdatedId) : null;
+  const imgSrc = c.artwork?.[0] ? imgUrl(c, 'artwork', 0, c.id === lastUpdatedId) : null;
 
   const imgContent = imgSrc ? `<img src="${imgSrc}" alt="${c.name}">` : `<div class="no-img">🃏</div>`;
 
@@ -515,13 +447,13 @@ function updateInlagdUI(isInlagd) {
 function openCardDetail(card) {
   currentDetailCard = card;
   // Images
-  const paths = card.artwork_path ? card.artwork_path.split(',').map(p => p.trim()).filter(Boolean) : [];
+  const artworks = Array.isArray(card.artwork) ? card.artwork : (card.artwork ? [card.artwork] : []);
   const bust  = card.id === lastUpdatedId;
   if (bust) lastUpdatedId = null;
-  detailImages.innerHTML = paths.length
-    ? paths.map((p, i) => `
-        <img src="${imgUrl(p, bust)}" alt="Variant ${i+1}">
-        ${paths.length > 1 ? `<div class="img-label">Variant ${i+1}</div>` : ''}
+  detailImages.innerHTML = artworks.length
+    ? artworks.map((f, i) => `
+        <img src="${imgUrl(card, 'artwork', i, bust)}" alt="Variant ${i+1}">
+        ${artworks.length > 1 ? `<div class="img-label">Variant ${i+1}</div>` : ''}
       `).join('')
     : '<div style="color:var(--muted);text-align:center;padding:40px">Ingen bild</div>';
 
@@ -616,13 +548,7 @@ const ALL_KEYWORDS = [
 ];
 
 const EFFECT_GROUPS = [
-  { group: 'Skada', items: ['deal_damage','aoe_damage_wave','damage_and_cant_block','on_death_splash'] },
-  { group: 'Kortdrag & Mana', items: ['draw_card','draw_random_spell','draw_next_turn','gain_mana','pay_life_reduce_cost'] },
-  { group: 'Läkning', items: ['heal','sacrifice_minion_heal'] },
-  { group: 'Buffs & Debuffs', items: ['buff_stats','buff_attack_temporary','buff_attack_reduce_hp','buff_attackers','buff_tribe_attack','tribe_buff_attack','debuff_stats','recurring_debuff','reduce_spell_cost'] },
-  { group: 'Vanish & Rörelse', items: ['vanish_and_damage','vanish_cleanse','vanish_to_lantern','skip_turn_vanish','vanish_after_attack','bounce_attackers','return_to_hand'] },
-  { group: 'Spawn & Nekromans', items: ['spawn_tokens','resurrect_dead_this_turn','banish_grave_spawn','mass_reanimate_as_spirit','on_death_spawn_spirit','sacrifice_tribe_buff_hp','sacrifice_tribe_draw','shuffle_tribe_on_death'] },
-  { group: 'Kontroll & Special', items: ['clone_minion','destroy_structure','transform_minion','force_attack_hero','cant_block','trap_minion','lock_then_release','give_stealth','give_spell_absorb','punish_card_play','conditional_spawn','absorb_convert_to_attack','stasis_minion','survive_lethal','core_trap','phantom_damage','swap_sides','consume','chain'] },
+  { group: 'Implementerade i Godot', items: ['deal_damage','draw_card','draw_spell','heal','chain','remove_minion','buff_minion'] },
 ];
 
 function buildEffectOptions() {
@@ -638,6 +564,210 @@ function buildEffectOptions() {
 ['[name="ability_id"]','[name="effect_id"]','[name="s_ability_id"]','[name="trigger_id"]'].forEach(sel => {
   document.querySelectorAll(sel).forEach(el => { el.innerHTML = buildEffectOptions(); });
 });
+
+const NO_AUTO_EFFECTS = new Set(['remove_minion', 'chain', 'buff_minion']);
+
+function syncTargetingModeOptions(effectSel, targetingSel) {
+  const effect = effectSel.value;
+  const autoOpt = targetingSel.querySelector('option[value="auto"]');
+  if (NO_AUTO_EFFECTS.has(effect)) {
+    if (autoOpt) {
+      if (targetingSel.value === 'auto') targetingSel.value = 'explicit';
+      autoOpt.remove();
+    }
+  } else if (!autoOpt) {
+    const opt = document.createElement('option');
+    opt.value = 'auto';
+    opt.textContent = 'auto';
+    targetingSel.appendChild(opt);
+  }
+}
+
+[
+  ['[name="effect_id"]',    '[name="targeting_mode"]'],
+  ['[name="ability_id"]',   '[name="ability_targeting_mode"]'],
+  ['[name="s_ability_id"]', '[name="s_ability_targeting_mode"]'],
+].forEach(([effectSel, targetingSel]) => {
+  const eff = document.querySelector(effectSel);
+  const tgt = document.querySelector(targetingSel);
+  if (!eff || !tgt) return;
+  eff.addEventListener('change', () => syncTargetingModeOptions(eff, tgt));
+});
+
+// ── Dynamic effect_arg UI ─────────────────────────────────
+
+const ARG_SETUPS = [
+  {
+    effectSel:    '[name="effect_id"]',
+    targetingSel: '[name="targeting_mode"]',
+    argInput:     '#spell-effect-arg',
+    uiContainer:  '#spell-arg-ui',
+    filterInput:  '#spell-target-filter',
+    filterUI:     '#spell-filter-ui',
+  },
+  {
+    effectSel:    '[name="ability_id"]',
+    targetingSel: '[name="ability_targeting_mode"]',
+    argInput:     '#minion-ability-arg',
+    uiContainer:  '#minion-arg-ui',
+    filterInput:  '#minion-target-filter',
+    filterUI:     '#minion-filter-ui',
+  },
+  {
+    effectSel:    '[name="s_ability_id"]',
+    targetingSel: '[name="s_ability_targeting_mode"]',
+    argInput:     '#structure-ability-arg',
+    uiContainer:  '#structure-arg-ui',
+    filterInput:  '#structure-target-filter',
+    filterUI:     '#structure-filter-ui',
+  },
+];
+
+function buildArgUI(effectId, targetingMode, container, argInput, initialValue = '') {
+  container.innerHTML = '';
+
+  if (effectId === 'buff_minion') {
+    const raw   = (initialValue || '');
+    const parts = raw.split(':');
+    const initStat = ['atk','hp','both'].includes(parts[0]) ? parts[0] : 'atk';
+    const initTemp = parts[1] === 'temp';
+    const initSub  = initTemp ? (parts[2] || '') : (parts[1] || '');
+
+    container.innerHTML = `
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px">
+        <div class="field" style="flex:1;min-width:120px">
+          <label style="font-size:12px">Stat att buffa</label>
+          <select class="arg-stat">
+            <option value="atk">atk (attack)</option>
+            <option value="hp">hp (hälsa)</option>
+            <option value="both">both (båda)</option>
+          </select>
+        </div>
+        <div class="field" style="flex:1;min-width:140px">
+          <label style="font-size:12px">Varaktighet</label>
+          <select class="arg-duration">
+            <option value="permanent">permanent</option>
+            <option value="temp">till slut av tur</option>
+          </select>
+        </div>
+        <div class="field" style="flex:2;min-width:140px">
+          <label style="font-size:12px">Subtype filter <span style="color:var(--muted)">(valfritt, t.ex. goblin)</span></label>
+          <input class="arg-subtype" placeholder="lämna tomt = alla">
+        </div>
+      </div>`;
+
+    container.querySelector('.arg-stat').value     = initStat;
+    container.querySelector('.arg-duration').value = initTemp ? 'temp' : 'permanent';
+    container.querySelector('.arg-subtype').value  = initSub;
+
+    const compose = () => {
+      const stat  = container.querySelector('.arg-stat').value;
+      const dur   = container.querySelector('.arg-duration').value;
+      const sub   = container.querySelector('.arg-subtype').value.trim().toLowerCase();
+      const parts = [stat];
+      if (dur === 'temp') parts.push('temp');
+      if (sub) parts.push(sub);
+      argInput.value = parts.join(':');
+    };
+    container.querySelectorAll('.arg-stat,.arg-duration,.arg-subtype').forEach(el => {
+      el.addEventListener('change', compose);
+      el.addEventListener('input', compose);
+    });
+    compose();
+    return;
+  }
+
+  argInput.value = initialValue;
+}
+
+function buildFilterUI(targetingMode, filterContainer, filterInput, initialValue = '') {
+  filterContainer.innerHTML = '';
+  filterInput.value = initialValue;
+
+  if (targetingMode !== 'all') return;
+
+  const filterMatch = (initialValue || '').match(/^(atk|hp)(>=|<=|>|<|==|!=)(\d+)$/);
+  const initStat = filterMatch ? filterMatch[1] : 'atk';
+  const initOp   = filterMatch ? filterMatch[2] : '>=';
+  const initVal  = filterMatch ? filterMatch[3] : '';
+
+  filterContainer.innerHTML = `
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;align-items:flex-end">
+      <div class="field" style="flex:0 0 auto">
+        <label style="font-size:12px">Target filter — stat</label>
+        <select class="fil-stat">
+          <option value="">— ingen —</option>
+          <option value="atk">atk</option>
+          <option value="hp">hp</option>
+        </select>
+      </div>
+      <div class="field" style="flex:0 0 auto">
+        <label style="font-size:12px">Op</label>
+        <select class="fil-op">
+          <option value=">=">>=</option>
+          <option value="<="><=</option>
+          <option value=">">></option>
+          <option value="<"><</option>
+          <option value="==">==</option>
+          <option value="!=">!=</option>
+        </select>
+      </div>
+      <div class="field" style="flex:0 0 auto;min-width:70px">
+        <label style="font-size:12px">Värde</label>
+        <input class="fil-val" type="number" min="0" placeholder="t.ex. 2">
+      </div>
+    </div>`;
+
+  filterContainer.querySelector('.fil-stat').value = initStat;
+  filterContainer.querySelector('.fil-op').value   = initOp;
+  filterContainer.querySelector('.fil-val').value  = initVal;
+
+  const compose = () => {
+    const stat = filterContainer.querySelector('.fil-stat').value;
+    const op   = filterContainer.querySelector('.fil-op').value;
+    const val  = filterContainer.querySelector('.fil-val').value.trim();
+    filterInput.value = (stat && val !== '') ? `${stat}${op}${val}` : '';
+  };
+  filterContainer.querySelectorAll('.fil-stat,.fil-op,.fil-val').forEach(el => {
+    el.addEventListener('change', compose);
+    el.addEventListener('input', compose);
+  });
+  compose();
+}
+
+function setupArgUI({ effectSel, targetingSel, argInput: argInputSel, uiContainer: containerSel, filterInput: filterInputSel, filterUI: filterUISel }) {
+  const eff         = document.querySelector(effectSel);
+  const tgt         = document.querySelector(targetingSel);
+  const argInput    = document.querySelector(argInputSel);
+  const container   = document.querySelector(containerSel);
+  const filterInput = document.querySelector(filterInputSel);
+  const filterUI    = document.querySelector(filterUISel);
+  if (!eff || !tgt || !argInput || !container) return;
+
+  const refresh = () => {
+    buildArgUI(eff.value, tgt.value, container, argInput, '');
+    if (filterInput && filterUI) buildFilterUI(tgt.value, filterUI, filterInput, '');
+  };
+  eff.addEventListener('change', refresh);
+  tgt.addEventListener('change', refresh);
+  refresh();
+}
+
+ARG_SETUPS.forEach(setupArgUI);
+
+function reloadArgUI(effectSel, targetingSel, argInputSel, containerSel, filterInputSel, filterUISel) {
+  const eff         = document.querySelector(effectSel);
+  const tgt         = document.querySelector(targetingSel);
+  const argInput    = document.querySelector(argInputSel);
+  const container   = document.querySelector(containerSel);
+  const filterInput = filterInputSel ? document.querySelector(filterInputSel) : null;
+  const filterUI    = filterUISel    ? document.querySelector(filterUISel)    : null;
+  if (!eff || !tgt || !argInput || !container) return;
+  buildArgUI(eff.value, tgt.value, container, argInput, argInput.value);
+  if (filterInput && filterUI) buildFilterUI(tgt.value, filterUI, filterInput, filterInput.value);
+}
+
+// ─────────────────────────────────────────────────────────
 
 const kwPicker   = document.getElementById('keyword-picker');
 const kwDropdown = document.getElementById('kw-dropdown');
@@ -688,8 +818,8 @@ async function openKwDropdown() {
   kwAddBtn.textContent = '× Stäng';
   kwAddBtn.classList.add('active');
   kwDropdown.innerHTML = '<span class="kw-dropdown-empty">Laddar…</span>';
-  const { data } = await sb.from('game_docs').select('title').eq('category', 'keyword').order('title');
-  const titles = (data || []).map(d => d.title);
+  const data = await pb.collection('game_docs').getFullList({ sort: 'title', filter: `category = "keyword"` }).catch(() => []);
+  const titles = data.map(d => d.title);
   kwDropdown.innerHTML = '';
   if (!titles.length) {
     const e = document.createElement('span');
@@ -805,13 +935,14 @@ function updateTypeSections() {
   const needsTwo = t === 'minion' || t === 'structure';
   artwork2Wrap.style.display  = needsTwo ? 'flex' : 'none';
   artworkLabel1.textContent   = needsTwo ? 'Variant 1' : 'Bild';
+  document.getElementById('kw-field-row').style.display = t === 'spell' ? 'none' : '';
 }
 
 updateTypeSections();
 
 async function resetForm() {
   editingId = null;
-  editingArtworkPath = '';
+  editingCardArtwork = [];
   form.reset();
   selectedImageFile  = null;
   selectedImageFile2 = null;
@@ -829,7 +960,7 @@ async function resetForm() {
 }
 
 let editingId = null;
-let editingArtworkPath = '';
+let editingCardArtwork = [];
 
 function setFieldVal(name, val) {
   const el = form.querySelector(`[name="${name}"]`);
@@ -838,7 +969,7 @@ function setFieldVal(name, val) {
 
 async function openEditForm(card) {
   editingId = card.id;
-  editingArtworkPath = card.artwork_path || '';
+  editingCardArtwork = Array.isArray(card.artwork) ? card.artwork : (card.artwork ? [card.artwork] : []);
   await refreshAllCards();
   document.getElementById('form-title').textContent = `Redigera kort — ${card.name}`;
   form.querySelector('button[type="submit"]').textContent = 'Spara ändringar';
@@ -873,34 +1004,41 @@ async function openEditForm(card) {
     setFieldVal('ability_trigger', card.ability_trigger); setFieldVal('ability_cost', card.ability_cost);
     setFieldVal('ability_target_mode', card.ability_target_mode);
     setFieldVal('ability_targeting_mode', card.ability_targeting_mode);
-    setFieldVal('ability_value', card.ability_value); setFieldVal('ability_arg', card.ability_arg);
+    setFieldVal('ability_value', card.ability_value);
+    document.querySelector('#minion-ability-arg').value    = card.ability_arg    || '';
+    document.querySelector('#minion-target-filter').value  = card.target_filter  || '';
+    reloadArgUI('[name="ability_id"]','[name="ability_targeting_mode"]','#minion-ability-arg','#minion-arg-ui','#minion-target-filter','#minion-filter-ui');
   } else if (card.card_type === 'spell') {
     setFieldVal('effect_id', card.effect_id); setFieldVal('effect_value', card.effect_value);
     setFieldVal('target_mode', card.target_mode); setFieldVal('targeting_mode', card.targeting_mode);
-    setFieldVal('school', card.school); setFieldVal('effect_arg', card.effect_arg);
+    setFieldVal('school', card.school);
+    document.querySelector('#spell-effect-arg').value    = card.effect_arg    || '';
+    document.querySelector('#spell-target-filter').value = card.target_filter || '';
+    reloadArgUI('[name="effect_id"]','[name="targeting_mode"]','#spell-effect-arg','#spell-arg-ui','#spell-target-filter','#spell-filter-ui');
     setFieldVal('repeat_count', card.repeat_count); setFieldVal('repeat_mode', card.repeat_mode);
   } else if (card.card_type === 'structure') {
     setFieldVal('armor', card.armor); setFieldVal('s_subtype', card.subtype);
     setFieldVal('maintenance_cost', card.maintenance_cost); setFieldVal('s_ability_id', card.ability_id);
     setFieldVal('s_ability_cost', card.ability_cost); setFieldVal('s_ability_target_mode', card.ability_target_mode);
     setFieldVal('s_ability_targeting_mode', card.ability_targeting_mode);
-    setFieldVal('s_ability_value', card.ability_value); setFieldVal('s_ability_arg', card.ability_arg);
+    setFieldVal('s_ability_value', card.ability_value);
+    document.querySelector('#structure-ability-arg').value    = card.ability_arg    || '';
+    document.querySelector('#structure-target-filter').value  = card.target_filter  || '';
+    reloadArgUI('[name="s_ability_id"]','[name="s_ability_targeting_mode"]','#structure-ability-arg','#structure-arg-ui','#structure-target-filter','#structure-filter-ui');
     setFieldVal('repair_cost', card.repair_cost); setFieldVal('repair_value', card.repair_value);
     setFieldVal('trigger_id', card.trigger_id); setFieldVal('trigger_value', card.trigger_value);
     setFieldVal('trigger_target_mode', card.trigger_target_mode);
   }
 
   // Visa befintliga bilder
-  if (card.artwork_path) {
-    const paths = card.artwork_path.split(',').map(p => p.trim());
-    if (paths[0]) {
-      artworkPreview.innerHTML = `<img src="${imgUrl(paths[0])}" alt="">`;
-      artworkFilename.textContent = paths[0] + ' (befintlig)';
-    }
-    if (paths[1]) {
-      artworkPreview2.innerHTML = `<img src="${imgUrl(paths[1])}" alt="">`;
-      artworkFilename2.textContent = paths[1] + ' (befintlig)';
-    }
+  const artworkArr = Array.isArray(card.artwork) ? card.artwork : (card.artwork ? [card.artwork] : []);
+  if (artworkArr[0]) {
+    artworkPreview.innerHTML = `<img src="${imgUrl(card, 'artwork', 0)}" alt="">`;
+    artworkFilename.textContent = artworkArr[0] + ' (befintlig)';
+  }
+  if (artworkArr[1]) {
+    artworkPreview2.innerHTML = `<img src="${imgUrl(card, 'artwork', 1)}" alt="">`;
+    artworkFilename2.textContent = artworkArr[1] + ' (befintlig)';
   }
 
   showPage('page-add');
@@ -931,7 +1069,6 @@ form.addEventListener('submit', async e => {
     card_class:  get('card_class'),
     card_type:   get('card_type'),
     description: get('description'),
-    artwork_path: selectedImageFile ? '' : '',
     rarity:      get('rarity'),
     keywords:    get('keywords'),
     draft_tag:   get('draft_tag'),
@@ -1061,10 +1198,10 @@ function buildSQL(cards) {
   sql += `DELETE FROM minion_cards    WHERE ${range};\n`;
   sql += `DELETE FROM cards           WHERE ${idRange};\n\n`;
 
-  sql += `INSERT INTO cards (\n    id, name, mana, card_class, card_type, description, artwork_path, rarity, keywords, draft_tag\n) VALUES\n`;
+  sql += `INSERT INTO cards (\n    id, name, mana, card_class, card_type, description, rarity, keywords, draft_tag\n) VALUES\n`;
   sql += cards.map((c, i) => {
     const comma = i < cards.length - 1 ? ',' : ';';
-    return `    ('${esc(c.id)}', '${esc(c.name)}', ${c.mana}, '${esc(c.card_class)}', '${esc(c.card_type)}', '${esc(c.description)}', '${esc(c.artwork_path)}', '${esc(c.rarity)}', '${esc(c.keywords)}', '${esc(c.draft_tag)}')${comma}`;
+    return `    ('${esc(c.id)}', '${esc(c.name)}', ${c.mana}, '${esc(c.card_class)}', '${esc(c.card_type)}', '${esc(c.description)}', '${esc(c.rarity)}', '${esc(c.keywords)}', '${esc(c.draft_tag)}')${comma}`;
   }).join('\n');
 
   const minions    = cards.filter(c => c.card_type === 'minion');
@@ -1072,26 +1209,26 @@ function buildSQL(cards) {
   const structures = cards.filter(c => c.card_type === 'structure');
 
   if (minions.length) {
-    sql += `\n\nINSERT INTO minion_cards (\n    card_id, attack, health, subtype, ability_id, ability_trigger, ability_cost, ability_target_mode, ability_targeting_mode, ability_value, ability_arg\n) VALUES\n`;
+    sql += `\n\nINSERT INTO minion_cards (\n    card_id, attack, health, subtype, ability_id, ability_trigger, ability_cost, ability_target_mode, ability_targeting_mode, ability_value, ability_arg, target_filter\n) VALUES\n`;
     sql += minions.map((c, i) => {
       const comma = i < minions.length - 1 ? ',' : ';';
-      return `    ('${esc(c.id)}', ${c.attack}, ${c.health}, '${esc(c.subtype)}', '${esc(c.ability_id)}', '${esc(c.ability_trigger)}', ${c.ability_cost}, '${esc(c.ability_target_mode)}', '${esc(c.ability_targeting_mode)}', ${c.ability_value}, '${esc(c.ability_arg)}')${comma}`;
+      return `    ('${esc(c.id)}', ${c.attack}, ${c.health}, '${esc(c.subtype)}', '${esc(c.ability_id)}', '${esc(c.ability_trigger)}', ${c.ability_cost}, '${esc(c.ability_target_mode)}', '${esc(c.ability_targeting_mode)}', ${c.ability_value}, '${esc(c.ability_arg)}', '${esc(c.target_filter)}')${comma}`;
     }).join('\n');
   }
 
   if (spells.length) {
-    sql += `\n\nINSERT INTO spell_cards (\n    card_id, effect_id, effect_value, target_mode, targeting_mode, school, effect_arg, repeat_count, repeat_mode\n) VALUES\n`;
+    sql += `\n\nINSERT INTO spell_cards (\n    card_id, effect_id, effect_value, target_mode, targeting_mode, school, effect_arg, repeat_count, repeat_mode, target_filter\n) VALUES\n`;
     sql += spells.map((c, i) => {
       const comma = i < spells.length - 1 ? ',' : ';';
-      return `    ('${esc(c.id)}', '${esc(c.effect_id)}', ${c.effect_value}, '${esc(c.target_mode)}', '${esc(c.targeting_mode)}', '${esc(c.school)}', '${esc(c.effect_arg)}', ${c.repeat_count}, '${esc(c.repeat_mode)}')${comma}`;
+      return `    ('${esc(c.id)}', '${esc(c.effect_id)}', ${c.effect_value}, '${esc(c.target_mode)}', '${esc(c.targeting_mode)}', '${esc(c.school)}', '${esc(c.effect_arg)}', ${c.repeat_count}, '${esc(c.repeat_mode)}', '${esc(c.target_filter)}')${comma}`;
     }).join('\n');
   }
 
   if (structures.length) {
-    sql += `\n\nINSERT INTO structure_cards (\n    card_id, armor, subtype, maintenance_cost, ability_id, ability_cost, ability_target_mode, ability_targeting_mode, ability_value, ability_arg, repair_cost, repair_value, trigger_id, trigger_value, trigger_target_mode\n) VALUES\n`;
+    sql += `\n\nINSERT INTO structure_cards (\n    card_id, armor, subtype, maintenance_cost, ability_id, ability_cost, ability_target_mode, ability_targeting_mode, ability_value, ability_arg, repair_cost, repair_value, trigger_id, trigger_value, trigger_target_mode, target_filter\n) VALUES\n`;
     sql += structures.map((c, i) => {
       const comma = i < structures.length - 1 ? ',' : ';';
-      return `    ('${esc(c.id)}', ${c.armor}, '${esc(c.subtype)}', ${c.maintenance_cost}, '${esc(c.ability_id)}', ${c.ability_cost}, '${esc(c.ability_target_mode)}', '${esc(c.ability_targeting_mode)}', ${c.ability_value}, '${esc(c.ability_arg)}', ${c.repair_cost}, ${c.repair_value}, '${esc(c.trigger_id)}', ${c.trigger_value}, '${esc(c.trigger_target_mode)}')${comma}`;
+      return `    ('${esc(c.id)}', ${c.armor}, '${esc(c.subtype)}', ${c.maintenance_cost}, '${esc(c.ability_id)}', ${c.ability_cost}, '${esc(c.ability_target_mode)}', '${esc(c.ability_targeting_mode)}', ${c.ability_value}, '${esc(c.ability_arg)}', ${c.repair_cost}, ${c.repair_value}, '${esc(c.trigger_id)}', ${c.trigger_value}, '${esc(c.trigger_target_mode)}', '${esc(c.target_filter)}')${comma}`;
     }).join('\n');
   }
 
@@ -1140,12 +1277,13 @@ document.getElementById('btn-download-images').addEventListener('click', async (
 
   const imagePaths = [
     ...cards.flatMap(c => {
-      const paths = c.artwork_path ? c.artwork_path.split(',').map(p => p.trim()).filter(Boolean) : [];
+      const artworks = Array.isArray(c.artwork) ? c.artwork : (c.artwork ? [c.artwork] : []);
       const type  = (c.card_type  || 'unknown').toLowerCase();
       const cls   = (c.card_class || 'unknown').toLowerCase().replace(/\s+/g, '_');
-      return paths.map(p => ({ path: p, folder: `${type}/${cls}` }));
+      return artworks.map((f, i) => ({ url: imgUrl(c, 'artwork', i), filename: f, folder: `${type}/${cls}` }));
     }),
-    ...skills.filter(s => s.image_path).map(s => ({ path: s.image_path, folder: 'skills' })),
+    ...skills.filter(s => s.image?.[0] || (typeof s.image === 'string' && s.image))
+      .map(s => ({ url: imgUrl(s, 'image'), filename: Array.isArray(s.image) ? s.image[0] : s.image, folder: 'skills' })),
   ];
 
   const zip = new JSZip();
@@ -1162,13 +1300,11 @@ document.getElementById('btn-download-images').addEventListener('click', async (
   const total = imagePaths.length;
   statusEl.textContent = `0 / ${total}`;
 
-  for (const { path, folder } of imagePaths) {
+  for (const { url, filename, folder } of imagePaths) {
     try {
-      const url  = imgUrl(path);
       const resp = await fetch(url);
       if (!resp.ok) throw new Error(resp.statusText);
-      const buf      = await resp.arrayBuffer();
-      const filename = path.split('/').pop();
+      const buf = await resp.arrayBuffer();
       zip.folder(folder).file(filename, buf);
       done++;
     } catch (err) {
@@ -1212,8 +1348,10 @@ document.getElementById('btn-migrate-rarity').addEventListener('click', async ()
 
   let updated = 0;
   for (const card of toMigrate) {
-    const { error } = await sb.from('cards').update({ rarity: RARITY_MAP[card.rarity] }).eq('id', card.id);
-    if (!error) updated++;
+    try {
+      await pb.collection('cards').update(card.id, { rarity: RARITY_MAP[card.rarity] });
+      updated++;
+    } catch (_) {}
   }
 
   status.textContent = `${updated} av ${toMigrate.length} kort uppdaterade.`;
@@ -1248,11 +1386,14 @@ const docDetailTags     = document.getElementById('doc-detail-tags');
 const GODOT_CATS = new Set(['keyword', 'effect', 'ability']);
 
 async function loadDocs() {
-  let q = sb.from('game_docs').select('*').order('category').order('title');
-  if (activeCat) q = q.eq('category', activeCat);
-  const { data, error } = await q;
-  if (error) { console.error(error); return []; }
-  return data || [];
+  try {
+    const opts = { sort: 'category,title' };
+    if (activeCat) opts.filter = `category = "${activeCat}"`;
+    return await pb.collection('game_docs').getFullList(opts);
+  } catch (err) {
+    console.error(err);
+    return [];
+  }
 }
 
 function renderDocCard(d, showToggle) {
@@ -1340,7 +1481,7 @@ async function renderDocs() {
       const id = parseInt(btn.dataset.id);
       const doc = docs.find(d => d.id === id);
       if (!doc) return;
-      await sb.from('game_docs').update({ in_godot: !doc.in_godot }).eq('id', id);
+      await pb.collection('game_docs').update(doc.id, { in_godot: !doc.in_godot });
       renderDocs();
     });
   });
@@ -1386,7 +1527,7 @@ document.getElementById('btn-doc-detail-cancel').addEventListener('click', close
 document.getElementById('btn-doc-detail-close').addEventListener('click', closeDocDetail);
 document.getElementById('btn-doc-detail-delete').addEventListener('click', async () => {
   if (!viewingDoc) return;
-  await sb.from('game_docs').delete().eq('id', viewingDoc.id);
+  await pb.collection('game_docs').delete(viewingDoc.id);
   showToast('Borttaget.');
   closeDocDetail();
   renderDocs();
@@ -1410,15 +1551,14 @@ document.getElementById('btn-doc-save').addEventListener('click', async () => {
     body:     docBodyEl.value.trim(),
     tags:     docTagsEl.value.trim(),
     in_godot: document.getElementById('doc-in-godot').checked,
-    updated_at: new Date().toISOString(),
   };
   if (!payload.title) { showToast('Titel krävs.'); return; }
 
   if (editingDoc) {
-    await sb.from('game_docs').update(payload).eq('id', editingDoc.id);
+    await pb.collection('game_docs').update(editingDoc.id, payload);
     showToast('Uppdaterat!');
   } else {
-    await sb.from('game_docs').insert(payload);
+    await pb.collection('game_docs').create(payload);
     showToast('Sparat!');
   }
   closeDocEditor();
@@ -1427,7 +1567,7 @@ document.getElementById('btn-doc-save').addEventListener('click', async () => {
 
 document.getElementById('btn-doc-delete').addEventListener('click', async () => {
   if (!editingDoc) return;
-  await sb.from('game_docs').delete().eq('id', editingDoc.id);
+  await pb.collection('game_docs').delete(editingDoc.id);
   showToast('Borttaget.');
   closeDocEditor();
   renderDocs();
@@ -1444,8 +1584,8 @@ document.querySelectorAll('.doc-cat-btn').forEach(btn => {
 
 // Seed om databasen är tom
 async function seedDocsIfEmpty() {
-  const { count } = await sb.from('game_docs').select('*', { count: 'exact', head: true });
-  if (count > 0) return;
+  const res = await pb.collection('game_docs').getList(1, 1).catch(() => ({ totalItems: 0 }));
+  if (res.totalItems > 0) return;
 
   const seed = [
     // Keywords
@@ -1576,7 +1716,7 @@ async function seedDocsIfEmpty() {
     { category:'suggestion', title:'Mall för nya förslag', body:'Använd den här posten som mall.\nBeskriv:\n1. Problemet / idén\n2. Föreslaget beteende\n3. Eventuella undantag eller interaktioner\n4. Prioritet (låg/medium/hög)', tags:'meta' },
   ];
 
-  await sb.from('game_docs').insert(seed);
+  for (const item of seed) await pb.collection('game_docs').create(item);
 }
 
 // Kör seed och rendera när sidan visas
@@ -1590,11 +1730,14 @@ const tplGrid          = document.getElementById('tpl-grid');
 const tplEditorOverlay = document.getElementById('tpl-editor-overlay');
 
 async function loadTemplates() {
-  let q = sb.from('card_templates').select('*').order('is_builtin', { ascending: false }).order('created_at');
-  if (activeTplType) q = q.eq('card_type', activeTplType);
-  const { data, error } = await q;
-  if (error) { console.error(error); return []; }
-  return data || [];
+  try {
+    const opts = { sort: '-is_builtin' };
+    if (activeTplType) opts.filter = `card_type = "${activeTplType}"`;
+    return await pb.collection('card_templates').getFullList(opts);
+  } catch (err) {
+    console.error(err);
+    return [];
+  }
 }
 
 function renderTplCard(tpl) {
@@ -1749,10 +1892,10 @@ document.getElementById('btn-tpl-save').addEventListener('click', async () => {
   };
 
   if (editingTpl) {
-    await sb.from('card_templates').update(payload).eq('id', editingTpl.id);
+    await pb.collection('card_templates').update(editingTpl.id, payload);
     showToast('Mall uppdaterad!');
   } else {
-    await sb.from('card_templates').insert(payload);
+    await pb.collection('card_templates').create(payload);
     showToast('Mall sparad!');
   }
   closeTplEditor();
@@ -1761,7 +1904,7 @@ document.getElementById('btn-tpl-save').addEventListener('click', async () => {
 
 document.getElementById('btn-tpl-delete').addEventListener('click', async () => {
   if (!editingTpl || editingTpl.is_builtin) return;
-  await sb.from('card_templates').delete().eq('id', editingTpl.id);
+  await pb.collection('card_templates').delete(editingTpl.id);
   showToast('Mall borttagen.');
   closeTplEditor();
   renderTplGrid();
@@ -1787,8 +1930,8 @@ document.querySelectorAll('.tpl-type-btn').forEach(btn => {
 });
 
 async function seedTemplatesIfEmpty() {
-  const { count } = await sb.from('card_templates').select('*', { count: 'exact', head: true });
-  if (count > 0) return;
+  const res = await pb.collection('card_templates').getList(1, 1).catch(() => ({ totalItems: 0 }));
+  if (res.totalItems > 0) return;
 
   const seed = [
     // ── MINIONS ──────────────────────────────────────────────────────────
@@ -2263,7 +2406,7 @@ async function seedTemplatesIfEmpty() {
     },
   ];
 
-  await sb.from('card_templates').insert(seed);
+  for (const item of seed) await pb.collection('card_templates').create(item);
 }
 
 document.querySelector('nav button[data-page="page-templates"]').addEventListener('click', async () => {
@@ -2306,25 +2449,37 @@ function resetSkillForm() {
 document.getElementById('btn-skill-reset').addEventListener('click', resetSkillForm);
 
 async function loadSkills() {
-  const { data, error } = await sb.from('skills').select('*').order('created_at');
-  if (error) { console.error(error); return []; }
-  return data || [];
+  try {
+    return await pb.collection('skills').getFullList();
+  } catch (err) {
+    console.error(err);
+    return [];
+  }
 }
 
-async function saveSkill(name, imagePath, description) {
-  const { error } = await sb.from('skills').insert({ name, image_path: imagePath, description, text: description });
-  if (error) { showToast('Fel: ' + error.message); return false; }
-  return true;
+async function saveSkill(name, imageFile, description) {
+  try {
+    const formData = new FormData();
+    formData.append('name', name);
+    formData.append('description', description);
+    formData.append('text', description);
+    if (imageFile) formData.append('image', imageFile);
+    await pb.collection('skills').create(formData);
+    return true;
+  } catch (err) {
+    showToast('Fel: ' + err.message);
+    return false;
+  }
 }
 
 async function deleteSkill(id) {
-  const { data: skillData } = await sb.from('skills').select('image_path').eq('id', id).single();
-  if (skillData?.image_path) {
-    await sb.storage.from(BUCKET).remove([skillData.image_path]);
+  try {
+    await pb.collection('skills').delete(id);
+    return true;
+  } catch (err) {
+    showToast('Fel: ' + err.message);
+    return false;
   }
-  const { error } = await sb.from('skills').delete().eq('id', id);
-  if (error) { showToast('Fel: ' + error.message); return false; }
-  return true;
 }
 
 async function renderSkillsGrid() {
@@ -2337,7 +2492,7 @@ async function renderSkillsGrid() {
   }
 
   skillsGrid.innerHTML = skills.map(s => {
-    const imgSrc = s.image_path ? imgUrl(s.image_path) : null;
+    const imgSrc = (s.image?.[0] || (typeof s.image === 'string' && s.image)) ? imgUrl(s, 'image') : null;
     const imgContent = imgSrc
       ? `<img src="${imgSrc}" alt="skill">`
       : `<div class="no-img" style="font-size:32px">🎯</div>`;
@@ -2427,33 +2582,25 @@ document.getElementById('btn-skill-edit-save').addEventListener('click', async (
   saveBtn.disabled = true;
   saveBtn.textContent = 'Sparar…';
 
-  let imagePath = undefined;
-  if (selectedEditImageFile) {
-    const file = selectedEditImageFile;
-    const ext  = file.name.split('.').pop();
-    const path = `skills/skill_${Date.now()}.${ext}`;
-    const { error: uploadErr } = await sb.storage.from(BUCKET).upload(path, file, { upsert: true });
-    if (uploadErr) {
-      showToast('Bilduppladdning misslyckades: ' + uploadErr.message);
-      saveBtn.disabled = false;
-      saveBtn.textContent = 'Spara';
-      return;
+  try {
+    const formData = new FormData();
+    formData.append('name', name);
+    formData.append('description', description);
+    formData.append('text', description);
+    if (selectedEditImageFile) formData.append('image', selectedEditImageFile);
+    const updated = await pb.collection('skills').update(currentSkillId, formData);
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Spara';
+    skillDetailName.textContent = name || '—';
+    skillDetailDesc.textContent = description;
+    if (selectedEditImageFile) {
+      skillDetailImages.innerHTML = `<img src="${imgUrl(updated, 'image')}" alt="skill">`;
     }
-    imagePath = path;
-  }
-
-  const updates = { name, description, text: description };
-  if (imagePath !== undefined) updates.image_path = imagePath;
-
-  const { error } = await sb.from('skills').update(updates).eq('id', currentSkillId);
-  saveBtn.disabled = false;
-  saveBtn.textContent = 'Spara';
-  if (error) { showToast('Fel: ' + error.message); return; }
-
-  skillDetailName.textContent = name || '—';
-  skillDetailDesc.textContent = description;
-  if (imagePath !== undefined) {
-    skillDetailImages.innerHTML = `<img src="${imgUrl(imagePath)}" alt="skill">`;
+  } catch (err) {
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Spara';
+    showToast('Fel: ' + err.message);
+    return;
   }
   closeSkillEditForm();
   showToast('Skill uppdaterat!');
@@ -2467,8 +2614,8 @@ function closeSkillEditForm() {
 
 function openSkillDetail(skill) {
   currentSkillId = skill.id;
-  skillDetailImages.innerHTML = skill.image_path
-    ? `<img src="${imgUrl(skill.image_path)}" alt="skill">`
+  skillDetailImages.innerHTML = (skill.image?.[0] || (typeof skill.image === 'string' && skill.image))
+    ? `<img src="${imgUrl(skill, 'image')}" alt="skill">`
     : '<div style="color:var(--muted);text-align:center;padding:40px">Ingen bild</div>';
   skillDetailName.textContent = skill.name || '—';
   skillDetailDesc.textContent = skill.description || '';
@@ -2482,21 +2629,6 @@ skillForm.addEventListener('submit', async e => {
   submitBtn.disabled = true;
   submitBtn.textContent = 'Sparar…';
 
-  let imagePath = null;
-  if (selectedSkillImageFile) {
-    const file = selectedSkillImageFile;
-    const ext  = file.name.split('.').pop();
-    const path = `skills/skill_${Date.now()}.${ext}`;
-    const { error: uploadErr } = await sb.storage.from(BUCKET).upload(path, file, { upsert: true });
-    if (uploadErr) {
-      showToast('Bilduppladdning misslyckades: ' + uploadErr.message);
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Spara skill';
-      return;
-    }
-    imagePath = path;
-  }
-
   const name        = skillNameEl.value.trim();
   const description = skillDescEl.value.trim();
 
@@ -2507,7 +2639,7 @@ skillForm.addEventListener('submit', async e => {
     return;
   }
 
-  const ok = await saveSkill(name, imagePath, description);
+  const ok = await saveSkill(name, selectedSkillImageFile, description);
 
   submitBtn.disabled = false;
   submitBtn.textContent = 'Spara skill';
