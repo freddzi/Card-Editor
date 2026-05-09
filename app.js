@@ -260,7 +260,7 @@ const CLASS_ORDER = ['Dark', 'Wasteland', 'The Blue', 'Forest', 'Neutral'];
 function cardTileHTML(c) {
   const imgSrc = c.artwork?.[0] ? imgUrl(c, 'artwork', 0, c.id === lastUpdatedId, '200x200') : null;
 
-  const imgContent = imgSrc ? `<img src="${imgSrc}" alt="${c.name}" loading="lazy">` : `<div class="no-img">🃏</div>`;
+  const imgContent = imgSrc ? `<img src="${imgSrc}" alt="${c.name}">` : `<div class="no-img">🃏</div>`;
 
   let statsOverlay = '';
   if (c.card_type === 'minion') {
