@@ -1195,8 +1195,16 @@ const sqlOutput = document.getElementById('sql-output');
 
 function esc(v) { return String(v ?? '').replace(/'/g, "''"); }
 
-function buildSQL(cards) {
-  if (!cards.length) return '-- Inga kort att exportera.';
+function convertCard(c) {
+  const gid = displayId(c.id);
+  const artworks = Array.isArray(c.artwork) ? c.artwork : (c.artwork ? [c.artwork] : []);
+  const artwork_path = artworks.map((_, i) => `${gid}_v${i + 1}.png`).join(', ');
+  return { ...c, id: gid, artwork_path };
+}
+
+function buildSQL(rawCards) {
+  if (!rawCards.length) return '-- Inga kort att exportera.';
+  const cards = rawCards.map(convertCard);
 
   const ids      = cards.map(c => `'${esc(c.id)}'`).join(', ');
   const range    = `card_id IN (${ids})`;
@@ -1208,10 +1216,10 @@ function buildSQL(cards) {
   sql += `DELETE FROM minion_cards    WHERE ${range};\n`;
   sql += `DELETE FROM cards           WHERE ${idRange};\n\n`;
 
-  sql += `INSERT INTO cards (\n    id, name, mana, card_class, card_type, description, rarity, keywords, draft_tag\n) VALUES\n`;
+  sql += `INSERT INTO cards (\n    id, name, mana, card_class, card_type, description, artwork_path, rarity, keywords, draft_tag\n) VALUES\n`;
   sql += cards.map((c, i) => {
     const comma = i < cards.length - 1 ? ',' : ';';
-    return `    ('${esc(c.id)}', '${esc(c.name)}', ${c.mana}, '${esc(c.card_class)}', '${esc(c.card_type)}', '${esc(c.description)}', '${esc(c.rarity)}', '${esc(c.keywords)}', '${esc(c.draft_tag)}')${comma}`;
+    return `    ('${esc(c.id)}', '${esc(c.name)}', ${c.mana}, '${esc(c.card_class)}', '${esc(c.card_type)}', '${esc(c.description)}', '${esc(c.artwork_path)}', '${esc(c.rarity)}', '${esc(c.keywords)}', '${esc(c.draft_tag)}')${comma}`;
   }).join('\n');
 
   const minions    = cards.filter(c => c.card_type === 'minion');
@@ -1222,7 +1230,7 @@ function buildSQL(cards) {
     sql += `\n\nINSERT INTO minion_cards (\n    card_id, attack, health, subtype, ability_id, ability_trigger, ability_cost, ability_target_mode, ability_targeting_mode, ability_value, ability_arg, target_filter\n) VALUES\n`;
     sql += minions.map((c, i) => {
       const comma = i < minions.length - 1 ? ',' : ';';
-      return `    ('${esc(c.id)}', ${c.attack}, ${c.health}, '${esc(c.subtype)}', '${esc(c.ability_id)}', '${esc(c.ability_trigger)}', ${c.ability_cost}, '${esc(c.ability_target_mode)}', '${esc(c.ability_targeting_mode)}', ${c.ability_value}, '${esc(c.ability_arg)}', '${esc(c.target_filter)}')${comma}`;
+      return `    ('${esc(c.id)}', ${c.attack??0}, ${c.health??0}, '${esc(c.subtype)}', '${esc(c.ability_id)}', '${esc(c.ability_trigger)}', ${c.ability_cost??0}, '${esc(c.ability_target_mode)}', '${esc(c.ability_targeting_mode)||'explicit'}', ${c.ability_value??0}, '${esc(c.ability_arg)}', '${esc(c.target_filter)}')${comma}`;
     }).join('\n');
   }
 
@@ -1230,7 +1238,7 @@ function buildSQL(cards) {
     sql += `\n\nINSERT INTO spell_cards (\n    card_id, effect_id, effect_value, target_mode, targeting_mode, school, effect_arg, repeat_count, repeat_mode, target_filter\n) VALUES\n`;
     sql += spells.map((c, i) => {
       const comma = i < spells.length - 1 ? ',' : ';';
-      return `    ('${esc(c.id)}', '${esc(c.effect_id)}', ${c.effect_value}, '${esc(c.target_mode)}', '${esc(c.targeting_mode)}', '${esc(c.school)}', '${esc(c.effect_arg)}', ${c.repeat_count}, '${esc(c.repeat_mode)}', '${esc(c.target_filter)}')${comma}`;
+      return `    ('${esc(c.id)}', '${esc(c.effect_id)}', ${c.effect_value??0}, '${esc(c.target_mode)}', '${esc(c.targeting_mode)||'explicit'}', '${esc(c.school)}', '${esc(c.effect_arg)}', ${c.repeat_count??1}, '${esc(c.repeat_mode)||'same_target'}', '${esc(c.target_filter)}')${comma}`;
     }).join('\n');
   }
 
@@ -1238,7 +1246,7 @@ function buildSQL(cards) {
     sql += `\n\nINSERT INTO structure_cards (\n    card_id, armor, subtype, maintenance_cost, ability_id, ability_cost, ability_target_mode, ability_targeting_mode, ability_value, ability_arg, repair_cost, repair_value, trigger_id, trigger_value, trigger_target_mode, target_filter\n) VALUES\n`;
     sql += structures.map((c, i) => {
       const comma = i < structures.length - 1 ? ',' : ';';
-      return `    ('${esc(c.id)}', ${c.armor}, '${esc(c.subtype)}', ${c.maintenance_cost}, '${esc(c.ability_id)}', ${c.ability_cost}, '${esc(c.ability_target_mode)}', '${esc(c.ability_targeting_mode)}', ${c.ability_value}, '${esc(c.ability_arg)}', ${c.repair_cost}, ${c.repair_value}, '${esc(c.trigger_id)}', ${c.trigger_value}, '${esc(c.trigger_target_mode)}', '${esc(c.target_filter)}')${comma}`;
+      return `    ('${esc(c.id)}', ${c.armor??1}, '${esc(c.subtype)}', ${c.maintenance_cost??0}, '${esc(c.ability_id)}', ${c.ability_cost??0}, '${esc(c.ability_target_mode)}', '${esc(c.ability_targeting_mode)||'explicit'}', ${c.ability_value??0}, '${esc(c.ability_arg)}', ${c.repair_cost??0}, ${c.repair_value??0}, '${esc(c.trigger_id)}', ${c.trigger_value??0}, '${esc(c.trigger_target_mode)||'enemy_hero'}', '${esc(c.target_filter)}')${comma}`;
     }).join('\n');
   }
 
@@ -1266,7 +1274,7 @@ document.getElementById('btn-download-sql').addEventListener('click', () => {
 });
 
 document.getElementById('btn-export-json').addEventListener('click', async () => {
-  const cards = await loadCards();
+  const cards = (await loadCards()).map(convertCard);
   const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' });
   const a = Object.assign(document.createElement('a'), {
     href: URL.createObjectURL(blob),
@@ -1290,7 +1298,8 @@ document.getElementById('btn-download-images').addEventListener('click', async (
       const artworks = Array.isArray(c.artwork) ? c.artwork : (c.artwork ? [c.artwork] : []);
       const type  = (c.card_type  || 'unknown').toLowerCase();
       const cls   = (c.card_class || 'unknown').toLowerCase().replace(/\s+/g, '_');
-      return artworks.map((f, i) => ({ url: imgUrl(c, 'artwork', i), filename: f, folder: `${type}/${cls}` }));
+      const gid   = displayId(c.id);
+      return artworks.map((_, i) => ({ url: imgUrl(c, 'artwork', i), filename: `${gid}_v${i + 1}.png`, folder: `${type}/${cls}` }));
     }),
     ...skills.filter(s => s.image?.[0] || (typeof s.image === 'string' && s.image))
       .map(s => ({ url: imgUrl(s, 'image'), filename: Array.isArray(s.image) ? s.image[0] : s.image, folder: 'skills' })),
