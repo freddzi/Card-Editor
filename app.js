@@ -98,6 +98,11 @@ async function toggleInlagd(id, currentValue) {
   }
 }
 
+function displayId(id) {
+  const num = parseInt((id || '').replace(/\D/g, ''), 10);
+  return 'A' + String(num).padStart(5, '0');
+}
+
 async function nextId() {
   const cards = await loadCards();
   const nums  = cards.map(c => parseInt(c.id.replace(/\D/g, ''), 10)).filter(n => !isNaN(n));
@@ -293,6 +298,7 @@ function cardTileHTML(c) {
     </div>
     <div class="card-tile-info">
       <div class="card-tile-name">${c.name}</div>
+        <div style="font-size:10px;color:var(--muted)">${displayId(c.id)}</div>
       <div class="card-tile-badges">
         <span class="badge badge-${c.card_type}">${c.card_type}</span>
         <span class="badge badge-${c.rarity}">${c.rarity}</span>
@@ -317,7 +323,7 @@ async function renderGrid() {
   const attack = filterAttack.value !== '' ? parseInt(filterAttack.value) : null;
   const health = filterHealth.value !== '' ? parseInt(filterHealth.value) : null;
 
-  if (q)      cards = cards.filter(c => c.name.toLowerCase().includes(q) || c.id.toLowerCase().includes(q));
+  if (q)      cards = cards.filter(c => c.name.toLowerCase().includes(q) || c.id.toLowerCase().includes(q) || displayId(c.id).toLowerCase().includes(q));
   if (kw)     cards = cards.filter(c => (c.keywords || '').toUpperCase().includes(kw));
   if (typ)    cards = cards.filter(c => c.card_type === typ);
   if (cls)    cards = cards.filter(c => c.card_class === cls);
