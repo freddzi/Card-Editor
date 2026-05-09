@@ -10,7 +10,7 @@ function imgUrl(record, field, index = 0, bust = false, thumb = '') {
   const files = Array.isArray(val) ? val : [val];
   const filename = files[index];
   if (!filename) return null;
-  const col = field === 'image' ? 'skills' : 'cards';
+  const col = record.collectionId || record.collectionName || (field === 'image' ? 'skills' : 'cards');
   let url = `${PB_URL}/api/files/${col}/${record.id}/${encodeURIComponent(filename)}`;
   const params = [];
   if (thumb) params.push(`thumb=${thumb}`);
