@@ -18,7 +18,7 @@ function imgUrl(record, field, index = 0, bust = false) {
 // ── Load cards ────────────────────────────────────────────────────────────────
 async function loadCards() {
   try {
-    return await pb.collection('cards').getFullList({ sort: 'id' });
+    return await pb.collection('cards').getFullList({ sort: 'id', requestKey: null });
   } catch (err) {
     console.error(err);
     return [];
@@ -818,7 +818,7 @@ async function openKwDropdown() {
   kwAddBtn.textContent = '× Stäng';
   kwAddBtn.classList.add('active');
   kwDropdown.innerHTML = '<span class="kw-dropdown-empty">Laddar…</span>';
-  const data = await pb.collection('game_docs').getFullList({ sort: 'title', filter: `category = "keyword"` }).catch(() => []);
+  const data = await pb.collection('game_docs').getFullList({ sort: 'title', filter: `category = "keyword"`, requestKey: null }).catch(() => []);
   const titles = data.map(d => d.title);
   kwDropdown.innerHTML = '';
   if (!titles.length) {
@@ -1389,7 +1389,7 @@ async function loadDocs() {
   try {
     const opts = { sort: 'category,title' };
     if (activeCat) opts.filter = `category = "${activeCat}"`;
-    return await pb.collection('game_docs').getFullList(opts);
+    return await pb.collection('game_docs').getFullList({ ...opts, requestKey: null });
   } catch (err) {
     console.error(err);
     return [];
@@ -1733,7 +1733,7 @@ async function loadTemplates() {
   try {
     const opts = { sort: '-is_builtin' };
     if (activeTplType) opts.filter = `card_type = "${activeTplType}"`;
-    return await pb.collection('card_templates').getFullList(opts);
+    return await pb.collection('card_templates').getFullList({ ...opts, requestKey: null });
   } catch (err) {
     console.error(err);
     return [];
@@ -2450,7 +2450,7 @@ document.getElementById('btn-skill-reset').addEventListener('click', resetSkillF
 
 async function loadSkills() {
   try {
-    return await pb.collection('skills').getFullList();
+    return await pb.collection('skills').getFullList({ requestKey: null });
   } catch (err) {
     console.error(err);
     return [];
