@@ -1,0 +1,16 @@
+id,created_at,image_path,description,name,text
+6,2026-04-26 08:59:43.296613+00,skills/skill_1777193982749.png,,Forked Lighning,
+7,2026-04-26 10:14:52.637778+00,skills/skill_1777198491720.png,Spawna en 1-1 skeleton warrior,Grave Encounter,Spawna en 1-1 skeleton warrior
+8,2026-04-26 13:16:03.886703+00,skills/skill_1777209363098.png,,Ps,
+9,2026-04-26 17:32:41.818457+00,skills/skill_1777224761200.png,deal 1 damage to any target,Arcane Shot,deal 1 damage to any target
+10,2026-04-29 10:27:21.269507+00,skills/skill_1777458440051.png,"Deal 1-2 frost damage to a random target, they become frozen for 2 turns",Glacier Razor,"Deal 1-2 frost damage to a random target, they become frozen for 2 turns"
+11,2026-04-29 10:50:36.659633+00,skills/skill_1777459836013.png,Deal 1 toxic damage to 1 random minion,Frog Rain,Deal 1 toxic damage to 1 random minion
+12,2026-04-29 10:51:53.324163+00,skills/skill_1777459912503.png,Deal 2 damage to a random minion,Test strike,Deal 2 damage to a random minion
+13,2026-04-29 11:01:18.772626+00,skills/skill_1777460477703.png,"Lock a minion for 1 turn,",Bone Cage,"Lock a minion for 1 turn,"
+14,2026-04-29 15:35:01.054092+00,skills/skill_1777476899851.png,"Lock a minion for 1 turn,",Necro Slash,"Lock a minion for 1 turn,"
+15,2026-04-29 18:07:04.662612+00,skills/skill_1777486023492.png,"Look at the top card of your deck, put it on bottom of deck if you want",Forest Vision,"Look at the top card of your deck, put it on bottom of deck if you want"
+16,2026-04-29 18:07:48.814374+00,skills/skill_1777486068096.png,Deal 1 damage to a minion and stun it,Hammer of Agdrazzan,Deal 1 damage to a minion and stun it
+17,2026-04-30 07:52:41.874198+00,skills/skill_1777535560307.png,Deal 2 damage to any minion and burn damage ( half The first Damage next turn,Drakes Blast,Deal 2 damage to any minion and burn damage ( half The first Damage next turn
+18,2026-04-30 08:13:03.309051+00,skills/skill_1777536782324.png,Passive: När försa enemyn anfaller så grabbas den i till din nästa tur och tar 2 skada,Crocen Hug,Passive: När försa enemyn anfaller så grabbas den i till din nästa tur och tar 2 skada
+19,2026-05-01 18:42:19.241453+00,skills/skill_1777660938062.png,Charges 5. Gain 1 mana,Mana Potion,Charges 5. Gain 1 mana
+20,2026-05-04 13:36:45.941193+00,skills/skill_1777901804787.png,Spawn a 0-1 Bubble minion with +7 attack this turn and can only attack minions with Dash and consume,Out of Order,Spawn a 0-1 Bubble minion with +7 attack this turn and can only attack minions with Dash and consume

@@ -1,0 +1,187 @@
+id,name,mana,card_class,card_type,description,artwork_path,rarity,keywords,draft_tag,created_at,inlagd
+A00004,Khala Ogre,3,Wasteland,minion,,"A00004_v1.png, A00004_v2_1777638428920.png",Basic,PARRY,,2026-04-18 17:47:34.306014+00,false
+A00005,Crysus Lifebringer,4,Dark,structure,"If a minion you own with attack damage 2 or more dies, put it in backline with 1 attack instead.","A00005_v1.png, A00005_v2.png",Superior,,,2026-04-18 17:55:03.068824+00,false
+A00006,Magma illusion,3,Wasteland,minion,,"A00006_v1.png, A00006_v2_1777638446865.png",Basic,,,2026-04-18 17:58:04.472397+00,false
+A00007,Lost pages,1,Dark,spell,Add a random spell to your hand from your deck,A00007.png,Basic,,,2026-04-18 17:59:11.941568+00,true
+A00008,Ruin of the abyss,5,Dark,structure,Draw a card when you play a spell,"A00008_v1.png, A00008_v2.png",Superior,,,2026-04-18 18:01:14.916007+00,false
+A00009,Last drop,5,Dark,structure,Enemy cant gain extra mana,"A00009_v1_1777637338485.png, A00009_v2_1777637339131.png",Basic,,,2026-04-18 18:04:13.890275+00,false
+A00010,Awaking the unknown,1,Dark,structure,"If 5 minion dies in one turn, destroy this structure and spawn a 5-5 demon","A00010_v1.png, A00010_v2_1777637363299.png",Basic,,,2026-04-18 18:10:23.779393+00,false
+A00011,Last hour,4,Dark,structure,"After the end of every turn two, enemy must kill a own minion","A00011_v1.png, A00011_v2_1777637377517.png",Basic,,,2026-04-18 18:11:58.985388+00,false
+A00012,Zombee Hive,4,Dark,structure,"If a minion attack your core, spawn a 1-1 airborne zombie bee with toxic damage that attacks that minion","A00012_v1.png, A00012_v2_1777637391508.png",Basic,,,2026-04-18 18:14:17.410404+00,false
+A00014,Magma Hound,3,Wasteland,minion,"If damaged, return it to hand","A00014_v1.png, A00014_v2_1777638455954.png",Basic,,,2026-04-18 18:18:44.839174+00,false
+A00015,Retreet Wagoon,4,Dark,structure,After a minion attacks put it back in backline after the attack,"A00015_v1.png, A00015_v2_1777637422343.png",Basic,IRON_SKIN,,2026-04-18 18:20:26.257163+00,false
+A00016,Goblin Hunter,2,Wasteland,minion,,"A00016_v1.png, A00016_v2_1777638466382.png",Basic,,,2026-04-18 19:14:37.234984+00,false
+A00017,Burning Fury,2,Wasteland,spell,"Give a minion + 3 fire damage, then dies after turn",A00017.png,Basic,,,2026-04-18 21:22:17.163706+00,false
+A00018,Late Knocking,5,Dark,spell,"All enemy minion that attacks next turn, i put back to hand",A00018.png,Basic,,,2026-04-18 21:26:57.365144+00,false
+A00019,Fire Imp,2,Wasteland,minion,,"A00019_v1.png, A00019_v2.png",Basic,FLYING,,2026-04-18 21:47:51.295955+00,false
+A00020,Freaking Racka,3,Wasteland,minion,Scare,"A00020_v1.png, A00020_v2.png",Basic,,,2026-04-19 07:12:30.034229+00,false
+A00021,Undead Wolf,3,Dark,minion,Infest,"A00021_v1.png, A00021_v2.png",Basic,,,2026-05-01 13:09:50.88688+00,false
+A00022,Rewalking Ox,3,Dark,minion,Dash,"A00022_v1.png, A00022_v2.png",Basic,,,2026-04-19 07:36:49.147413+00,true
+A00023,Port of Rakz,4,Dark,structure,När en minion dör vanish den och spawna en 1-1 skeleton warrior,"A00023_v1.png, A00023_v2.png",Basic,,,2026-04-19 07:41:45.546907+00,false
+A00024,Gatekeeper skeletal,4,Dark,minion,Double strike,"A00024_v1.png, A00024_v2.png",Basic,DOUBLE_STRIKE,,2026-04-19 07:45:59.629505+00,true
+A00025,Double Shadow,5,Dark,spell,"Clone a minion, set its stats to 2-2",A00025.png,Basic,,,2026-04-19 07:48:30.51227+00,false
+A00026,Collapse,5,Dark,spell,Destroy a structure,A00026.png,Basic,,,2026-04-19 07:50:48.005416+00,false
+A00027,Leaching Troll,3,Dark,minion,add a mana after attack,"A00027_v1_1777637999137.png, A00027_v2_1777637999718.png",Basic,PLUNDER,,2026-04-19 14:30:00.996886+00,true
+A00028,"Flesh explosive,",3,Dark,spell,"Give a minion a emblem when it dies , deal 2 damage to closest minion",A00028_1777638031692.png,Basic,,,2026-04-19 14:32:57.969613+00,false
+A00029,Weaknen whisperer,1,Dark,spell,Give a minion -1-1 aura,A00029_1777638040859.png,Basic,,,2026-04-19 14:35:43.482874+00,false
+A00030,Bone Dance,5,Dark,spell,Vanish all your skeletons give a minion + that many health max 5,A00030.png,Basic,,,2026-04-19 16:07:26.014846+00,false
+A00031,Magnetic Fieald,2,Dark,spell,ge en minion spell absorb,A00031.png,Basic,,,2026-04-19 16:09:41.905261+00,false
+A00032,Rangle Sacrifice,4,Dark,spell,"kill all skeletons, draw that many cards",A00032.png,Basic,,,2026-04-19 16:11:32.202542+00,false
+A00033,Flesh Fertiliser,1,Dark,spell,sacrife a minion gain 5 life,A00033.png,Basic,,,2026-04-19 16:13:40.808937+00,false
+A00034,Reinforcement from racka,3,Dark,spell,"spawn 3 burning skeletons warriors that dies after turn, each give 1 burning damage",A00034.png,Basic,,,2026-04-19 16:17:17.632951+00,false
+A00035,Lantern House,3,Dark,spell,"Vanish a minion and spawn a 0,4 structure in frontline, when it destroys turn back the minion",A00035.png,Basic,,,2026-04-19 16:19:33.518552+00,false
+A00036,Giant Leech,2,Dark,minion,After attack Vanish until next turn,"A00036_v1.png, A00036_v2.png",Basic,,,2026-04-19 16:24:01.50758+00,false
+A00037,Dune Wanderer,4,Dark,minion,Phantom damage 2,"A00037_v1.png, A00037_v2.png",Basic,,,2026-04-19 17:34:08.731195+00,false
+A00038,Ugraz the Unforgiven,5,Dark,minion,Discard a card deal 1 damage to any minion,"A00038_v1.png, A00038_v2.png",Basic,,,2026-04-19 17:40:40.510338+00,true
+A00039,Lost in storm,2,Dark,spell,"Target minion cant block next turn, can only be played on enemy attack turn",A00039.png,Basic,,,2026-04-19 17:43:05.939194+00,false
+A00040,Untold carneval,5,Dark,spell,"Skip 1 turn, your minion vanish to your next turn and you cant take damage until your next turn",A00040.png,Basic,,,2026-04-19 17:46:01.780888+00,false
+A00041,Shadow from the past,3,Dark,minion,Skada en minion och dom byter sida med varandra om Shadow from the past överlever,"A00041_v1.png, A00041_v2.png",Basic,,,2026-04-19 17:48:51.268125+00,false
+A00042,Refill Wingwearer,0,Dark,spell,Gain 2 mana this turn,A00042.png,Basic,,,2026-04-19 19:04:42.253156+00,false
+A00043,Dead escape,5,Dark,spell,"All minions that died this turn, comes back to backline",A00043.png,Basic,,,2026-04-19 19:06:19.108412+00,false
+A00044,Vackwood Nonster,4,Dark,minion,"Consume,","A00044_v1.png, A00044_v2.png",Basic,,,2026-04-19 19:08:39.365352+00,true
+A00045,Skeleton master,4,Dark,minion,"Have +1 in attack for each skeletons , max 3","A00045_v1.png, A00045_v2.png",Basic,,,2026-04-19 19:11:01.325429+00,false
+A00046,Bonerotten Walker,2,Dark,minion,Gain stealth while attacking,"A00046_v1.png, A00046_v2.png",Basic,,,2026-04-19 19:13:51.301351+00,true
+A00047,Voodoo Touch,4,Dark,spell,Transform a minion with 2 or less attack to a 0-1 Toad,A00047.png,Basic,,,2026-04-19 19:16:15.221134+00,false
+A00048,Vein Pain,5,Dark,spell,Give a minion -1-1 every turn,A00048.png,Basic,,,2026-04-19 19:17:55.996805+00,false
+A00049,Force Awaking,6,Dark,spell,If under 5 hp spawn a 5-7 Djinn that with Guardian,A00049.png,Basic,,,2026-04-19 19:23:35.156712+00,false
+A00050,Gone in the air,2,Dark,spell,Vanish an attacked minion and deal 2 damage to first attacker,A00050.png,Basic,,,2026-04-19 19:50:57.099023+00,false
+A00051,Involuntary Carry,3,Dark,spell,Next turn enemy plays a card take 1 dame for every card,A00051.png,Basic,,,2026-04-19 19:53:54.854537+00,false
+A00052,Bone Fence,3,Dark,spell,Trap a minion for 1 turn if dies in trap spawn a 2-1 spectre for you,A00052.png,Basic,,,2026-04-19 19:56:32.517705+00,false
+A00053,Grave Digger,4,Dark,spell,"Vanish 2 random minions from enemy grave, spawn 2 skeleton warrior 1-2",A00053.png,Basic,,,2026-04-19 19:59:01.564197+00,false
+A00054,Blood ritual,0,Dark,spell,"lose 3 life , lower mana cost by 1 this turn",A00054.png,Basic,,,2026-04-19 20:00:51.910522+00,false
+A00055,Skeleton Axeman,2,Dark,minion,,"A00055_v1.png, A00055_v2.png",Basic,,,2026-04-19 20:03:15.772623+00,true
+A00056,Skeleton Bonearrow,3,Dark,minion,,"A00056_v1.png, A00056_v2.png",Basic,RANGE,,2026-04-19 20:05:42.692491+00,true
+A00057,Unholy Summoning,5,Dark,spell,Vanish 5 minion from grave spawn a 3-5 Spirit with +1 attack to all minions,A00057.png,Supreme,,,2026-04-19 20:08:51.979175+00,false
+A00058,Brought Back,4,Dark,spell,When target minion dies spawn a 4-1 sprit with dash then vanish,A00058.png,Basic,,,2026-04-19 20:10:58.157085+00,false
+A00059,Loading Energy,4,Dark,spell,"Absorb all damage to a minion, and give him that in attack damage next turn",A00059.png,Basic,,,2026-04-19 20:13:28.130115+00,false
+A00060,Knocked out,1,Dark,spell,Give a damaged minion 1 hp and cant be attacked to your next turn,A00060.png,Basic,,,2026-04-20 07:24:39.326931+00,false
+A00061,Chain break,3,Dark,spell,Lock a minion for 2 turns then give it +3+3 and attack core,A00061.png,Basic,,,2026-04-20 07:33:04.637715+00,false
+A00062,Cloak,3,Dark,spell,Give a minion stealth for 1 turn,A00062.png,Basic,,,2026-04-20 07:34:53.137637+00,false
+A00063,Core trap,5,Dark,spell,"Your core take only 1 damage for each minion this turn, then deal 3 damage to all attackers",A00063.png,Basic,,,2026-04-20 07:37:37.004211+00,false
+A00064,Well Fought,1,Dark,spell,"If your minion take exactly damage equal to its health, its survive with 1 hp this turn",A00064.png,Basic,,,2026-04-20 07:40:04.39307+00,false
+A00065,Raging Cask,4,Dark,spell,Give a minion +3 attack but 1 hp,A00065.png,Basic,,,2026-04-20 07:42:29.263918+00,false
+A00066,Winged crak,3,Dark,minion,Add a mana after hitting core,"A00066_v1.png, A00066_v2.png",Basic,"FLYING, PLUNDER",,2026-04-20 07:53:20.839641+00,true
+A00067,Agahnama the Striker,3,Dark,minion,Dash,"A00067_v1.png, A00067_v2.png",Basic,,,2026-04-20 07:55:41.983912+00,true
+A00068,Losing Will,3,Dark,spell,Force a minion to attack you,A00068.png,Basic,,,2026-04-20 07:57:11.374876+00,false
+A00069,Explore the dorme,1,Dark,spell,Draw a extra card next turn,A00069.png,Basic,,,2026-04-20 07:58:44.044355+00,false
+A00070,Maghan The Outherforce,3,Dark,minion,Spells cost 1 less,"A00070_v1.png, A00070_v2.png",Basic,,,2026-04-20 08:02:07.57562+00,false
+A00071,From the crypt,4,Dark,structure,When draw a minion vanish it and spawn a undead 2-2 minion,"A00071_v1_1777638591625.png, A00071_v2_1777638591997.png",Basic,,,2026-04-20 08:04:48.353112+00,false
+A00072,Sculpin Bullhead,2,The Blue,minion,,"A00072_v1.png, A00072_v2.png",Basic,,,2026-04-20 09:01:27.913573+00,false
+A00073,Leaf Crawler,3,Forest,minion,,"A00073_v1.png, A00073_v2.png",Basic,TWINSTRIKE,,2026-04-20 09:08:00.570027+00,false
+A00074,Cornfield Emperor,2,Dark,structure,Airborne cant attack your core,"A00074_v1.png, A00074_v2.png",Basic,,,2026-04-21 08:38:31.87478+00,false
+A00075,Creeping Underground,3,Dark,structure,When the enemy play a minion that player also spawn a 0-1 caterpillar that dies after 2 turns,"A00075_v1.png, A00075_v2.png",Basic,,,2026-04-21 08:42:09.319608+00,false
+A00076,Into the dark,2,Dark,spell,Vanish a minion for 1 turn when it comes back its clean from all curses,A00076.png,Basic,,,2026-04-21 08:50:11.32438+00,false
+A00077,Eclipse Loop,3,Dark,spell,"All undead that dies this turn, shuffle back into deck",A00077.png,Basic,,,2026-04-21 08:52:41.605667+00,false
+A00078,Crow Delivery,0,Dark,spell,Draw a card,A00078.png,Basic,,,2026-04-21 08:56:30.483315+00,true
+A00079,Underground Clinic,1,Dark,structure,"Cant be reparied, For every turn add 1 defence, when reaching 5 defence, destroy it, and spawn a 5-5 zombie","A00079_v1.png, A00079_v2.png",Basic,,,2026-04-21 09:00:43.782208+00,false
+A00080,Uyslian Factory,3,Dark,structure,Enemy minions have -1 health,"A00080_v1.png, A00080_v2.png",Basic,,,2026-04-21 09:03:32.147486+00,false
+A00081,Heavy Swing Goblin,2,Wasteland,minion,If this is first attacker add 1 damage for 1 turn,"A00081_v1.png, A00081_v2.png",Basic,,,2026-04-22 08:14:49.034006+00,false
+A00082,Wallbreaker ogre,3,Wasteland,minion,"If hitting core, deal 2 damage to all enemy minions","A00082_v1.png, A00082_v2.png",Basic,,,2026-04-22 08:29:52.201388+00,false
+A00083,Razze Hitgoblin,1,Wasteland,minion,Gain 1 life after each kill,"A00083_v1.png, A00083_v2.png",Basic,,,2026-04-22 08:34:01.859666+00,false
+A00084,Skullcrusher Goblin,2,Wasteland,minion,Stun,"A00084_v1.png, A00084_v2.png",Basic,,,2026-04-22 08:36:31.390797+00,false
+A00085,Wrath of Raccaz,2,Wasteland,spell,Give all your goblins +1 attack,A00085.png,Basic,,,2026-04-22 08:38:24.681985+00,false
+A00086,Gargage Wardrobe,1,Wasteland,spell,Give a minion +1+2,A00086.png,Basic,,,2026-04-22 08:42:08.931467+00,false
+A00087,Unbelivible Flyer,2,Wasteland,minion,"Airborne, when dealing damage it dies","A00087_v1.png, A00087_v2.png",Basic,FLYING,,2026-04-22 08:44:51.13091+00,false
+A00088,Goblin Mortar,4,Wasteland,structure,,"A00088_v1.png, A00088_v2.png",Basic,,,2026-04-22 08:50:00.638841+00,false
+A00089,Redcap Collector,1,Wasteland,minion,If a Goblin Died this turn draw a card,"A00089_v1.png, A00089_v2.png",Basic,,,2026-04-22 08:55:05.722088+00,false
+A00090,Red army Cheif,3,Wasteland,minion,When a goblin dies add a mana next turn,"A00090_v1.png, A00090_v2.png",Basic,,,2026-04-22 08:57:07.366433+00,false
+A00091,Head Smacker,3,Wasteland,minion,"Dash, stun","A00091_v1.png, A00091_v2.png",Basic,,,2026-04-22 09:00:09.053369+00,false
+A00092,Hob Ranger,2,Wasteland,minion,Range,"A00092_v1.png, A00092_v2.png",Basic,,,2026-04-22 09:02:00.191004+00,false
+A00093,Magma Tsunami,5,Wasteland,spell,Give 3 damage to all attacking minions then 2 to yours and 1 to your core,A00093.png,Basic,,,2026-04-22 09:03:46.670909+00,false
+A00094,Goblin Minelaying,2,Wasteland,minion,Use ability spawn a 0-1 structure in front line that attacks first attacker and dealing 2 damage,"A00094_v1.png, A00094_v2.png",Basic,,,2026-04-22 09:07:10.954299+00,false
+A00095,Gob Sniper,3,Wasteland,minion,(Range+Guardian) Deal 1 damage to first attacker,"A00095_v1.png, A00095_v2.png",Basic,,,2026-04-22 09:09:52.61964+00,false
+A00096,Pyro Racka,2,Wasteland,minion,Range+Deal 1 damage to a random minion,"A00096_v1.png, A00096_v2.png",Basic,,,2026-04-22 09:31:47.574371+00,false
+A00097,Abyssal Tide Maw,5,The Blue,minion,When attack Fear all enemy minions to backline,"A00097_v1.png, A00097_v2.png",Legendary,,,2026-04-22 12:00:25.651897+00,false
+A00098,Meon,4,The Blue,minion,Cant Block,"A00098_v1.png, A00098_v2.png",Legendary,CANT_ATTACK,,2026-04-22 15:14:28.25218+00,false
+A00099,Tidecreast Hippocamp,3,The Blue,minion,Every time you draw a card add a mana,"A00099_v1.png, A00099_v2.png",Basic,,,2026-04-22 16:49:39.734262+00,false
+A00100,Sandveil Mirrorfluke,3,The Blue,minion,Can only be blocked if enemy pay 1,"A00100_v1.png, A00100_v2.png",Basic,,,2026-04-22 17:00:08.676863+00,false
+A00101,Voltserpent,3,The Blue,minion,All minions encounter Voltserpent  take 1 damage before battle,"A00101_v1.png, A00101_v2.png",Basic,,,2026-04-22 17:47:00.905188+00,false
+A00102,Gloomgrotto Tenta,3,The Blue,minion,"Catch/Grab If enemy survives damage, That enemy cant block this attack phase","A00102_v1.png, A00102_v2.png",Basic,,,2026-04-22 18:37:59.306042+00,false
+A00103,Beacon of the North,4,The Blue,structure,Detector ( osynliga fiender är synbara vid anfall,"A00103_v1.png, A00103_v2.png",Basic,,,2026-04-22 18:47:39.141253+00,false
+A00104,Coral Campus,4,The Blue,structure,Spells cost 2 less to play,"A00104_v1.png, A00104_v2.png",Basic,,,2026-04-23 06:44:27.793034+00,false
+A00105,Rally of the Flamborne,3,Wasteland,spell,Attacking minions gain + 2 this turn,A00105.png,Basic,,,2026-04-24 06:53:07.013651+00,false
+A00106,Blazecloud Swarm,2,Wasteland,spell,"Deal 1 damage to a minion, and cant block this turn",A00106.png,Basic,,,2026-04-24 06:55:02.243205+00,false
+A00107,Phoenix Trap,2,Wasteland,spell,Deal 3 damage to a random attacker,A00107.png,Basic,,,2026-04-24 06:58:27.23166+00,false
+A00108,Misspelled pages,4,Wasteland,structure,When the enemy plays a spell deal 1 damage to enemy,"A00108_v1_1777638868164.png, A00108_v2_1777638868660.png",Basic,,,2026-04-24 09:23:26.070725+00,false
+A00109,Junktower,3,Wasteland,structure,"Minions inyour backline reduce 1 damage taken, deal 1 damage to first enemy attacker","A00109_v1_1777638736387.png, A00109_v2_1777638736877.png",Basic,,,2026-04-24 10:05:11.470568+00,false
+A00110,Longyarn Goat,2,Wasteland,minion,Gain 1 extra mana if survives next turn,"A00110_v1.png, A00110_v2.png",Basic,,,2026-04-24 14:24:25.164446+00,false
+A00111,Spectral Tower,4,Dark,structure,First enemy minon who attacks get scared and deal no damage,"A00111_v1.png, A00111_v2.png",Basic,,,2026-04-25 11:55:16.26947+00,false
+A00112,Barnacle Watchtower,4,The Blue,structure,Discard a card and deal 2 damage to a minion,"A00112_v1.png, A00112_v2.png",Basic,,,2026-05-02 06:17:12.529767+00,false
+A00113,Source of Minerals,4,Forest,structure,All your minions heal 1 healt after each turn,"A00113_v1.png, A00113_v2.png",Basic,,,2026-04-26 09:12:25.765531+00,false
+A00114,Reef Water,3,The Blue,structure,Your minions heal 1 when you draw a card,"A00114_v1.png, A00114_v2.png",Basic,,,2026-04-26 09:34:37.825929+00,false
+A00115,Taran Silo,5,Wasteland,structure,"When a minion dies on your side add a counter, remove a counter to heal 1 to a minion","A00115_v1.png, A00115_v2.png",Basic,,,2026-04-26 09:42:10.372195+00,false
+A00116,Obey The Unknown,2,Dark,structure,After your turn giva a minion +Health equal that many minions died this turn for 1 turn,"A00116_v1.png, A00116_v2.png",Basic,,,2026-04-26 09:54:28.109764+00,false
+A00117,Dune Spider,3,Wasteland,minion,,"A00117_v1.png, A00117_v2.png",Basic,TOXIC,,2026-04-27 06:25:30.210956+00,false
+A00118,Rhakka's Explorer,3,Wasteland,minion,Draw a card after attacking and survives,"A00118_v1.png, A00118_v2.png",Basic,,,2026-04-27 06:28:32.547422+00,false
+A00119,Buzzwings,3,Wasteland,minion,,"A00119_v1.png, A00119_v2.png",Basic,FLYING,,2026-04-27 06:30:50.121408+00,false
+A00120,Sinking Sand,4,Wasteland,spell,All attacking minions are locked to next turn,A00120.png,Basic,,,2026-04-27 06:32:55.442834+00,false
+A00121,Dry Season,3,Wasteland,spell,Give all minions  -1-1 in stats,A00121.png,Basic,,,2026-04-27 06:35:33.321122+00,false
+A00122,Raging Bugs,3,Wasteland,minion,Ambush,"A00122_v1.png, A00122_v2.png",Basic,,,2026-04-27 06:40:32.432596+00,false
+A00123,Pyro Troll,4,Wasteland,minion,Burning damage,"A00123_v1.png, A00123_v2.png",Basic,,,2026-04-27 06:47:56.144762+00,false
+A00124,Sudden Strike,3,Wasteland,spell,Deal 2 damage to a random enemy minion,A00124.png,Basic,,,2026-04-27 06:53:14.114638+00,false
+A00125,Fire Boulder,3,Wasteland,spell,Deal 3 damage to a structure or core,A00125.png,Superior,,,2026-04-27 06:57:23.292505+00,false
+A00126,Wasting Hour,5,Wasteland,spell,Increase cooldown on skills for enemy 1 turn,A00126.png,Supreme,,,2026-04-27 06:59:29.065395+00,false
+A00127,Hunger,4,Wasteland,spell,Deal 3 damage to a minion and gain 3 life,A00127.png,Superior,,,2026-04-27 07:01:29.402984+00,false
+A00128,Losing Sight,4,Wasteland,spell,No damage can be dealt this turn by minions,A00128.png,Basic,,,2026-04-27 07:03:09.377629+00,false
+A00129,Slingshot Rhakka,1,Wasteland,minion,,"A00129_v1.png, A00129_v2.png",Basic,RANGE,,2026-04-27 07:05:38.678285+00,false
+A00130,Changing Winds,3,Wasteland,spell,Return a low health minion to deck 2 or less,A00130.png,Basic,,,2026-04-27 07:10:01.673086+00,false
+A00131,Lab Test,1,Wasteland,spell,Give a minion 2 health this turn and 1 health next turn and -1 second turn,A00131.png,Basic,,,2026-04-27 12:14:13.71659+00,false
+A00132,Divine Bandage,1,Neutral,spell,Heal a minion to full health,A00132.png,Basic,,,2026-04-27 12:19:55.343377+00,false
+A00133,Shadow whurm,4,Dark,minion,"Cant gain attack damage, give only 2 phantom damage","A00133_v1.png, A00133_v2.png",Basic,,,2026-04-28 06:36:08.969079+00,false
+A00134,Gadgaz Windmill,3,Wasteland,structure,Gain 2 extra mana each turn,"A00134_v1.png, A00134_v2.png",Basic,,,2026-05-01 12:03:26.584405+00,false
+A00135,Rusty Radar,3,Wasteland,structure,Detector,"A00135_v1.png, A00135_v2.png",Basic,,,2026-05-01 12:58:08.373509+00,false
+A00136,Cloud Cleaver,3,Dark,minion,Flying,"A00136_v1.png, A00136_v2.png",Basic,,,2026-05-01 13:05:56.303472+00,true
+A00137,Marsh Nipper,1,The Blue,minion,,"A00137_v1.png, A00137_v2.png",Basic,,,2026-05-01 13:25:41.820964+00,false
+A00138,Seamammuth,2,The Blue,minion,,"A00138_v1.png, A00138_v2.png",Basic,,,2026-05-01 13:31:41.752628+00,false
+A00139,Ghond Whurm,4,Wasteland,minion,Guardian,"A00139_v1.png, A00139_v2.png",Basic,,,2026-05-01 13:38:19.332239+00,false
+A00141,Lonley Assassin,1,Wasteland,minion,,"A00141_v1.png, A00141_v2.png",Basic,,,2026-05-01 16:40:05.678669+00,false
+A00142,Fermented Frog,1,Forest,minion,Toxic,"A00142_v1.png, A00142_v2.png",Basic,,,2026-05-01 16:53:50.679646+00,false
+A00143,Helheim Golem,4,Wasteland,minion,,"A00143_1777654950567.png, A00143_v2.png",Basic,,,2026-05-01 17:02:09.791686+00,false
+A00144,Brown Bear,3,Forest,minion,,"A00144_v1.png, A00144_v2.png",Basic,,,2026-05-01 17:06:12.303647+00,false
+A00145,Core Defender,1,Neutral,spell,"Your core take only 1 damage for each minion this turn, then deal 3 damage to all attackers",A00145.png,Legendary,,,2026-05-01 18:17:42.981455+00,false
+A00146,Nyxara Queen,3,Dark,minion,"When you cast a basic spell, make a copy in your hand that cost 2 more","A00146_v1.png, A00146_v2.png",Legendary,,,2026-05-01 18:56:09.998521+00,false
+A00147,Mirela Moonfel,3,The Blue,minion,After you cast a spell gain 2 life,"A00147_v1.png, A00147_v2.png",Basic,,,2026-05-01 19:03:34.693551+00,false
+A00148,Selene Archevist,2,The Blue,minion,Spells your play cost 1 less,"A00148_v1.png, A00148_v2.png",Legendary,,,2026-05-01 19:17:14.514052+00,false
+A00149,Skarruk Moltenclaw,4,Wasteland,minion,"Dread, 
+Draw a card when kill a minion.","A00149_v1.png, A00149_v2.png",Legendary,,,2026-05-02 05:57:38.500496+00,false
+A00150,Vulcan Rex,3,Wasteland,minion,,"A00150_v1.png, A00150_v2.png",Supreme,IRON_SKIN,,2026-05-02 06:06:02.481828+00,false
+A00151,Lunarlight Buck,2,Forest,minion,Add 1 mana when play a card,"A00151_v1.png, A00151_v2.png",Legendary,,,2026-05-02 06:09:55.803729+00,false
+A00152,Pyro Snake,1,Wasteland,minion,,"A00152_v1.png, A00152_v2.png",Basic,,,2026-05-02 06:24:36.189125+00,false
+A00153,Lundu Preymaster,3,Forest,minion,,"A00153_v1.png, A00153_v2.png",Superior,STEALTH,,2026-05-02 06:31:14.660469+00,false
+A00154,Brunto Rhino,3,Forest,minion,,"A00154_v1.png, A00154_v2.png",Superior,IRON_SKIN,,2026-05-02 06:59:57.511057+00,false
+A00155,Mythical Wisp,2,The Blue,minion,"Backliner
+Gain 1 extra mana on your turn","A00155_v1.png, A00155_v2.png",Superior,,,2026-05-02 07:12:26.610667+00,false
+A00156,Lucky Charm,1,Neutral,spell,Give a minion Lucky (first damage misses every turn),A00156.png,Superior,,,2026-05-02 07:26:45.689541+00,false
+A00157,Battle Lizard,1,Forest,minion,,"A00157_v1.png, A00157_v2.png",Basic,,,2026-05-02 11:09:57.242823+00,false
+A00158,Ash Stalker,2,Wasteland,minion,,"A00158_v1.png, A00158_v2.png",Basic,,,2026-05-02 11:13:59.048153+00,false
+A00159,Riverglass Adept,2,The Blue,minion,,"A00159_v1.png, A00159_v2.png",Basic,,,2026-05-02 11:18:40.040449+00,false
+A00160,Nighttide Interloper,3,The Blue,minion,,"A00160_v1.png, A00160_v2.png",Basic,,,2026-05-02 11:21:37.722907+00,false
+A00161,Emberhorn Charger,1,Wasteland,spell,Give a minion +2 attack,A00161.png,Basic,,,2026-05-02 11:24:25.683667+00,false
+A00162,Inkmaster Quill,4,The Blue,minion,"Cast a random Spell on first attacker
+( Schoolar 1 Fish spells)","A00162_v1.png, A00162_v2.png",Basic,,,2026-05-02 11:39:30.746193+00,false
+A00163,Rotmaw Collector,4,Dark,minion,"If Rotmaw Collector kill a minion vanish that minion, and add + 1 in health","A00163_v1.png, A00163_v2.png",Supreme,,,2026-05-02 11:44:11.117564+00,false
+A00164,Valess Nocturnal,3,Dark,minion,On enemys  turn Valess Nocturnal is a 1-1 Crow flying,"A00164_v1.png, A00164_v2.png",Superior,,,2026-05-02 12:08:50.09749+00,false
+A00165,Thornbark Forager,2,Forest,minion,Range,"A00165_v1.png, A00165_v2.png",Basic,,,2026-05-02 12:12:33.804497+00,false
+A00166,Great Tiler,3,Wasteland,structure,Reduce other structure maintanace by 1 and cost by 2,"A00166_v1.png, A00166_v2.png",Superior,,,2026-05-03 07:56:46.77861+00,false
+A00167,Rhakka's Curriculum,1,Wasteland,structure,After two turns choose and draw a card from from 2 random spells from your deck,"A00167_v1.png, A00167_v2.png",Superior,,,2026-05-03 08:08:40.99873+00,false
+A00168,Reprimanded pole,1,Wasteland,structure,Kill own minion add 1 mana,"A00168_v1.png, A00168_v2.png",Superior,,,2026-05-03 10:03:02.844058+00,false
+A00169,Orchish Outpost,3,Wasteland,structure,,"A00169_v1.png, A00169_v2.png",Supreme,"RANGE, GUARDIAN",,2026-05-03 10:09:17.724035+00,false
+A00170,Deepwake Whale,5,The Blue,minion,Draw a card when attack,"A00170_v1.png, A00170_v2.png",Basic,,,2026-05-03 11:18:55.324458+00,false
+A00171,Riverglide Serpent,3,The Blue,minion,,"A00171_v1.png, A00171_v2.png",Basic,,,2026-05-03 11:22:21.674461+00,false
+A00172,Seafolk,1,The Blue,minion,When die choose and draw a spell from 2 random from your deck,"A00172_v1.png, A00172_v2.png",Superior,,,2026-05-03 11:35:37.748352+00,false
+A00173,Reef Jellykin,2,The Blue,minion,Add 2 mana when die,"A00173_v1.png, A00173_v2.png",Basic,,,2026-05-03 11:45:38.885429+00,false
+A00174,Kelpcoil Eel,1,The Blue,minion,,"A00174_v1.png, A00174_v2.png",Basic,GUARDIAN,,2026-05-03 12:19:50.343982+00,false
+A00175,Nautilus Shell,3,The Blue,spell,Vanish a minion for 2 turns,A00175.png,Superior,,,2026-05-03 12:23:42.424982+00,false
+A00176,Mist Heron,1,The Blue,spell,Give a minion Airborne for 1 turn,A00176.png,Basic,,,2026-05-03 12:28:43.406552+00,false
+A00177,Tentangled,3,Forest,spell,Lock 2 random minion with lowest attack damage,A00177.png,Superior,,,2026-05-03 13:01:31.815199+00,false
+A00178,Maun's Mirage,4,Neutral,spell,Copy a minion with lesser attack then 3,A00178.png,Supreme,,,2026-05-03 13:05:48.818808+00,false
+A00179,Wasting Knowlege,2,The Blue,spell,For 1 turn a minion get unknowing,A00179.png,Supreme,,,2026-05-03 13:12:34.250472+00,false
+A00180,Mighty Flood,5,The Blue,spell,All minion with attack 5 or more is put back to library,A00180.png,Supreme,,,2026-05-03 20:06:59.730217+00,false
+A00181,Freshwater Lurker,2,The Blue,minion,,"A00181_v1.png, A00181_v2.png",Basic,,,2026-05-04 09:43:38.553215+00,false
+A00182,Dune Scorpion,1,Wasteland,minion,,"A00182_v1.png, A00182_v2.png",Basic,TOXIC,,2026-05-04 10:04:37.211292+00,false
+A00183,Horror Vine,3,Forest,minion,,"A00183_v1.png, A00183_v2.png",Supreme,"GUARDIAN, CONSUME",,2026-05-04 10:16:56.24682+00,false
+A00184,Tekklacoil,4,Wasteland,structure,On start of enemy turn deal 1 damage to a random enemy minion and your turn 1 damage to a random minion,"A00184_v1.png, A00184_v2.png",Basic,RANGE,,2026-05-04 10:34:10.299441+00,false
+A00185,Pinewood Catapult,3,Neutral,structure,,"A00185_v1.png, A00185_v2.png",Basic,RANGE,,2026-05-04 11:11:13.478848+00,false
+A00186,Rhakk Containers,3,Wasteland,spell,Kill 2 minions of your own to give a minion +2+2 in stats,A00186.png,Superior,,,2026-05-04 13:53:55.553403+00,false
+A00187,Flesh Seeker,2,Forest,minion,,"A00187_v1.png, A00187_v2.png",Superior,STEALTH,,2026-05-07 12:30:11.163511+00,false
+A00188,Goblin Warrior,1,Wasteland,minion,,"A00188_v1.png, A00188_v2.png",Basic,,,2026-05-07 12:42:16.119349+00,false

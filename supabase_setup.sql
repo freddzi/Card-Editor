@@ -25,7 +25,8 @@ CREATE TABLE minion_cards (
     ability_target_mode      TEXT    NOT NULL DEFAULT '',
     ability_targeting_mode   TEXT    NOT NULL DEFAULT 'explicit',
     ability_value            INTEGER NOT NULL DEFAULT 0,
-    ability_arg              TEXT    NOT NULL DEFAULT ''
+    ability_arg              TEXT    NOT NULL DEFAULT '',
+    target_filter            TEXT    NOT NULL DEFAULT ''
 );
 
 CREATE TABLE spell_cards (
@@ -37,7 +38,8 @@ CREATE TABLE spell_cards (
     school           TEXT    NOT NULL DEFAULT '',
     effect_arg       TEXT    NOT NULL DEFAULT '',
     repeat_count     INTEGER NOT NULL DEFAULT 1,
-    repeat_mode      TEXT    NOT NULL DEFAULT 'same_target'
+    repeat_mode      TEXT    NOT NULL DEFAULT 'same_target',
+    target_filter    TEXT    NOT NULL DEFAULT ''
 );
 
 CREATE TABLE structure_cards (
@@ -55,7 +57,8 @@ CREATE TABLE structure_cards (
     repair_value             INTEGER NOT NULL DEFAULT 0,
     trigger_id               TEXT    NOT NULL DEFAULT '',
     trigger_value            INTEGER NOT NULL DEFAULT 0,
-    trigger_target_mode      TEXT    NOT NULL DEFAULT 'enemy_hero'
+    trigger_target_mode      TEXT    NOT NULL DEFAULT 'enemy_hero',
+    target_filter            TEXT    NOT NULL DEFAULT ''
 );
 
 CREATE TABLE card_templates (
@@ -93,8 +96,11 @@ CREATE TABLE game_docs (
     created_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Migration (kör om tabellen redan finns):
--- ALTER TABLE game_docs ADD COLUMN IF NOT EXISTS in_godot BOOLEAN NOT NULL DEFAULT false;
+-- Migration (kör om tabellerna redan finns):
+-- ALTER TABLE game_docs       ADD COLUMN IF NOT EXISTS in_godot       BOOLEAN NOT NULL DEFAULT false;
+-- ALTER TABLE minion_cards    ADD COLUMN IF NOT EXISTS target_filter  TEXT    NOT NULL DEFAULT '';
+-- ALTER TABLE spell_cards     ADD COLUMN IF NOT EXISTS target_filter  TEXT    NOT NULL DEFAULT '';
+-- ALTER TABLE structure_cards ADD COLUMN IF NOT EXISTS target_filter  TEXT    NOT NULL DEFAULT '';
 
 ALTER TABLE game_docs ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "public_all" ON game_docs FOR ALL USING (true) WITH CHECK (true);

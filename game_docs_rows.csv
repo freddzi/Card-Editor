@@ -1,0 +1,354 @@
+id,category,title,body,tags,created_at,updated_at,in_godot
+1,keyword,FLYING,"Minionen kan bara blockas av andra minions med FLYING eller REACH.
+Flyande minions kan attackera fritt förbi marktrupper.","combat,movement",2026-04-18 19:01:01.802003+00,2026-04-18 19:01:01.802003+00,true
+2,keyword,RAPID,"Minionen går direkt till FRONT_LINE när den spelas, utan att behöva vänta en tur.
+Normalt startar minions i BACK_LINE och kan inte attackera förrän nästa tur.","combat,tempo",2026-04-18 19:01:01.802003+00,2026-04-18 19:01:01.802003+00,true
+3,keyword,REACH,"Minionen kan blockera FLYING-minions trots att den inte flyger själv.
+Bra defensivt verktyg mot flygande hot.","combat,defense",2026-04-18 19:01:01.802003+00,2026-04-18 19:01:01.802003+00,true
+4,keyword,RANGE,"Minionen kan attackera utan att ta motskada vid direkt attack.
+Fienden svarar inte med skada. om en flying anfaller kan du block med range utan att ta skada om flying ej dör går skadan till det mål den anföll mot","combat,offense",2026-04-18 19:01:01.802003+00,2026-05-02 17:10:03.58+00,true
+5,keyword,FIRST_STRIKE,"Minionen delar ut sin skada innan motståndaren i strid.
+Om motståndaren dör av first strike-skadan svarar den aldrig.",combat,2026-04-18 19:01:01.802003+00,2026-04-18 19:01:01.802003+00,true
+6,keyword,DOUBLE_STRIKE,"Minionen attackerar två gånger per strid — först med first strike, sedan igen i normal stridsupplösning.","combat,offense",2026-04-18 19:01:01.802003+00,2026-04-18 19:01:01.802003+00,true
+7,keyword,TWINSTRIKE,Minionen slår två separata måltavlor i en och samma attack.,"combat,offense",2026-04-18 19:01:01.802003+00,2026-04-18 19:01:01.802003+00,true
+8,keyword,CANT_ATTACK,Minionen kan inte deklarera attacker. Kan fortfarande blockera och använda aktiverade förmågor.,"combat,restriction",2026-04-18 19:01:01.802003+00,2026-04-18 19:01:01.802003+00,false
+9,keyword,PARRY,Minionen reducerar inkommande skada med sitt PARRY-värde. Ex: PARRY_2 reducerar all inkommande skada med 2.,"defense,combat",2026-04-18 19:01:01.802003+00,2026-04-18 19:01:01.802003+00,true
+10,keyword,IRON_SKIN,Minionen är immun mot skada under 1 (eller definierat värde). Svår att ta bort med pytteskador.,defense,2026-04-18 19:01:01.802003+00,2026-04-18 19:01:01.802003+00,true
+11,keyword,TOXIC,"Varje poäng skada den här minionen delar ut dödar målet direkt, oavsett hur mycket HP målet har kvar.","combat,removal",2026-04-18 19:01:01.802003+00,2026-04-18 19:01:01.802003+00,true
+12,keyword,VAMPIRISM,Minionen återfår HP lika med den skada den delar ut. Lifesteal.,"combat,sustain",2026-04-18 19:01:01.802003+00,2026-04-18 19:01:01.802003+00,true
+13,keyword,INSTANT,"Spellen med INSTANT kan spelas utanför din tur, som en reaktion.","timing,spell",2026-04-18 19:01:01.802003+00,2026-04-18 19:01:01.802003+00,true
+14,effect,deal_damage,"Delar ut X skada till ett mål.
+Används av spells och minion-abilities.
+effect_value = mängd skada.
+target_mode avgör vad som kan träffas.",damage,2026-04-18 19:01:01.802003+00,2026-04-18 19:01:01.802003+00,true
+15,effect,draw_card,"Drar X kort från ditt deck.
+effect_value = antal kort att dra.",card-draw,2026-04-18 19:01:01.802003+00,2026-04-18 19:01:01.802003+00,true
+16,effect,heal,"Återställer X HP till ett mål.
+effect_value = mängd HP.
+target_mode avgör vad som kan läkas.",healing,2026-04-18 19:01:01.802003+00,2026-04-18 19:01:01.802003+00,true
+17,effect,chain,"Upprepar effekten på ett nytt slumpmässigt mål efter att den första effekten löst sig.
+Antal kedjor styrs av repeat_count.","aoe,bounce",2026-04-18 19:01:01.802003+00,2026-04-18 19:01:01.802003+00,true
+18,ability,activate,"Triggern ""activate"" innebär att spelaren manuellt aktiverar förmågan under sin tur mot en kostnad (ability_cost mana).
+Minionen måste vara i FRONT_LINE eller BACK_LINE — den kan inte ha attackerat samma tur.","trigger,active",2026-04-18 19:01:01.802003+00,2026-04-18 19:01:01.802003+00,false
+19,ability,on_play,"Förmågan triggar automatiskt när minionen spelas från handen.
+Ingen extra kostnad — effekten sker direkt.","trigger,passive",2026-04-18 19:01:01.802003+00,2026-04-18 19:01:01.802003+00,false
+20,ability,on_death,"Förmågan triggar när minionen dör.
+Deathrattle-effekter löser sig efter striden.","trigger,deathrattle",2026-04-18 19:01:01.802003+00,2026-04-18 19:01:01.802003+00,false
+21,ability,on_attack,Förmågan triggar varje gång minionen attackerar.,"trigger,passive",2026-04-18 19:01:01.802003+00,2026-04-18 19:01:01.802003+00,false
+22,rule,Zoner — FRONT_LINE & BACK_LINE,"Alla minions börjar i BACK_LINE när de spelas (om de inte har RAPID).
+Från FRONT_LINE kan de attackera.
+Flytt sker automatiskt i slutet av ägarens tur.","zones,movement",2026-04-18 19:01:01.802003+00,2026-04-18 19:01:01.802003+00,false
+23,rule,Faser per tur,"DRAW → MAIN → ATTACK → BLOCK → CLEANUP → END_TURN
+
+DRAW: Spelaren drar ett kort.
+MAIN: Spela kort, aktivera förmågor.
+ATTACK: Deklarera attacker med FRONT_LINE-minions.
+BLOCK: Motspelaren tilldelar blockers.
+CLEANUP: Strid löses, döda minions tas bort.
+END_TURN: Korteffekter med ""efter tur""-villkor utlöses.","phases,turn",2026-04-18 19:01:01.802003+00,2026-04-18 19:01:01.802003+00,false
+24,rule,Mana,"Varje spelare börjar med 1 mana och ökar med 1 per tur upp till max (10 eller konfigurerat).
+Oanvänd mana försvinner i slutet av turen — den rullas inte över.","resources,mana",2026-04-18 19:01:01.802003+00,2026-04-18 19:01:01.802003+00,false
+25,rule,Kortens UID-system,"Varje kortinstans får ett unikt runtime-ID (uid).
+Spelare 0 börjar på uid 1, spelare 1 börjar på 1 000 000.
+Detta förhindrar kollisioner mellan spelares kort.","technical,uid",2026-04-18 19:01:01.802003+00,2026-04-18 19:01:01.802003+00,false
+26,rule,Blockfönster,"Efter att attackeraren deklarerats öppnar servern ett blockfönster.
+Motspelaren har BLOCK_TIME sekunder på sig att sätta blockers.
+Om ingen blockar går attacken igenom direkt mot hjälten.","combat,timing",2026-04-18 19:01:01.802003+00,2026-04-18 19:01:01.802003+00,false
+27,suggestion,DRAFT,"Poängbaserad draft
+
+förslag:
+     |
+     |
+     |
+     V
+
+Spelare får 150 poäng vid start varje kort har ett poängvärde baserat på sällsynthet
+legendary = 10
+mellan = 3
+basic = 1
+
+kortlekens totala antal kort är EJ ett absolut nummer.
+4 kort slumpas vid varje sekvens varav ett är alltid neutralt, resten av korten pekar åt det håll du tidigare valt.",DRAFT,2026-04-18 19:01:01.802003+00,2026-04-19 07:56:16.323+00,false
+29,keyword,Dash,attackerar från backline och hamnar i front,,2026-04-19 07:06:54.039474+00,2026-04-19 07:06:53.881+00,true
+30,keyword,Stealth/Lurking,"Kan ej bli attackerad elelr target, bara får skada av typ effekt, får man skada så blir man avslöjad",,2026-04-19 07:07:58.251914+00,2026-04-19 07:07:58.077+00,false
+31,keyword,Pierce,Överbliven skada går igenom till core,,2026-04-19 07:08:53.741032+00,2026-04-19 07:08:53.64+00,false
+33,keyword,Phantom damage,om du blockar en som har Phantom damage 2 så får du 2 skade först,,2026-04-19 17:30:41.425963+00,2026-04-19 17:30:41.314+00,false
+34,keyword,Consume,Äter upp en minion men den kommer tillbaka om consumer dör,,2026-04-19 19:02:53.753084+00,2026-04-19 19:02:53.655+00,false
+35,keyword,Guardian,Autoblock attackers,,2026-04-19 19:41:24.797599+00,2026-04-19 19:41:24.458+00,false
+36,suggestion,SKILLS,"COST: Pay 2 mana                                                                                                                                                           
+  EFFECT: Deal 1 damage to all minions
+                                                                                                                                                                             
+  COST: Pay 3 mana                                                                                                                                                           
+  EFFECT: Destroy the minion with the lowest attack
+                                                                                                                                                                             
+  COST: Pay 2 mana                                          
+  EFFECT: Give a friendly minion +2/+0 until end of turn                                                                                                                     
+                                                                                                                                                                             
+  COST: Pay 1 mana
+  EFFECT: The next card you play this turn costs 1 less                                                                                                                      
+                                                                                                                                                                             
+  COST: Pay 4 mana
+  EFFECT: Return a minion to its owner's hand                                                                                                                                
+                                                            
+  COST: Pay 2 mana
+  EFFECT: Draw a card, then discard a card
+                                                                                                                                                                             
+  COST: Pay 3 mana
+  EFFECT: Copy the top card of your deck into your hand                                                                                                                      
+                                                                                                                                                                             
+  COST: Pay 1 mana
+  EFFECT: Give a friendly minion +0/+2                                                                                                                                       
+                                                            
+  COST: Pay 5 mana
+  EFFECT: Destroy all minions with 2 or less attack
+                                                                                                                                                                             
+  COST: Pay 2 mana
+  EFFECT: Silence a minion (remove all keywords)                                                                                                                             
+                                                                                                                                                                             
+  Livskostnader:
+                                                                                                                                                                             
+  COST: Pay 4 life                                          
+  EFFECT: Draw 2 cards                                                                                                                                                       
+   
+  COST: Pay 2 life                                                                                                                                                           
+  EFFECT: Deal 3 damage to any target                       
+                                                                                                                                                                             
+  COST: Pay 5 life
+  EFFECT: Destroy any minion                                                                                                                                                 
+                                                            
+  COST: Pay 1 life
+  EFFECT: Give your hero +2 attack this turn
+                                                                                                                                                                             
+  COST: Pay 3 life
+  EFFECT: Summon a 2/2 token with RAPID                                                                                                                                      
+                                                                                                                                                                             
+  Kombinerade kostnader:
+                                                                                                                                                                             
+  COST: Pay 1 mana and 2 life                               
+  EFFECT: Deal 4 damage to a minion                                                                                                                                          
+   
+  COST: Pay 2 mana and discard a card                                                                                                                                        
+  EFFECT: Deal 3 damage to all enemy minions                
+                                                                                                                                                                             
+  COST: Pay 3 life and discard a card                       
+  EFFECT: Summon a copy of a friendly minion
+                                                                                                                                                                             
+  Mer situationella:                                                                                                                                                         
+                                                                                                                                                                             
+  COST: Pay 2 mana                                                                                                                                                           
+  EFFECT: If you have more life than your opponent, draw 2 cards. Otherwise draw 1.
+                                                                                                                                                                             
+  COST: Pay 3 mana
+  EFFECT: Deal damage equal to the number of cards in your hand                                                                                                              
+                                                                                                                                                                             
+  COST: Pay 1 mana
+  EFFECT: Each player draws a card                                                                                                                                           
+                                                            
+  COST: Pay 2 mana                                                                                                                                                           
+  EFFECT: Swap the attack and defense of a minion until end of turn
+                                                                                                                                                                             
+  COST: Pay 4 mana                                                                                                                                                           
+  EFFECT: Look at your opponent's hand",,2026-04-21 09:44:28.224543+00,2026-04-21 09:44:27.713+00,false
+37,keyword,Catch/Grab,"Minions som möter catch/grab, blir fasthållen attackfasen ut, och kan ej blocka",,2026-04-22 18:38:58.072534+00,2026-04-22 18:38:57.971+00,false
+38,suggestion,MÅSTE FIXAS,"*1 Lägg till en egen kollum Skills med bilder
+
+*2 Ändra Rarity till Basic, Superior , Supreem , Legendary
+
+*3....",,2026-04-23 07:39:39.614363+00,2026-04-23 07:39:39.505+00,false
+40,keyword,STUN,"Minionen är bedövad och kan varken attackera eller blockera under sin bedövade tur.
+STUN löser sig i slutet av ägarens tur.","combat,restriction",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+41,keyword,SCARE,"Minionen skrämmer fiender vid kontakt — det skrämda målet tvingas till BACK_LINE och kan inte attackera den turen.
+SCARE triggar vanligen on_attack eller passivt (first_attacker).","combat,control",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,true
+42,keyword,GUARDIAN,"Minionen kan blockera attacker riktade mot din core även från BACK_LINE.
+Fiender måste slå igenom GUARDIAN-minionen för att nå din core.","defense,combat",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+43,keyword,STEALTH,"Minionen kan inte väljas som mål av motspelaren tills den attackerar eller påverkar en fiende.
+STEALTH bryts när minionen delar ut skada.","evasion,offense",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+44,keyword,CANT_BLOCK,Minionen kan inte användas som blocker. Kan fortfarande attackera och använda aktiverade förmågor.,"combat,restriction",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+45,keyword,CONSUME,"När minionen anfaller eller blocker en fiendeminion äter den upp den och lagrar, vid död så spottas samma minon ut på motståndarens backline MAX 1 minion den minion som ärs måste ha mindre anfallsskada en counsumern","combat,sustain",2026-04-25 18:04:46.775092+00,2026-05-04 10:18:00.375+00,true
+46,effect,aoe_damage_wave,"Delar ut skada till flera grupper i en våg.
+effect_value = skada till primär grupp (ex attackerare).
+effect_arg kan ange extra grupper: friendly_value och core_value.
+Ex: Magma Tsunami — 3 till alla attacker, 2 till egna, 1 till core.","damage,aoe",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+47,effect,damage_and_cant_block,"Delar ut X skada till ett mål och förhindrar det från att blockera den aktuella turen.
+effect_value = skada. target_mode = any_minion.","damage,control",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+48,effect,on_death_splash,"Fäster ett emblem på en minion. När den minionen dör delar effekten ut X skada till närmaste mål.
+effect_value = splash-skada. effect_arg = splash:closest.","damage,deathrattle",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+49,effect,draw_random_spell,"Lägger till ett slumpmässigt spell från ditt deck i handen utan att dra det normalt.
+effect_value = antal spells att lägga till.","card-draw,spell",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+50,effect,draw_next_turn,"Spelaren drar X extra kort i sin nästa DRAW-fas.
+effect_value = antal extra kort.",card-draw,2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+51,effect,gain_mana,"Ger spelaren X extra mana direkt.
+effect_arg kan begränsa till ""this_turn"" eller ""next_turn"".","mana,resource",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+52,effect,pay_life_reduce_cost,"Spelaren förlorar X HP och alla kort kostar 1 mana mindre resten av turen.
+effect_value = HP-kostnad. effect_arg = cost_reduction:1,this_turn.","mana,life",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+53,effect,sacrifice_minion_heal,"Offrar en vänlig minion och ger spelaren X HP.
+effect_value = HP att återfå. target_mode = friendly_minion.","healing,sacrifice",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+54,effect,buff_stats,"Ger en minion +X attack och +Y HP permanent.
+effect_value = attack-buff. effect_arg = +A/+H-format.",buff,2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+55,effect,buff_attack_temporary,"Ger en minion +X attack som varar en begränsad tid.
+effect_arg kan ange ""dies_after_turn"" (minionen dör efter turen) eller ""fire"" (skadeflagg).","buff,temporary",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+56,effect,buff_attack_reduce_hp,"Ger en minion +X attack men sätter dess HP till 1.
+effect_value = attack-buff. effect_arg = set_hp:1.","buff,risk",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+57,effect,buff_attackers,"Ger alla egna attackerande minions +X attack denna tur.
+effect_value = attack-buff. target_mode = all_friendly_attackers.","buff,combat",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+58,effect,buff_tribe_attack,"Ger alla egna minions av en viss subtyp +X attack.
+effect_value = attack-buff. effect_arg = subtype:<typ>.","buff,tribal",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+59,effect,debuff_stats,"Ger en minion -X attack och -Y HP som en aura (permanent tills kortet försvinner).
+effect_value = attack-debuff. effect_arg = -A/-H,aura.",debuff,2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+60,effect,recurring_debuff,"Ger en minion -X/-X i attack och HP i slutet av varje tur.
+effect_value = mängd per tur. effect_arg = per_turn.","debuff,dot",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+61,effect,vanish_and_damage,"Tar bort en minion från fältet (den återkommer nästa tur) och delar ut X skada till ett annat mål.
+effect_value = skada. effect_arg anger skademålet.","vanish,damage",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+62,effect,vanish_cleanse,"Tar bort en vänlig minion från fältet tillfälligt. När den återvänder tas alla debuffar och curses bort.
+effect_value = antal turer borta.","vanish,cleanse",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+63,effect,vanish_to_lantern,"Tar bort en minion och spawnar en 0/4-struktur på FRONT_LINE i dess ställe.
+När strukturen förstörs återkommer minionen.
+target_mode = any_minion.","vanish,structure",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+64,effect,skip_turn_vanish,"Spelaren hoppar över sin tur. Alla egna minions vanishar och återkommer nästa tur. Spelaren tar ingen skada under hoppad tur.
+effect_arg = immune_damage.","vanish,control",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+65,effect,bounce_attackers,"Skickar tillbaka alla fiendeattackerare till motståndarens hand.
+target_mode = all_enemy_attackers.","bounce,control",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+66,effect,spawn_tokens,"Spawnar X tokens med specificerade stats på fältet.
+effect_value = antal tokens. effect_arg = attack/hp/namn/flaggor.","spawn,tokens",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+67,effect,resurrect_dead_this_turn,"Alla minions som dog under denna tur återkommer till ägarens BACK_LINE.
+target_mode = self (påverkar alla egna döda den turen).","resurrect,necro",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+68,effect,banish_grave_spawn,"Tar bort X slumpmässiga minions från fiendens gravhög permanent och spawnar ett Skeleton per borttagen minion.
+effect_value = antal. effect_arg = spawn:<stats/typ>.","grave,spawn",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+69,effect,mass_reanimate_as_spirit,"Tar bort X minions från den egna gravhögen och spawnar en kraftfull Spirit-minion. Ger dessutom +1 attack till alla egna minions.
+effect_value = antal från graven. effect_arg = spawn:<stats> och buff.","grave,spawn,buff",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+70,effect,on_death_spawn_spirit,"Fäster en deathrattle på en vänlig minion. När den dör spawnas en Spirit med angivna stats och RAPID.
+effect_arg = spawn:<stats/typ>/RAPID.","deathrattle,spawn",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+71,effect,sacrifice_tribe_buff_hp,"Offrar alla egna minions av en viss subtyp och ger en vänlig minion +HP lika med antal offrade (max X).
+effect_arg = subtype:<typ>,max:<X>.","sacrifice,buff,tribal",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+72,effect,sacrifice_tribe_draw,"Dödar alla egna minions av en viss subtyp och drar ett kort per dödad.
+effect_arg = subtype:<typ>.","sacrifice,card-draw,tribal",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+73,effect,shuffle_tribe_on_death,"Alla minions av en viss subtyp som dör denna tur blandas tillbaka i decket istället för att gå till graven.
+effect_arg = subtype:<typ>,this_turn.","grave,shuffle,tribal",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+74,effect,clone_minion,"Kopierar en minion och lägger kopian på ditt fält. Kopians stats sätts till angivet värde.
+effect_arg = set_stats:A/H.","copy,spawn",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+75,effect,destroy_structure,"Förstör omedelbart en vald struktur.
+target_mode = any_structure.","removal,structure",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+76,effect,transform_minion,"Förvandlar en minion med X eller lägre attack till en ny minion med angivna stats.
+effect_arg = max_attack:<X>,into:<A>/<H>/<Namn>.","transform,removal",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+77,effect,force_attack_hero,"Tvingar en fiendeминion att attackera din hero nästa attackfas istället för att välja mål fritt.
+target_mode = enemy_minion.","control,combat",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+78,effect,cant_block,"Förhindrar en minion från att blockera under sin nästa blockfas.
+effect_value = antal turer. target_mode = enemy_minion.","control,combat",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+79,effect,trap_minion,"Låser en minion i en fälla i X turer. Om minionen dör i fällan spawnas en Spectre för dig.
+effect_value = turer. effect_arg = on_death_spawn:<stats/typ>/friendly.","trap,control",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+80,effect,lock_then_release,"Låser en minion i X turer, sedan får den +3/+3 och tvingas attackera din core.
+effect_value = låsturer. effect_arg = buff:3/3,force_attack_core.","control,buff",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+81,effect,give_stealth,"Ger en vänlig minion STEALTH i X turer — kan inte väljas som mål av motspelaren.
+effect_value = antal turer.","stealth,evasion",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+82,effect,give_spell_absorb,"Ger en vänlig minion SPELL_ABSORB — nästa spell som riktas mot minionen absorberas och nekas.
+target_mode = friendly_minion.","protection,magic",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+83,effect,punish_card_play,"Nästa tur tar fienden X skada för varje kort de spelar.
+effect_value = skada per kort. effect_arg = per_card,next_turn.","control,damage",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+84,effect,conditional_spawn,"Spawnar en kraftfull minion om ett villkor är uppfyllt (ex spelaren är under X HP).
+effect_arg = condition:<typ>:<värde>,spawn:<A>/<H>/<Namn>/<keyword>.","spawn,conditional",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+85,effect,absorb_convert_to_attack,"Absorberar all inkommande skada till en vänlig minion under en tur och ger den lika mycket i attackbuff nästa tur.
+target_mode = friendly_minion.","defense,buff",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+86,effect,stasis_minion,"Sätter en skadad minion till 1 HP och gör den omöjlig att attackera tills ägarens nästa tur.
+effect_value = HP att sätta. effect_arg = untargetable.","protection,stasis",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+87,effect,survive_lethal,"Om en vänlig minion tar exakt dödlig skada (skada = nuvarande HP) överlever den med 1 HP den turen.
+effect_arg = condition:exact_lethal.","protection,combat",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+88,effect,core_trap,"Din core tar max 1 skada per attacker denna tur. Dessutom tar alla attackerande fiender X skada som svar.
+effect_value = svarsskada. effect_arg = max_core_damage:1,retaliate_all_attackers.","defense,damage",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+89,ability,on_damage,Förmågan triggar när minionen tar skada (oavsett källa).,"trigger,reactive",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+90,ability,on_kill,Förmågan triggar när minionen dödar en annan minion i strid.,"trigger,combat",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+91,ability,on_core_hit,Förmågan triggar när minionen träffar motståndarens core direkt.,"trigger,combat",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+92,ability,on_deal_damage,Förmågan triggar varje gång minionen delar ut skada (inkl. ability-skada).,"trigger,damage",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+93,ability,on_draw,Förmågan triggar när kortens ägare drar ett kort.,"trigger,card-draw",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+94,ability,on_tribe_death,"Förmågan triggar när en vänlig minion av en specifik subtyp dör.
+ability_arg = subtype:<typ>.","trigger,tribal",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+95,ability,on_survive_turn,Förmågan triggar om minionen överlever till slutet av ägarens tur (den var vid liv vid turstarten och levde kvar).,"trigger,endurance",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+96,ability,passive,"Förmågan är alltid aktiv och kräver ingen trigger.
+Gäller konstant så länge minionen/strukturen är på fältet.","trigger,passive",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+97,ability,return_to_hand,"Skickar minionen tillbaka till ägarens hand.
+Används vanligen med trigger on_damage eller on_attack.
+All buffar som applicerats på fältet försvinner.","bounce,defense",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+98,ability,vanish_after_attack,"Minionen försvinner från fältet efter sin attack och återkommer i BACK_LINE i nästa tur.
+ability_arg = duration:1_turn.","vanish,evasion",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+99,ability,phantom_damage,"Minionen delar ut X skada som ""phantom"" — skadan beräknas separat och kan penetrera visst försvar.
+ability_value = phantomskada.","damage,piercing",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+100,ability,swap_sides,"Om minionen överlever sin attack byter den och målet sida — de kontrolleras nu av respektive motståndare.
+ability_arg = condition:self_survives.","control,combat",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+101,ability,consume,"När minionen dödar en fiende äter den upp dem och absorberar stats.
+ability_arg styr vilka stats som tas (attack/health/both).","combat,growth",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+102,ability,tribe_buff_attack,"Passiv aura: minionen får +X attack per vänlig minion av viss subtyp på fältet.
+ability_arg = subtype:<typ>,max:<X>.","passive,buff,tribal",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+103,ability,give_stealth,"Ger minionen STEALTH under en angiven period (ex denna attack).
+ability_trigger = on_attack → aktiv under attackfasen.","stealth,evasion",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+104,ability,reduce_spell_cost,"Passiv aura: spells i ägarens hand kostar X mana mindre.
+ability_value = kostnadsreduktion.","passive,mana,spell",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+105,ability,gain_mana,"Ger spelaren X extra mana.
+Kan triggas av on_attack, on_core_hit, on_draw, on_tribe_death etc.
+ability_arg kan ange ""next_turn"" eller ""extra"".","mana,resource",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+106,ability,heal_on_kill,"Minionen återfår X HP varje gång den dödar en fiende i strid.
+ability_value = HP att återfå.","sustain,combat",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+107,ability,aoe_damage,"Delar ut X skada till alla mål i en grupp (ex all_enemy_minions).
+ability_trigger anger när effekten utlöses.
+ability_target_mode anger gruppen.","damage,aoe",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+108,ability,buff_attack_if_first,"Om minionen är den första att attackera denna tur får den +X attack under turen.
+ability_arg = condition:first_attacker,duration:1_turn.","buff,combat,conditional",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+109,ability,dies_after_damage,"Minionen dör omedelbart efter att den delar ut skada (oavsett om den träffas tillbaka).
+ability_trigger = on_deal_damage.","sacrifice,aggressive",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+110,ability,spawn_mine,"Spawnar en 0/1-struktur (mina) i FRONT_LINE. Minan attackerar den första angriparen och delar ut X skada.
+ability_value = skada. ability_arg = stats/typ/beteende.","spawn,trap,structure",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+111,ability,fear_to_backline,"Tvingar alla fiendeминions att dra sig tillbaka till BACK_LINE och förlora sin attackdeklaration.
+ability_trigger = on_attack. ability_target_mode = all_enemy_minions.","control,fear",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+112,ability,block_cost,"Motspelaren måste betala X mana för att blockera den här minionen.
+Om motspelaren inte kan eller vill betala kan minionen inte blockas.
+ability_value = manakostnad.","evasion,cost",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+113,ability,shock_aura,"Alla fiender som möter minionen i strid tar X skada innan slag löses.
+ability_value = preshock-skada.","damage,aura,combat",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+114,ability,grab,"Om minionen delar ut skada till ett mål som överlever kan det målet inte blockera under resten av attackfasen.
+ability_trigger = on_deal_damage. ability_arg = condition:target_survives.","control,combat",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+115,ability,resurrect_weakened,"När en vänlig minion med X eller fler attack dör återkommer den i BACK_LINE med 1 attack och 1 HP.
+trigger_value = min attack-krav. ability_arg = new_attack:1.","resurrect,structure",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+116,ability,deny_mana_gain,"Passiv: Fienden kan inte tjäna extra mana från korteffekter eller triggers.
+Påverkar inte det naturliga manasystemet (tur+1).","control,mana,structure",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+117,ability,self_destroy_spawn,"Strukturen förstör sig själv och spawnar en kraftfull enhet när ett räknarvillkor uppfylls (ex 5 döda på en tur).
+trigger_value = count-gräns. ability_arg = spawn:<stats/typ>,count_per_turn.","structure,spawn,conditional",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+118,ability,force_kill_own_minion,"Var N:e tur tvingas fienden döda en av sina egna minions.
+trigger_value = N (turfrekvens). ability_arg = target:enemy.","control,structure",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+119,ability,spawn_token,"Spawnar en token när en specifik trigger sker.
+ability_arg = attack/hp/namn/keywords för token.","spawn,structure,trigger",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+120,ability,move_to_backline,"En attackerande vänlig minion placeras i BACK_LINE direkt efter sin attack (istället för att stanna i FRONT_LINE).
+trigger = on_friendly_attack.","movement,structure",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+121,ability,vanish_and_spawn,"När en vänlig minion dör vanishar den (försvinner permanent) och en ny token spawnas i hennes ställe.
+ability_arg = spawn:<stats/typ>.","vanish,spawn,structure",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+122,ability,vanish_spawn_undead,"När ägaren drar en minion vanishar den kortet och spawnar ett Undead-kort med angivna stats istället.
+ability_arg = spawn:<stats/typ>.","vanish,spawn,structure",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+123,ability,block_flying_core_attack,Passiv: FLYING-minions kan inte attackera ägarens core. De kan fortfarande attackera minions.,"defense,structure",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+124,ability,grow_then_spawn,"Strukturen kan inte repareras. Varje tur läggs 1 armor till. När armor når max förstörs strukturen och spawnar en kraftfull minion.
+trigger_value = max armor. ability_arg = add_defense:1,spawn:<stats/typ>.","structure,passive,spawn",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+125,ability,aura_enemy_debuff,"Passiv aura: alla fiendeминions på fältet får -X i en stat (attack eller HP).
+ability_arg = stat:<stat>,value:<X>.","aura,debuff,structure",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+126,ability,reveal_card,"Varje gång fienden drar ett kort avslöjas det kortet för ägaren.
+trigger = on_enemy_draw.","information,structure",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+127,ability,protect_backline_retaliate,"Egna minions i BACK_LINE tar X mindre skada. Dessutom tar den första attackeraren X skada som retaliation.
+ability_value = skademinskning och retaliationskada.","defense,damage,structure",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+128,ability,scare_no_damage,"Den första fiendeminion som attackerar varje tur blir SCARE:ad — skrämd till BACK_LINE och delar ut 0 skada denna attack.
+trigger = on_first_attacker.","control,scare,structure",2026-04-25 18:04:46.775092+00,2026-04-25 18:04:46.775092+00,false
+129,keyword,Lurker,Cant be target during enemy turn,,2026-04-26 17:25:01.271444+00,2026-04-26 17:25:01.181+00,false
+130,keyword,Push,puttar tillbaka en minion till backline,,2026-04-26 19:57:31.44226+00,2026-04-26 19:57:31.295+00,false
+131,keyword,Detector,Detector: på Structures gör så att stealth int funkar för enemy,,2026-04-26 20:04:27.422342+00,2026-04-26 20:04:26.802+00,false
+132,keyword,Ambush (1-9),"Ambush ger + skada till skadade minions,",,2026-04-27 06:37:17.189018+00,2026-04-27 06:37:17.034+00,false
+133,ability,Surge,När minion anfaller boosta egen mana med X,combat,2026-04-27 21:12:03.378079+00,2026-04-27 21:12:02.534+00,false
+134,ability,plunder,"När minon träffar hero vid anfall, boosta egen mana med X",,2026-04-27 21:12:56.675755+00,2026-04-27 21:12:56.181+00,false
+135,keyword,LURKER,"Minionen kan inte väljas som mål av motståndarens spell-effekter.\nKan heller inte attackeras direkt av fiendens minions.\nStealth-liknande skydd
+   men utan att brytas vid attack.","evasion,defense",2026-04-28 09:49:23.575163+00,2026-04-28 09:49:23.575163+00,true
+136,keyword,SURGE,"När minionen attackerar får ägaren X temporär mana för den resterande turen.\nManan försvinner vid turens slut.\nFormatet är SURGE_X, t.ex. 
+  SURGE_2 ger 2 mana per attack. GÄLLER ALLA ATTACKER","mana,tempo",2026-04-28 09:49:23.575163+00,2026-05-03 12:26:31.186+00,true
+137,keyword,PLUNDER,"När minionen delar ut skada direkt mot motståndarens hjälte får ägaren X temporär mana för den resterande turen.\nManan försvinner vid turens 
+  slut.\nFormatet är PLUNDER_X, t.ex. PLUNDER_1.","mana,tempo,offense",2026-04-28 09:49:23.575163+00,2026-04-28 09:49:23.575163+00,true
+139,keyword,Infested ( Forest),"Om en enemy minion får Infested så måste den fort som sjutton bort från spelplanen annars ger den negativ inverkan på lagkamraterna , exempel du kastar en infested spell på en 5-5 minion, slutet av enemys tur är det bra om han recaller dödar eller på annat sätt får bort den, annars ger EXEPELVIS 1 skada till alla omkring + en -1-1 aura på sig själv",,2026-04-30 07:02:31.63428+00,2026-04-30 07:02:31.129+00,false
+140,keyword,Berserk ( Mode ),"Berserk mode är en ability som aktiveras när det som står efter händer till exempel, en 2-2 Warrior med berser, får 1 skada så aktiveras en Förskräcklig ilska som kallas berserk och han blir en 3-2 till exempel i en tur",,2026-04-30 08:06:37.879454+00,2026-04-30 08:07:45.397+00,false
+141,keyword,Dread,Mötande minion får - attack,,2026-05-02 05:58:19.353108+00,2026-05-02 05:58:19.185+00,false
+142,keyword,Lucky,Första skadan missar alltid,,2026-05-02 07:23:39.359363+00,2026-05-02 07:23:39.194+00,false
+143,effect,Chilled,"Minions som är chilled blir slowade i strid, fienden slår före
+Chillad x2 = Solid Frozen i 1 tur m",,2026-05-02 17:49:01.511202+00,2026-05-02 17:49:01.313+00,false
+144,keyword,Unknowing,"Är som silence, en minionm förlorar tillfälligt/Permanent alla keywords + abilities",,2026-05-03 13:13:23.719426+00,2026-05-03 13:13:23.223+00,false
+145,keyword,Unknowing,Silence,,2026-05-03 13:13:53.626132+00,2026-05-03 13:13:53.583+00,false
+146,keyword,Infest,Skada en minion och denna minion (förutsatt den överlevt) kommer då ge 1 skada till hero per tur,smitta,2026-05-06 17:56:42.364558+00,2026-05-06 17:56:41.802+00,true
