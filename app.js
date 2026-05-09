@@ -258,7 +258,7 @@ let filterInlagd = '';
 const CLASS_ORDER = ['Dark', 'Wasteland', 'The Blue', 'Forest', 'Neutral'];
 
 function cardTileHTML(c) {
-  const imgSrc = c.artwork?.[0] ? imgUrl(c, 'artwork', 0, c.id === lastUpdatedId, '200x200') : null;
+  const imgSrc = c.artwork?.[0] ? imgUrl(c, 'artwork', 0, c.id === lastUpdatedId, '200x300') : null;
 
   const imgContent = imgSrc ? `<img src="${imgSrc}" alt="${c.name}">` : `<div class="no-img">🃏</div>`;
 
