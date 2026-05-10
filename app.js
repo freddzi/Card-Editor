@@ -781,23 +781,61 @@ function syncKwHidden() {
     .map(t => t.dataset.kw).join(', ');
 }
 
+// Keywords som kräver ett numeriskt värde, t.ex. PARRY_50 eller IRON_SKIN_2
+const VALUE_KEYWORDS = new Set(['PARRY', 'IRON_SKIN']);
+
+function kwBase(kw) {
+  return kw.replace(/_\d+$/, '');
+}
+
 function createKwPill(kw, active = false) {
-  if (kwPicker.querySelector(`[data-kw="${CSS.escape(kw)}"]`)) return;
+  const base = kwBase(kw);
+
+  // Hitta befintlig pill via base-keyword (hanterar PARRY_50 → matchar PARRY-pill)
+  const existing = kwPicker.querySelector(`[data-kw-base="${CSS.escape(base)}"]`);
+  if (existing) {
+    if (kw !== base) {
+      existing.dataset.kw = kw;
+      existing.querySelector('.kw-tag-label').textContent = kw;
+    }
+    if (active) {
+      existing.classList.add('active');
+      syncKwHidden();
+    }
+    return;
+  }
+
   const tag = document.createElement('span');
   tag.className = 'kw-tag' + (active ? ' active' : '');
   tag.dataset.kw = kw;
+  tag.dataset.kwBase = base;
 
   const label = document.createElement('span');
   label.className = 'kw-tag-label';
   label.textContent = kw;
-  label.addEventListener('click', () => { tag.classList.toggle('active'); syncKwHidden(); });
+  label.addEventListener('click', () => {
+    const isActive = tag.classList.contains('active');
+    if (!isActive && VALUE_KEYWORDS.has(base)) {
+      const raw = prompt(`Ange värde för ${base} (heltal > 0, t.ex. 50):`);
+      if (raw === null) return;
+      const n = parseInt(raw, 10);
+      if (isNaN(n) || n <= 0) { alert('Ange ett heltal > 0.'); return; }
+      tag.dataset.kw = `${base}_${n}`;
+      label.textContent = `${base}_${n}`;
+    } else if (isActive && VALUE_KEYWORDS.has(base)) {
+      tag.dataset.kw = base;
+      label.textContent = base;
+    }
+    tag.classList.toggle('active');
+    syncKwHidden();
+  });
 
   const rm = document.createElement('button');
   rm.type = 'button';
   rm.className = 'kw-tag-remove';
   rm.textContent = '×';
   rm.addEventListener('click', () => {
-    if (!confirm(`Ta bort "${kw}" från listan?`)) return;
+    if (!confirm(`Ta bort "${base}" från listan?`)) return;
     tag.remove();
     syncKwHidden();
   });
@@ -2672,6 +2710,19 @@ skillEditIconInput.addEventListener('change', () => {
   reader.readAsDataURL(file);
 });
 
+document.getElementById('btn-skill-icon-fullscreen').addEventListener('click', () => {
+  const url = document.getElementById('skill-view-icon').dataset.fullUrl;
+  if (!url) return;
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:9999;cursor:zoom-out';
+  const img = document.createElement('img');
+  img.src = url;
+  img.style.cssText = 'max-width:90vw;max-height:90vh;border-radius:50%;box-shadow:0 0 60px rgba(0,0,0,.8)';
+  overlay.appendChild(img);
+  overlay.addEventListener('click', () => overlay.remove());
+  document.body.appendChild(overlay);
+});
+
 document.getElementById('btn-skill-detail-close').addEventListener('click', () => {
   skillDetailModal.classList.remove('open');
   closeSkillEditForm();
@@ -2754,6 +2805,21 @@ function openSkillDetail(skill) {
     : '<div style="color:var(--muted);text-align:center;padding:40px">Ingen bild</div>';
   skillDetailName.textContent = skill.name || '—';
   skillDetailDesc.textContent = skill.description || '';
+
+  const iconWrap = document.getElementById('skill-view-icon-wrap');
+  const iconEl   = document.getElementById('skill-view-icon');
+  const hasIcon  = skill.icon?.[0] || (typeof skill.icon === 'string' && skill.icon);
+  if (hasIcon) {
+    const url = imgUrl(skill, 'icon');
+    iconEl.innerHTML = `<img src="${url}" alt="ikon">`;
+    iconEl.dataset.fullUrl = url;
+    iconWrap.style.display = 'flex';
+  } else {
+    iconEl.innerHTML = '⭐';
+    iconEl.dataset.fullUrl = '';
+    iconWrap.style.display = 'none';
+  }
+
   closeSkillEditForm();
   skillDetailModal.classList.add('open');
 }
