@@ -257,6 +257,20 @@
             </div>
           </div>
         </div>
+        <div class="field-row" style="margin-top:16px">
+          <div class="field field-full">
+            <legend>Ikon</legend>
+            <div class="artwork-upload">
+              <div class="skill-icon-preview" id="skill-icon-preview">⭐</div>
+              <div class="artwork-right">
+                <label>Rund ikon</label>
+                <div class="btn-upload" onclick="document.getElementById('skill-icon-input').click()">Välj fil…</div>
+                <input type="file" id="skill-icon-input" accept="image/*" style="display:none">
+                <span id="skill-icon-filename" style="font-size:12px;color:var(--muted)"></span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
       <div class="form-section">
         <legend>Info</legend>
@@ -1194,6 +1208,12 @@
           <div id="skill-edit-img-filename" style="font-size:11px;color:var(--muted);margin-top:4px"></div>
         </div>
         <div style="margin-bottom:10px">
+          <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:4px">Ikon (rund)</label>
+          <div id="skill-edit-icon-preview" class="skill-icon-preview" style="cursor:pointer">⭐</div>
+          <input id="skill-edit-icon-input" type="file" accept="image/*" style="display:none">
+          <div id="skill-edit-icon-filename" style="font-size:11px;color:var(--muted);margin-top:4px"></div>
+        </div>
+        <div style="margin-bottom:10px">
           <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:4px">Titel</label>
           <input id="skill-edit-name" type="text" style="width:100%;box-sizing:border-box">
         </div>
@@ -1208,7 +1228,7 @@
       </div>
 
       <div id="skill-view-actions" style="margin-top:16px">
-        <button id="btn-skill-edit-open" class="btn-secondary" style="width:100%">Ändra</button>
+        <button id="btn-skill-edit-open" class="btn-secondary" style="width:100%;padding:14px;font-size:16px">Ändra</button>
       </div>
     </div>
   </div>

@@ -2445,12 +2445,16 @@ const skillForm            = document.getElementById('skill-form');
 const skillArtworkInput    = document.getElementById('skill-artwork-input');
 const skillArtworkPreview  = document.getElementById('skill-artwork-preview');
 const skillArtworkFilename = document.getElementById('skill-artwork-filename');
+const skillIconInput       = document.getElementById('skill-icon-input');
+const skillIconPreview     = document.getElementById('skill-icon-preview');
+const skillIconFilename    = document.getElementById('skill-icon-filename');
 const skillNameEl          = document.getElementById('skill-name');
 const skillDescEl          = document.getElementById('skill-description');
 const skillCountEl         = document.getElementById('skill-count');
 const skillsGrid           = document.getElementById('skills-grid');
 
 let selectedSkillImageFile = null;
+let selectedSkillIconFile  = null;
 
 skillArtworkPreview.addEventListener('click', () => skillArtworkInput.click());
 skillArtworkInput.addEventListener('change', () => {
@@ -2463,11 +2467,25 @@ skillArtworkInput.addEventListener('change', () => {
   reader.readAsDataURL(file);
 });
 
+skillIconPreview.addEventListener('click', () => skillIconInput.click());
+skillIconInput.addEventListener('change', () => {
+  const file = skillIconInput.files[0];
+  if (!file) return;
+  selectedSkillIconFile = file;
+  skillIconFilename.textContent = file.name;
+  const reader = new FileReader();
+  reader.onload = e => { skillIconPreview.innerHTML = `<img src="${e.target.result}" alt="ikon">`; };
+  reader.readAsDataURL(file);
+});
+
 function resetSkillForm() {
   skillForm.reset();
   selectedSkillImageFile = null;
+  selectedSkillIconFile  = null;
   skillArtworkPreview.innerHTML = '🖼';
   skillArtworkFilename.textContent = '';
+  skillIconPreview.innerHTML = '⭐';
+  skillIconFilename.textContent = '';
   skillNameEl.value = '';
   skillDescEl.value = '';
 }
@@ -2483,13 +2501,14 @@ async function loadSkills() {
   }
 }
 
-async function saveSkill(name, imageFile, description) {
+async function saveSkill(name, imageFile, iconFile, description) {
   try {
     const formData = new FormData();
     formData.append('name', name);
     formData.append('description', description);
     formData.append('text', description);
     if (imageFile) formData.append('image', imageFile);
+    if (iconFile)  formData.append('icon', iconFile);
     await pb.collection('skills').create(formData);
     return true;
   } catch (err) {
@@ -2522,11 +2541,18 @@ async function renderSkillsGrid() {
     const imgContent = imgSrc
       ? `<img src="${imgSrc}" alt="skill">`
       : `<div class="no-img" style="font-size:32px">🎯</div>`;
+    const iconSrc = (s.icon?.[0] || (typeof s.icon === 'string' && s.icon)) ? imgUrl(s, 'icon', 0, false, '64x64') : null;
+    const iconEl = iconSrc
+      ? `<img src="${iconSrc}" alt="ikon">`
+      : '⭐';
     return `
       <div class="skill-tile" data-skill-id="${s.id}">
         <button class="tile-del skill-del-btn" data-skill-del="${s.id}">✕</button>
         <div class="skill-tile-img">${imgContent}</div>
-        <div class="skill-tile-desc">${s.name || '<em style="color:var(--muted)">Ingen titel</em>'}</div>
+        <div class="skill-tile-desc">
+          <span class="skill-tile-icon">${iconEl}</span>
+          ${s.name || '<em style="color:var(--muted)">Ingen titel</em>'}
+        </div>
       </div>`;
   }).join('');
 
@@ -2535,6 +2561,13 @@ async function renderSkillsGrid() {
       e.stopPropagation();
       const skill = skills.find(s => String(s.id) === btn.dataset.skillDel);
       confirmDeleteSkill(btn.dataset.skillDel, skill?.name || skill?.description || '');
+    });
+  });
+
+  skillsGrid.querySelectorAll('.skill-tile').forEach(tile => {
+    tile.addEventListener('click', () => {
+      const skill = skills.find(s => String(s.id) === tile.dataset.skillId);
+      if (skill) openSkillDetail(skill);
     });
   });
 
@@ -2549,12 +2582,16 @@ const skillEditForm       = document.getElementById('skill-edit-form');
 const skillViewActions    = document.getElementById('skill-view-actions');
 const skillEditName       = document.getElementById('skill-edit-name');
 const skillEditDesc       = document.getElementById('skill-edit-desc');
-const skillEditImgPreview = document.getElementById('skill-edit-img-preview');
-const skillEditImgInput   = document.getElementById('skill-edit-img-input');
-const skillEditImgFilename= document.getElementById('skill-edit-img-filename');
+const skillEditImgPreview  = document.getElementById('skill-edit-img-preview');
+const skillEditImgInput    = document.getElementById('skill-edit-img-input');
+const skillEditImgFilename = document.getElementById('skill-edit-img-filename');
+const skillEditIconPreview = document.getElementById('skill-edit-icon-preview');
+const skillEditIconInput   = document.getElementById('skill-edit-icon-input');
+const skillEditIconFilename= document.getElementById('skill-edit-icon-filename');
 
 let currentSkillId        = null;
 let selectedEditImageFile = null;
+let selectedEditIconFile  = null;
 
 skillEditImgPreview.addEventListener('click', () => skillEditImgInput.click());
 skillEditImgInput.addEventListener('change', () => {
@@ -2564,6 +2601,17 @@ skillEditImgInput.addEventListener('change', () => {
   skillEditImgFilename.textContent = file.name;
   const reader = new FileReader();
   reader.onload = e => { skillEditImgPreview.innerHTML = `<img src="${e.target.result}" alt="preview" style="width:100%;height:100%;object-fit:cover">`; };
+  reader.readAsDataURL(file);
+});
+
+skillEditIconPreview.addEventListener('click', () => skillEditIconInput.click());
+skillEditIconInput.addEventListener('change', () => {
+  const file = skillEditIconInput.files[0];
+  if (!file) return;
+  selectedEditIconFile = file;
+  skillEditIconFilename.textContent = file.name;
+  const reader = new FileReader();
+  reader.onload = e => { skillEditIconPreview.innerHTML = `<img src="${e.target.result}" alt="ikon">`; };
   reader.readAsDataURL(file);
 });
 
@@ -2582,12 +2630,19 @@ document.getElementById('btn-skill-edit-open').addEventListener('click', () => {
   skillEditName.value = skillDetailName.textContent === '—' ? '' : skillDetailName.textContent;
   skillEditDesc.value = skillDetailDesc.textContent;
   selectedEditImageFile = null;
+  selectedEditIconFile  = null;
   skillEditImgInput.value = '';
   skillEditImgFilename.textContent = '';
+  skillEditIconInput.value = '';
+  skillEditIconFilename.textContent = '';
   const existingImg = skillDetailImages.querySelector('img');
   skillEditImgPreview.innerHTML = existingImg
     ? `<img src="${existingImg.src}" alt="preview" style="width:100%;height:100%;object-fit:cover">`
     : '🖼';
+  const currentSkill = window._currentSkillData;
+  const iconSrc = currentSkill && (currentSkill.icon?.[0] || (typeof currentSkill.icon === 'string' && currentSkill.icon))
+    ? imgUrl(currentSkill, 'icon') : null;
+  skillEditIconPreview.innerHTML = iconSrc ? `<img src="${iconSrc}" alt="ikon">` : '⭐';
   skillEditForm.style.display = 'block';
   skillViewActions.style.display = 'none';
 });
@@ -2608,7 +2663,9 @@ document.getElementById('btn-skill-edit-save').addEventListener('click', async (
     formData.append('description', description);
     formData.append('text', description);
     if (selectedEditImageFile) formData.append('image', selectedEditImageFile);
+    if (selectedEditIconFile)  formData.append('icon', selectedEditIconFile);
     const updated = await pb.collection('skills').update(currentSkillId, formData);
+    window._currentSkillData = updated;
     saveBtn.disabled = false;
     saveBtn.textContent = 'Spara';
     skillDetailName.textContent = name || '—';
@@ -2634,6 +2691,7 @@ function closeSkillEditForm() {
 
 function openSkillDetail(skill) {
   currentSkillId = skill.id;
+  window._currentSkillData = skill;
   skillDetailImages.innerHTML = (skill.image?.[0] || (typeof skill.image === 'string' && skill.image))
     ? `<img src="${imgUrl(skill, 'image')}" alt="skill">`
     : '<div style="color:var(--muted);text-align:center;padding:40px">Ingen bild</div>';
@@ -2659,7 +2717,7 @@ skillForm.addEventListener('submit', async e => {
     return;
   }
 
-  const ok = await saveSkill(name, selectedSkillImageFile, description);
+  const ok = await saveSkill(name, selectedSkillImageFile, selectedSkillIconFile, description);
 
   submitBtn.disabled = false;
   submitBtn.textContent = 'Spara skill';
