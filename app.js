@@ -227,22 +227,6 @@ function closeAllDropdowns() {
   document.querySelectorAll('.nav-dropdown').forEach(d => d.classList.remove('open'));
 }
 
-document.querySelectorAll('.nav-dropdown-btn').forEach(btn => {
-  btn.addEventListener('click', e => {
-    e.stopPropagation();
-    const dropdown = btn.closest('.nav-dropdown');
-    const wasOpen  = dropdown.classList.contains('open');
-    closeAllDropdowns();
-    if (!wasOpen) dropdown.classList.add('open');
-  });
-});
-
-document.addEventListener('click', closeAllDropdowns);
-
-document.querySelectorAll('.nav-submenu button[data-page]').forEach(btn => {
-  btn.addEventListener('click', closeAllDropdowns);
-});
-
 // ── Toast ─────────────────────────────────────────────────────────────────────
 const toast = document.getElementById('toast');
 let toastTimer;
@@ -1802,6 +1786,7 @@ function renderTplCard(tpl) {
         ${tpl.is_builtin
           ? '<span class="tpl-builtin-label">Inbyggd mall</span>'
           : `<button class="btn btn-secondary tpl-edit-btn" data-tpl-id="${tpl.id}">Redigera</button>`}
+        <button class="btn btn-secondary tpl-dl-btn" data-tpl-id="${tpl.id}" title="Ladda ner mall som JSON">Ladda ner</button>
         <button class="btn btn-primary tpl-use-btn" data-tpl-id="${tpl.id}" style="margin-left:auto">Använd mall →</button>
       </div>
     </div>`;
@@ -1827,6 +1812,20 @@ async function renderTplGrid() {
     btn.addEventListener('click', () => {
       const tpl = tpls.find(t => String(t.id) === btn.dataset.tplId);
       if (tpl) openTplEditor(tpl);
+    });
+  });
+
+  tplGrid.querySelectorAll('.tpl-dl-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tpl = tpls.find(t => String(t.id) === btn.dataset.tplId);
+      if (!tpl) return;
+      const payload = { name: tpl.name, card_type: tpl.card_type, description: tpl.description || '', card_data: tpl.card_data || {}, notes: tpl.notes || {} };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `mall_${(tpl.name || tpl.id).replace(/\s+/g, '_').toLowerCase()}.json`;
+      a.click();
+      URL.revokeObjectURL(a.href);
     });
   });
 }
@@ -2539,12 +2538,6 @@ async function renderSkillsGrid() {
     });
   });
 
-  skillsGrid.querySelectorAll('.skill-tile').forEach(tile => {
-    tile.addEventListener('click', () => {
-      const skill = skills.find(s => String(s.id) === tile.dataset.skillId);
-      if (skill) openSkillDetail(skill);
-    });
-  });
 }
 
 // ── Skill detail modal ────────────────────────────────────────────────────────
