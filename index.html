@@ -132,8 +132,11 @@
       <option value="">Alla effekter</option>
       <option value="deal_damage">deal_damage</option>
       <option value="draw_card">draw_card</option>
+      <option value="draw_spell">draw_spell</option>
       <option value="heal">heal</option>
       <option value="chain">chain</option>
+      <option value="remove_minion">remove_minion</option>
+      <option value="buff_minion">buff_minion</option>
     </select>
     <input id="filter-mana" type="number" min="0" placeholder="Mana ≤" style="width:80px">
     <input id="filter-attack" type="number" min="0" placeholder="Attack ≥" style="width:90px">
@@ -473,7 +476,7 @@
               <option value="auto">auto</option>
             </select>
           </div>
-          <div class="field">
+          <div class="field" id="ability-value-wrap">
             <label>Value</label>
             <input name="ability_value" type="number" value="0">
           </div>
@@ -505,7 +508,7 @@
               <option value="remove_minion">remove_minion</option>
             </select>
           </div>
-          <div class="field">
+          <div class="field" id="effect-value-wrap">
             <label>Effect Value</label>
             <input name="effect_value" type="number" value="0">
           </div>
@@ -590,7 +593,7 @@
         <div class="field-row">
           <div class="field">
             <label>Ability ID</label>
-            <select name="s_ability_id">
+            <select name="s_ability_id" id="s_ability_id">
               <option value="">— ingen —</option>
               <option value="deal_damage">deal_damage</option>
               <option value="draw_card">draw_card</option>
@@ -601,9 +604,21 @@
             </select>
           </div>
           <div class="field">
+            <label>Trigger</label>
+            <select name="s_ability_trigger" id="s_ability_trigger">
+              <option value="">— ingen —</option>
+              <option value="activate">activate</option>
+              <option value="on_play">on_play</option>
+              <option value="on_death">on_death</option>
+              <option value="on_attack">on_attack</option>
+            </select>
+          </div>
+          <div class="field">
             <label>Cost</label>
             <input name="s_ability_cost" type="number" min="0" value="0">
           </div>
+        </div>
+        <div class="field-row">
           <div class="field">
             <label>Target Mode</label>
             <select name="s_ability_target_mode">
@@ -630,7 +645,7 @@
               <option value="auto">auto</option>
             </select>
           </div>
-          <div class="field">
+          <div class="field" id="s-ability-value-wrap">
             <label>Value</label>
             <input name="s_ability_value" type="number" value="0">
           </div>

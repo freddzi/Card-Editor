@@ -606,6 +606,7 @@ const ARG_SETUPS = [
     uiContainer:  '#spell-arg-ui',
     filterInput:  '#spell-target-filter',
     filterUI:     '#spell-filter-ui',
+    context:      'spell',
   },
   {
     effectSel:    '[name="ability_id"]',
@@ -614,6 +615,7 @@ const ARG_SETUPS = [
     uiContainer:  '#minion-arg-ui',
     filterInput:  '#minion-target-filter',
     filterUI:     '#minion-filter-ui',
+    context:      'ability',
   },
   {
     effectSel:    '[name="s_ability_id"]',
@@ -622,28 +624,70 @@ const ARG_SETUPS = [
     uiContainer:  '#structure-arg-ui',
     filterInput:  '#structure-target-filter',
     filterUI:     '#structure-filter-ui',
+    context:      'ability',
   },
 ];
 
-function buildArgUI(effectId, targetingMode, container, argInput, initialValue = '') {
+const FX_OPTIONS = ['fire','void','poison','burst','ice','blood','holy','shadow','shock'];
+const ABILITY_EFFECTS = new Set(['deal_damage','heal','remove_minion','draw_card','draw_spell','buff_minion']);
+
+// context: 'spell' = effect_arg (FX direkt), 'ability' = ability_arg (discard-kostnad + FX)
+function buildArgUI(effectId, targetingMode, container, argInput, initialValue = '', context = 'ability') {
   container.innerHTML = '';
+  const raw = initialValue || '';
 
+  // ── buff_minion ──────────────────────────────────────────────────────────────
   if (effectId === 'buff_minion') {
-    const raw   = (initialValue || '');
-    const parts = raw.split(':');
-    const initStat = ['atk','hp','both'].includes(parts[0]) ? parts[0] : 'atk';
-    const initTemp = parts[1] === 'temp';
-    const initSub  = initTemp ? (parts[2] || '') : (parts[1] || '');
+    // Ability-context kan ha "cost:discard:N:stat[:temp[:sub]]"
+    let hasCost = false, costCount = 1, statRaw = raw;
+    if (context === 'ability' && raw.startsWith('cost:')) {
+      hasCost = true;
+      const p = raw.split(':');
+      costCount = parseInt(p[2], 10) || 1;
+      statRaw = p.slice(3).join(':');
+    }
+    const sp = statRaw.split(':');
+    const isSplit = sp[0] === 'split';
+    const initStat = ['atk','hp','both','split'].includes(sp[0]) ? sp[0] : 'atk';
+    const initSplitAtk = isSplit ? (parseInt(sp[1], 10) || 0) : 0;
+    const initSplitHp  = isSplit ? (parseInt(sp[2], 10) || 0) : 0;
+    const initTemp = isSplit ? (sp[3] === 'temp') : (sp[1] === 'temp');
+    const initSub  = isSplit
+      ? (sp[3] === 'temp' ? (sp[4] || '') : (sp[3] || ''))
+      : (initTemp ? (sp[2] || '') : (sp[1] || ''));
 
-    container.innerHTML = `
-      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px">
+    const costBlock = context === 'ability' ? `
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px;align-items:flex-end">
+        <div class="field" style="flex:1;min-width:140px">
+          <label style="font-size:12px">Kostnad (utöver mana)</label>
+          <select class="arg-cost-type">
+            <option value="mana">Ingen extra kostnad</option>
+            <option value="discard">Kasta kort (discard)</option>
+          </select>
+        </div>
+        <div class="field arg-discard-count-wrap" style="flex:0 0 auto;min-width:80px">
+          <label style="font-size:12px">Antal kort</label>
+          <input class="arg-discard-count" type="number" min="1" max="5" value="${costCount}">
+        </div>
+      </div>` : '';
+
+    container.innerHTML = costBlock + `
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
         <div class="field" style="flex:1;min-width:120px">
           <label style="font-size:12px">Stat att buffa</label>
           <select class="arg-stat">
             <option value="atk">atk (attack)</option>
             <option value="hp">hp (hälsa)</option>
             <option value="both">both (båda)</option>
+            <option value="split">split (olika per stat)</option>
           </select>
+        </div>
+        <div class="field arg-split-wrap" style="flex:1;min-width:180px;display:none">
+          <label style="font-size:12px">+atk &nbsp;/&nbsp; +hp</label>
+          <div style="display:flex;gap:6px">
+            <input class="arg-split-atk" type="number" placeholder="+atk" style="width:70px">
+            <input class="arg-split-hp"  type="number" placeholder="+hp"  style="width:70px">
+          </div>
         </div>
         <div class="field" style="flex:1;min-width:140px">
           <label style="font-size:12px">Varaktighet</label>
@@ -661,21 +705,154 @@ function buildArgUI(effectId, targetingMode, container, argInput, initialValue =
     container.querySelector('.arg-stat').value     = initStat;
     container.querySelector('.arg-duration').value = initTemp ? 'temp' : 'permanent';
     container.querySelector('.arg-subtype').value  = initSub;
+    if (isSplit) {
+      container.querySelector('.arg-split-atk').value = initSplitAtk;
+      container.querySelector('.arg-split-hp').value  = initSplitHp;
+      container.querySelector('.arg-split-wrap').style.display = '';
+    }
 
-    const compose = () => {
-      const stat  = container.querySelector('.arg-stat').value;
-      const dur   = container.querySelector('.arg-duration').value;
-      const sub   = container.querySelector('.arg-subtype').value.trim().toLowerCase();
-      const parts = [stat];
-      if (dur === 'temp') parts.push('temp');
-      if (sub) parts.push(sub);
-      argInput.value = parts.join(':');
+    if (context === 'ability') {
+      const costSel   = container.querySelector('.arg-cost-type');
+      const countWrap = container.querySelector('.arg-discard-count-wrap');
+      costSel.value = hasCost ? 'discard' : 'mana';
+      countWrap.style.display = hasCost ? '' : 'none';
+    }
+
+    const valueWrapId = context === 'spell' ? 'effect-value-wrap'
+                      : context === 'structure' ? 's-ability-value-wrap'
+                      : 'ability-value-wrap';
+    const composeBuff = () => {
+      const stat      = container.querySelector('.arg-stat').value;
+      const dur       = container.querySelector('.arg-duration').value;
+      const sub       = container.querySelector('.arg-subtype').value.trim().toLowerCase();
+      const splitWrap = container.querySelector('.arg-split-wrap');
+      splitWrap.style.display = stat === 'split' ? '' : 'none';
+      const vWrap = document.getElementById(valueWrapId);
+      if (vWrap) vWrap.style.display = stat === 'split' ? 'none' : '';
+
+      let statStr;
+      if (stat === 'split') {
+        const a = parseInt(container.querySelector('.arg-split-atk').value, 10) || 0;
+        const h = parseInt(container.querySelector('.arg-split-hp').value,  10) || 0;
+        const sp2 = ['split', a, h];
+        if (dur === 'temp') sp2.push('temp');
+        if (sub) sp2.push(sub);
+        statStr = sp2.join(':');
+      } else {
+        const sp2 = [stat];
+        if (dur === 'temp') sp2.push('temp');
+        if (sub) sp2.push(sub);
+        statStr = sp2.join(':');
+      }
+
+      if (context === 'ability') {
+        const costSel   = container.querySelector('.arg-cost-type');
+        const countWrap = container.querySelector('.arg-discard-count-wrap');
+        const countEl   = container.querySelector('.arg-discard-count');
+        if (costSel.value === 'discard') {
+          const n = Math.max(1, parseInt(countEl.value, 10) || 1);
+          argInput.value = `cost:discard:${n}:${statStr}`;
+          countWrap.style.display = '';
+        } else {
+          argInput.value = statStr;
+          countWrap.style.display = 'none';
+        }
+      } else {
+        argInput.value = statStr;
+      }
     };
-    container.querySelectorAll('.arg-stat,.arg-duration,.arg-subtype').forEach(el => {
-      el.addEventListener('change', compose);
-      el.addEventListener('input', compose);
+    container.querySelectorAll('.arg-stat,.arg-duration,.arg-subtype,.arg-cost-type,.arg-discard-count,.arg-split-atk,.arg-split-hp').forEach(el => {
+      el.addEventListener('change', composeBuff);
+      el.addEventListener('input',  composeBuff);
     });
-    compose();
+    composeBuff();
+    return;
+  }
+
+  // ── Effekter med FX-animering ─────────────────────────────────────────────
+  if (ABILITY_EFFECTS.has(effectId)) {
+    // Spell: effect_arg = FX direkt
+    // Ability: ability_arg = FX, eller "cost:discard:N[:fx]"
+    let hasCost = false, costCount = 1, initFx = '';
+    if (context === 'ability') {
+      if (raw.startsWith('cost:')) {
+        hasCost = true;
+        const p = raw.split(':');
+        costCount = parseInt(p[2], 10) || 1;
+        initFx = p[3] || '';
+      } else {
+        initFx = raw;
+      }
+    } else {
+      initFx = raw; // spell: hela arg är FX
+    }
+
+    // draw_card / draw_spell har ingen FX-animation → visa bara discard (abilities) eller inget (spell)
+    const hasFx = !['draw_card','draw_spell'].includes(effectId);
+    const fxOpts = FX_OPTIONS.map(f => `<option value="${f}">${f}</option>`).join('');
+    const fxBlock = hasFx ? `
+        <div class="field" style="flex:1;min-width:140px">
+          <label style="font-size:12px">Animering (FX)</label>
+          <select class="arg-fx">
+            <option value="">— ingen —</option>
+            ${fxOpts}
+          </select>
+        </div>` : '';
+
+    const costBlock = context === 'ability' ? `
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px;align-items:flex-end">
+        <div class="field" style="flex:1;min-width:140px">
+          <label style="font-size:12px">Kostnad (utöver mana)</label>
+          <select class="arg-cost-type">
+            <option value="mana">Ingen extra kostnad</option>
+            <option value="discard">Kasta kort (discard)</option>
+          </select>
+        </div>
+        <div class="field arg-discard-count-wrap" style="flex:0 0 auto;min-width:80px">
+          <label style="font-size:12px">Antal kort</label>
+          <input class="arg-discard-count" type="number" min="1" max="5" value="${costCount}">
+        </div>
+      </div>` : '';
+
+    if (!costBlock && !hasFx) { argInput.value = ''; return; }
+
+    container.innerHTML = costBlock + (hasFx || fxBlock ? `
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+        ${fxBlock}
+      </div>` : '');
+
+    if (hasFx) container.querySelector('.arg-fx').value = initFx;
+
+    if (context === 'ability') {
+      const costSel   = container.querySelector('.arg-cost-type');
+      const countWrap = container.querySelector('.arg-discard-count-wrap');
+      costSel.value = hasCost ? 'discard' : 'mana';
+      countWrap.style.display = hasCost ? '' : 'none';
+    }
+
+    const composeFx = () => {
+      const fx = hasFx ? (container.querySelector('.arg-fx')?.value || '') : '';
+      if (context === 'ability') {
+        const costSel   = container.querySelector('.arg-cost-type');
+        const countWrap = container.querySelector('.arg-discard-count-wrap');
+        const countEl   = container.querySelector('.arg-discard-count');
+        if (costSel.value === 'discard') {
+          const n = Math.max(1, parseInt(countEl.value, 10) || 1);
+          argInput.value = fx ? `cost:discard:${n}:${fx}` : `cost:discard:${n}`;
+          countWrap.style.display = '';
+        } else {
+          argInput.value = fx;
+          countWrap.style.display = 'none';
+        }
+      } else {
+        argInput.value = fx;
+      }
+    };
+    container.querySelectorAll('.arg-fx,.arg-cost-type,.arg-discard-count').forEach(el => {
+      el.addEventListener('change', composeFx);
+      el.addEventListener('input',  composeFx);
+    });
+    composeFx();
     return;
   }
 
@@ -737,7 +914,7 @@ function buildFilterUI(targetingMode, filterContainer, filterInput, initialValue
   compose();
 }
 
-function setupArgUI({ effectSel, targetingSel, argInput: argInputSel, uiContainer: containerSel, filterInput: filterInputSel, filterUI: filterUISel }) {
+function setupArgUI({ effectSel, targetingSel, argInput: argInputSel, uiContainer: containerSel, filterInput: filterInputSel, filterUI: filterUISel, context = 'ability' }) {
   const eff         = document.querySelector(effectSel);
   const tgt         = document.querySelector(targetingSel);
   const argInput    = document.querySelector(argInputSel);
@@ -747,7 +924,7 @@ function setupArgUI({ effectSel, targetingSel, argInput: argInputSel, uiContaine
   if (!eff || !tgt || !argInput || !container) return;
 
   const refresh = () => {
-    buildArgUI(eff.value, tgt.value, container, argInput, '');
+    buildArgUI(eff.value, tgt.value, container, argInput, '', context);
     if (filterInput && filterUI) buildFilterUI(tgt.value, filterUI, filterInput, '');
   };
   eff.addEventListener('change', refresh);
@@ -757,7 +934,7 @@ function setupArgUI({ effectSel, targetingSel, argInput: argInputSel, uiContaine
 
 ARG_SETUPS.forEach(setupArgUI);
 
-function reloadArgUI(effectSel, targetingSel, argInputSel, containerSel, filterInputSel, filterUISel) {
+function reloadArgUI(effectSel, targetingSel, argInputSel, containerSel, filterInputSel, filterUISel, context = 'ability') {
   const eff         = document.querySelector(effectSel);
   const tgt         = document.querySelector(targetingSel);
   const argInput    = document.querySelector(argInputSel);
@@ -765,7 +942,7 @@ function reloadArgUI(effectSel, targetingSel, argInputSel, containerSel, filterI
   const filterInput = filterInputSel ? document.querySelector(filterInputSel) : null;
   const filterUI    = filterUISel    ? document.querySelector(filterUISel)    : null;
   if (!eff || !tgt || !argInput || !container) return;
-  buildArgUI(eff.value, tgt.value, container, argInput, argInput.value);
+  buildArgUI(eff.value, tgt.value, container, argInput, argInput.value, context);
   if (filterInput && filterUI) buildFilterUI(tgt.value, filterUI, filterInput, filterInput.value);
 }
 
@@ -782,7 +959,7 @@ function syncKwHidden() {
 }
 
 // Keywords som kräver ett numeriskt värde, t.ex. PARRY_50 eller IRON_SKIN_2
-const VALUE_KEYWORDS = new Set(['PARRY', 'IRON_SKIN']);
+const VALUE_KEYWORDS = new Set(['PARRY', 'IRON_SKIN', 'PLUNDER', 'SURGE']);
 
 function kwBase(kw) {
   return kw.replace(/_\d+$/, '');
@@ -1054,11 +1231,12 @@ async function openEditForm(card) {
     setFieldVal('school', card.school);
     document.querySelector('#spell-effect-arg').value    = card.effect_arg    || '';
     document.querySelector('#spell-target-filter').value = card.target_filter || '';
-    reloadArgUI('[name="effect_id"]','[name="targeting_mode"]','#spell-effect-arg','#spell-arg-ui','#spell-target-filter','#spell-filter-ui');
+    reloadArgUI('[name="effect_id"]','[name="targeting_mode"]','#spell-effect-arg','#spell-arg-ui','#spell-target-filter','#spell-filter-ui','spell');
     setFieldVal('repeat_count', card.repeat_count); setFieldVal('repeat_mode', card.repeat_mode);
   } else if (card.card_type === 'structure') {
     setFieldVal('armor', card.armor); setFieldVal('s_subtype', card.subtype);
     setFieldVal('maintenance_cost', card.maintenance_cost); setFieldVal('s_ability_id', card.ability_id);
+    setFieldVal('s_ability_trigger', card.ability_trigger);
     setFieldVal('s_ability_cost', card.ability_cost); setFieldVal('s_ability_target_mode', card.ability_target_mode);
     setFieldVal('s_ability_targeting_mode', card.ability_targeting_mode);
     setFieldVal('s_ability_value', card.ability_value);
@@ -1139,40 +1317,79 @@ form.addEventListener('submit', async e => {
 
   let extra = {};
   if (base.card_type === 'minion') {
+    const abilityId  = get('ability_id');
+    const abilityTrg = get('ability_trigger');
+    const abilityArg = get('ability_arg');
+    if (abilityId && !abilityTrg) {
+      showToast('Ability ID är satt — välj ett Trigger.');
+      submitBtn.disabled = false;
+      submitBtn.textContent = editingId ? 'Spara ändringar' : 'Spara kort';
+      return;
+    }
+    if (abilityId === 'buff_minion' && !abilityArg) {
+      showToast('buff_minion kräver Ability Arg (atk / hp / both).');
+      submitBtn.disabled = false;
+      submitBtn.textContent = editingId ? 'Spara ändringar' : 'Spara kort';
+      return;
+    }
     extra = {
       attack: parseInt(get('attack')) || 0,
       health: parseInt(get('health')) || 1,
       subtype: get('subtype'),
-      ability_id: get('ability_id'),
-      ability_trigger: get('ability_trigger'),
+      ability_id: abilityId,
+      ability_trigger: abilityTrg,
       ability_cost: parseInt(get('ability_cost')) || 0,
       ability_target_mode: get('ability_target_mode'),
       ability_targeting_mode: get('ability_targeting_mode') || 'explicit',
       ability_value: parseInt(get('ability_value')) || 0,
-      ability_arg: get('ability_arg'),
+      ability_arg: abilityArg,
     };
   } else if (base.card_type === 'spell') {
+    const effectId  = get('effect_id');
+    const effectArg = get('effect_arg');
+    if (effectId === 'buff_minion' && !effectArg) {
+      showToast('buff_minion kräver Effect Arg (atk / hp / both).');
+      submitBtn.disabled = false;
+      submitBtn.textContent = editingId ? 'Spara ändringar' : 'Spara kort';
+      return;
+    }
     extra = {
-      effect_id: get('effect_id'),
+      effect_id: effectId,
       effect_value: parseInt(get('effect_value')) || 0,
       target_mode: get('target_mode'),
       targeting_mode: get('targeting_mode') || 'explicit',
       school: get('school'),
-      effect_arg: get('effect_arg'),
+      effect_arg: effectArg,
       repeat_count: parseInt(get('repeat_count')) || 1,
       repeat_mode: get('repeat_mode') || 'same_target',
     };
   } else if (base.card_type === 'structure') {
+    const sAbilityId  = get('s_ability_id');
+    const sAbilityTrg = get('s_ability_trigger');
+    const sAbilityArg = get('s_ability_arg');
+    if (sAbilityId && !sAbilityTrg) {
+      showToast('Ability ID är satt på strukturen — välj ett Trigger.');
+      submitBtn.disabled = false;
+      submitBtn.textContent = editingId ? 'Spara ändringar' : 'Spara kort';
+      return;
+    }
+    if (sAbilityId === 'buff_minion' && !sAbilityArg) {
+      showToast('buff_minion kräver Ability Arg (atk / hp / both).');
+      submitBtn.disabled = false;
+      submitBtn.textContent = editingId ? 'Spara ändringar' : 'Spara kort';
+      return;
+    }
     extra = {
       armor: parseInt(get('armor')) || 1,
       subtype: get('s_subtype'),
       maintenance_cost: parseInt(get('maintenance_cost')) || 0,
-      ability_id: get('s_ability_id'),
+      ability_id: sAbilityId,
+      ability_trigger: sAbilityTrg,
       ability_cost: parseInt(get('s_ability_cost')) || 0,
       ability_target_mode: get('s_ability_target_mode'),
       ability_targeting_mode: get('s_ability_targeting_mode') || 'explicit',
       ability_value: parseInt(get('s_ability_value')) || 0,
-      ability_arg: get('s_ability_arg'),
+      ability_arg: sAbilityArg,
       repair_cost: parseInt(get('repair_cost')) || 0,
       repair_value: parseInt(get('repair_value')) || 0,
       trigger_id: get('trigger_id'),
