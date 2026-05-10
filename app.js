@@ -1245,9 +1245,36 @@ function buildSQL(rawCards) {
   return sql;
 }
 
+let exportInlagdFilter = '';
+
+document.getElementById('export-inlagd-filter').querySelectorAll('.inlagd-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#export-inlagd-filter .inlagd-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    exportInlagdFilter = btn.dataset.inlagd;
+    renderExport();
+  });
+});
+
+function filterExportCards(cards) {
+  if (exportInlagdFilter === '') return cards;
+  return cards.filter(c => (c.inlagd ?? false) === (exportInlagdFilter === 'true'));
+}
+
 async function renderExport() {
   sqlOutput.textContent = '-- Laddar…';
-  const cards = await loadCards();
+  const all   = await loadCards();
+  const cards = filterExportCards(all);
+  const countEl = document.getElementById('export-card-count');
+  if (countEl) {
+    const imgCount = cards.reduce((sum, c) => {
+      const a = Array.isArray(c.artwork) ? c.artwork : (c.artwork ? [c.artwork] : []);
+      return sum + a.length;
+    }, 0);
+    const kortLabel = exportInlagdFilter === 'true' ? 'inlagda kort' :
+                      exportInlagdFilter === 'false' ? 'ej inlagda kort' : 'kort';
+    countEl.textContent = `${cards.length} ${kortLabel} · ${imgCount} kortbilder`;
+  }
   sqlOutput.textContent = buildSQL(cards);
 }
 
@@ -1257,20 +1284,23 @@ document.getElementById('btn-copy-sql').addEventListener('click', () => {
 
 document.getElementById('btn-download-sql').addEventListener('click', () => {
   const blob = new Blob([sqlOutput.textContent], { type: 'text/plain' });
+  const suffix = exportInlagdFilter === 'true' ? '_inlagda' : exportInlagdFilter === 'false' ? '_ej_inlagda' : '';
   const a = Object.assign(document.createElement('a'), {
     href: URL.createObjectURL(blob),
-    download: 'cards_export.sql',
+    download: `cards_export${suffix}.sql`,
   });
   a.click();
   showToast('SQL nedladdat!');
 });
 
 document.getElementById('btn-export-json').addEventListener('click', async () => {
-  const cards = (await loadCards()).map(convertCard);
+  const all   = await loadCards();
+  const cards = filterExportCards(all).map(convertCard);
+  const suffix = exportInlagdFilter === 'true' ? '_inlagda' : exportInlagdFilter === 'false' ? '_ej_inlagda' : '';
   const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' });
   const a = Object.assign(document.createElement('a'), {
     href: URL.createObjectURL(blob),
-    download: 'cards_export.json',
+    download: `cards_export${suffix}.json`,
   });
   a.click();
   showToast('JSON nedladdat!');
@@ -1278,24 +1308,33 @@ document.getElementById('btn-export-json').addEventListener('click', async () =>
 
 document.getElementById('btn-download-images').addEventListener('click', async () => {
   const btn      = document.getElementById('btn-download-images');
+  const abortBtn = document.getElementById('btn-abort-images');
   const statusEl = document.getElementById('download-images-status');
 
+  const controller = new AbortController();
+  const { signal } = controller;
+
   btn.disabled = true;
+  abortBtn.style.display = '';
+  abortBtn.onclick = () => controller.abort();
   statusEl.textContent = 'Hämtar kortdata…';
 
-  const [cards, skills] = await Promise.all([loadCards(), loadSkills()]);
+  const [allCards, skills] = await Promise.all([loadCards(), loadSkills()]);
+  const cards = filterExportCards(allCards);
 
-  const imagePaths = [
-    ...cards.flatMap(c => {
-      const artworks = Array.isArray(c.artwork) ? c.artwork : (c.artwork ? [c.artwork] : []);
-      const type  = (c.card_type  || 'unknown').toLowerCase();
-      const cls   = (c.card_class || 'unknown').toLowerCase().replace(/\s+/g, '_');
-      const gid   = displayId(c.id);
-      return artworks.map((_, i) => ({ url: imgUrl(c, 'artwork', i), filename: `${gid}_v${i + 1}.png`, folder: `${type}/${cls}` }));
-    }),
-    ...skills.filter(s => s.image?.[0] || (typeof s.image === 'string' && s.image))
-      .map(s => ({ url: imgUrl(s, 'image'), filename: Array.isArray(s.image) ? s.image[0] : s.image, folder: 'skills' })),
-  ];
+  const cardPaths = cards.flatMap(c => {
+    const artworks = Array.isArray(c.artwork) ? c.artwork : (c.artwork ? [c.artwork] : []);
+    const type  = (c.card_type  || 'unknown').toLowerCase();
+    const cls   = (c.card_class || 'unknown').toLowerCase().replace(/\s+/g, '_');
+    const gid   = displayId(c.id);
+    return artworks.map((_, i) => ({ url: imgUrl(c, 'artwork', i), filename: `${gid}_v${i + 1}.png`, folder: `${type}/${cls}` }));
+  });
+
+  const skillPaths = skills
+    .filter(s => s.image?.[0] || (typeof s.image === 'string' && s.image))
+    .map(s => ({ url: imgUrl(s, 'image'), filename: Array.isArray(s.image) ? s.image[0] : s.image, folder: 'skills' }));
+
+  const imagePaths = [...cardPaths, ...skillPaths];
 
   const zip = new JSZip();
 
@@ -1308,21 +1347,40 @@ document.getElementById('btn-download-images').addEventListener('click', async (
 
   let done = 0;
   let failed = 0;
-  const total = imagePaths.length;
-  statusEl.textContent = `0 / ${total}`;
+  let aborted = false;
+  const totalCards  = cardPaths.length;
+  const totalSkills = skillPaths.length;
+
+  const updateStatus = (idx) => {
+    const kortDone  = Math.min(idx, totalCards);
+    const skillDone = Math.max(0, idx - totalCards);
+    statusEl.textContent = `Kortbilder: ${kortDone}/${totalCards} · Skillbilder: ${skillDone}/${totalSkills}`;
+  };
+  updateStatus(0);
 
   for (const { url, filename, folder } of imagePaths) {
+    if (signal.aborted) { aborted = true; break; }
     try {
-      const resp = await fetch(url);
+      const resp = await fetch(url, { signal });
       if (!resp.ok) throw new Error(resp.statusText);
       const buf = await resp.arrayBuffer();
       zip.folder(folder).file(filename, buf);
       done++;
     } catch (err) {
-      console.warn('Kunde inte ladda ner', path, err);
+      if (err.name === 'AbortError') { aborted = true; break; }
+      console.warn('Kunde inte ladda ner', url, err);
       failed++;
     }
-    statusEl.textContent = `${done + failed} / ${total}`;
+    updateStatus(done + failed);
+  }
+
+  abortBtn.style.display = 'none';
+  btn.disabled = false;
+
+  if (aborted) {
+    statusEl.textContent = `Avbruten — ${done} bilder nedladdade.`;
+    showToast('Nedladdning avbruten');
+    return;
   }
 
   statusEl.textContent = 'Packar zip...';
@@ -1336,7 +1394,6 @@ document.getElementById('btn-download-images').addEventListener('click', async (
     ? `Klart! ${done} bilder (${failed} misslyckades)`
     : `Klart! ${done} bilder i zip.`;
   showToast(failed > 0 ? `Zip klar — ${failed} bilder misslyckades` : 'Zip nedladdad!');
-  btn.disabled = false;
 });
 
 // ── Rarity migration ─────────────────────────────────────────────────────────

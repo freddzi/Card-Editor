@@ -709,6 +709,15 @@
   <div class="export-wrap">
     <h2>Exportera SQL</h2>
     <p>Genererar INSERT-satser för alla kort i databasen. Kör filen direkt mot SQLite.</p>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+      <span style="font-size:13px;color:var(--muted)">Filtrera kort:</span>
+      <div class="inlagd-filter-group" id="export-inlagd-filter">
+        <button class="inlagd-btn active" data-inlagd="">Alla</button>
+        <button class="inlagd-btn" data-inlagd="true">Inlagda</button>
+        <button class="inlagd-btn" data-inlagd="false">Ej inlagda</button>
+      </div>
+      <span id="export-card-count" style="font-size:13px;color:var(--muted)"></span>
+    </div>
     <div class="export-toolbar">
       <button class="btn btn-primary" id="btn-copy-sql">Kopiera SQL</button>
       <button class="btn btn-green" id="btn-download-sql">Ladda ner .sql</button>
@@ -727,6 +736,7 @@
       <h3 style="font-size:14px;color:var(--blue);margin-bottom:8px">Ladda ner bilder</h3>
       <p style="font-size:13px;color:var(--muted);margin-bottom:12px">Laddar ner alla kort- och skill-bilder från PocketBase. Sparas i undermapparna <code>skills/</code>, <code>structure/</code>, <code>minon/</code> och <code>spell/</code>.</p>
       <button class="btn btn-primary" id="btn-download-images">Ladda ner bilder (.zip)</button>
+      <button class="btn btn-danger" id="btn-abort-images" style="display:none">Avbryt</button>
       <span id="download-images-status" style="margin-left:12px;font-size:13px;color:var(--muted)"></span>
     </div>
   </div>

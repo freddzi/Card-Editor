@@ -1,14 +1,14 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg:        #0f0f1a;
-  --surface:   #16213e;
-  --surface2:  #1a2a50;
-  --border:    #2e3e6e;
+  --bg:        #0d0a06;
+  --surface:   #1a1008;
+  --surface2:  #24180c;
+  --border:    #3e2a16;
   --gold:      #c9a96e;
-  --blue:      #8ab4f8;
-  --text:      #dde2f0;
-  --muted:     #8899bb;
+  --blue:      #c8905a;
+  --text:      #e8ddd0;
+  --muted:     #8a7060;
   --danger:    #e05555;
   --green:     #5cb85c;
   --radius:    10px;
@@ -276,23 +276,23 @@ nav button.active { background: var(--surface2); color: var(--gold); font-weight
 
 /* ── THEMES ── */
 body.theme-dark {
-  --bg:      #05050d;
-  --surface:  #09091a;
-  --surface2: #0d0d22;
-  --border:   #141430;
-  --text:     #b8c4de;
-  --muted:    #4a5a90;
+  --bg:      #080604;
+  --surface:  #0f0904;
+  --surface2: #140d06;
+  --border:   #261808;
+  --text:     #c8bdb0;
+  --muted:    #5a4a38;
 }
 
 body.theme-light {
-  --bg:       #edf0f8;
+  --bg:       #f5ede0;
   --surface:  #ffffff;
-  --surface2: #dde5f5;
-  --border:   #aabbd8;
+  --surface2: #eddcc8;
+  --border:   #c0a080;
   --gold:     #7a4f0e;
-  --blue:     #2350c0;
-  --text:     #0d1830;
-  --muted:    #445080;
+  --blue:     #8a4a20;
+  --text:     #1e1008;
+  --muted:    #6a4a30;
   --danger:   #b52020;
   --green:    #2a7830;
 }
@@ -381,7 +381,7 @@ body.theme-light {
 
 .card-tile:hover {
   transform: translateY(-3px);
-  box-shadow: 0 8px 24px rgba(100,140,255,.2);
+  box-shadow: 0 8px 24px rgba(180,120,60,.25);
   border-color: var(--blue);
 }
 
@@ -412,9 +412,9 @@ body.theme-light {
   position: absolute;
   top: 6px;
   right: 6px;
-  background: #1a3a6e;
-  border: 2px solid #5588cc;
-  color: #8ab4f8;
+  background: #2a1808;
+  border: 2px solid #7a4a20;
+  color: #c8905a;
   font-size: 14px;
   font-weight: 800;
   width: 26px;
@@ -754,14 +754,14 @@ body.theme-light {
 }
 
 #sql-output {
-  background: #0a0a14;
+  background: #0f0804;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 16px;
   font-family: 'Courier New', monospace;
   font-size: 12px;
   line-height: 1.6;
-  color: #b8d4ff;
+  color: #d4bea8;
   white-space: pre;
   overflow-x: auto;
   max-height: 600px;
@@ -1165,7 +1165,7 @@ body.theme-light {
 }
 
 .kw-tag.active {
-  background: #2a3a6a;
+  background: #2e1a08;
   border-color: var(--blue);
   color: var(--blue);
 }
@@ -1249,7 +1249,7 @@ body.theme-light {
 }
 
 .kw-dropdown-item:hover {
-  background: #1e2e4a;
+  background: #2a1a08;
   border-color: var(--blue);
   color: var(--blue);
 }
@@ -1455,7 +1455,7 @@ body.theme-light {
   border-radius: 3px;
   padding: 1px 5px;
   font-family: 'Courier New', monospace;
-  color: #b8d4ff;
+  color: #d4bea8;
   font-size: 11px;
 }
 
@@ -1560,13 +1560,13 @@ body.theme-light {
 }
 
 .guide-codebox {
-  background: #0a0a14;
+  background: #0f0804;
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 10px 14px;
   font-family: 'Courier New', monospace;
   font-size: 13px;
-  color: #b8d4ff;
+  color: #d4bea8;
   margin-bottom: 12px;
 }
 
@@ -1639,7 +1639,7 @@ body.theme-light {
 }
 
 .guide-table tr:hover td { background: var(--surface); }
-.guide-table code { background: var(--bg); border: 1px solid var(--border); border-radius: 3px; padding: 1px 5px; font-family: 'Courier New', monospace; color: #b8d4ff; font-size: 11px; }
+.guide-table code { background: var(--bg); border: 1px solid var(--border); border-radius: 3px; padding: 1px 5px; font-family: 'Courier New', monospace; color: #d4bea8; font-size: 11px; }
 .guide-table td.req { color: var(--danger); font-weight: 600; text-align: center; }
 
 /* ── SMART TEMPLATES ── */
@@ -1753,7 +1753,7 @@ body.theme-light {
   letter-spacing: 3px;
   text-transform: uppercase;
   white-space: nowrap;
-  background: linear-gradient(90deg, #c9a96e 0%, #f5e0a0 35%, #8ab4f8 55%, #c9a96e 100%);
+  background: linear-gradient(90deg, #c9a96e 0%, #f5e0a0 35%, #c8905a 55%, #c9a96e 100%);
   background-size: 250% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
