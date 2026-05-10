@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Card Editor</title>
+  <title>Decksmith-Nexus</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Roboto:wght@400;500;700&family=Open+Sans:wght@400;600;700&family=Lato:wght@400;700&family=Poppins:wght@400;500;600&family=Nunito:wght@400;600;700&family=Raleway:wght@400;600;700&family=Montserrat:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
@@ -13,7 +13,7 @@
 
 <div id="login-screen">
   <div class="login-box">
-    <h1>Card Editor</h1>
+    <h1>Decksmith-Nexus</h1>
     <div class="field" style="margin-bottom:12px">
       <label>Email</label>
       <input id="login-email" type="email" placeholder="din@email.com" autocomplete="username">
@@ -29,9 +29,14 @@
 
 <div id="app" style="display:none">
 <header>
-  <h1>Card Editor</h1>
+  <h1>Decksmith-Nexus</h1>
   <nav>
-    <button data-page="page-overview" data-scroll="card-grid" class="active">Kort</button>
+    <div class="nav-hover-dropdown">
+      <button data-page="page-overview" data-scroll="card-grid" class="active">Kort ▾</button>
+      <div class="nav-dropdown-menu">
+        <button data-page="page-list">Listade kort</button>
+      </div>
+    </div>
     <button data-page="page-overview-skills">Skills</button>
     <div class="nav-dropdown">
       <button class="nav-dropdown-btn" id="nav-btn-add">Lägg till ▾</button>
@@ -40,21 +45,30 @@
         <button data-page="page-add-skill">Lägg till skill</button>
       </div>
     </div>
-    <button data-page="page-list">Listade kort</button>
-    <button data-page="page-design">Speldesign</button>
+    <div class="nav-dropdown">
+      <button class="nav-dropdown-btn" id="nav-btn-design">Speldesign ▾</button>
+      <div class="nav-dropdown-menu">
+        <button data-page="page-design">Speldesign</button>
+        <button data-page="page-gameboard">Spelbräde</button>
+      </div>
+    </div>
     <button data-page="page-templates">Mallar</button>
     <div class="nav-dropdown">
-      <button class="nav-dropdown-btn" id="nav-btn-advanced">Avancerat ▾</button>
+      <button class="nav-dropdown-btn" id="nav-btn-advanced">Export/Ladda ner ▾</button>
       <div class="nav-dropdown-menu">
         <button data-page="page-export">Exportera SQL</button>
+        <div class="nav-submenu-item">
+          <button class="nav-submenu-label"><span>Zip-filer</span><span>▸</span></button>
+          <div class="nav-submenu">
+            <button data-page="page-upload-zip">Lägg till</button>
+            <button data-page="page-zip-list">Ladda ner</button>
+          </div>
+        </div>
       </div>
     </div>
   </nav>
   <span class="project-sig">✦ Project Nårth ✦</span>
-  <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
-    <button class="btn donate-btn" id="btn-donate" style="font-size:12px;padding:6px 14px">Donate Fredde 💸</button>
-    <span class="hrs-text" style="font-size:10px;letter-spacing:0.05em">We accept Hrs</span>
-  </div>
+  <button class="btn donate-btn" id="btn-donate" style="font-size:12px;padding:6px 14px">Donate Fredde 💸</button>
   <div class="nav-dropdown settings-dd">
     <button class="nav-dropdown-btn" id="btn-settings">⚙ Inställningar ▾</button>
     <div class="nav-dropdown-menu settings-menu">
@@ -171,6 +185,55 @@
       </thead>
       <tbody id="list-tbody"></tbody>
     </table>
+  </div>
+</section>
+
+<!-- ── UPLOAD ZIP ── -->
+<section id="page-upload-zip" class="page">
+  <div class="form-wrap">
+    <h2>Ladda upp zip</h2>
+    <form id="zip-upload-form" autocomplete="off">
+      <div class="form-section">
+        <legend>Fil</legend>
+        <div class="field-row">
+          <div class="field field-full">
+            <label>Zip-fil *</label>
+            <div class="artwork-upload">
+              <div class="artwork-right">
+                <div class="btn-upload" onclick="document.getElementById('zip-file-input').click()">Välj zip…</div>
+                <input type="file" id="zip-file-input" accept=".zip,application/zip" style="display:none">
+                <span id="zip-filename" style="font-size:12px;color:var(--muted)">Ingen fil vald</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="form-section">
+        <legend>Info</legend>
+        <div class="field-row">
+          <div class="field field-full">
+            <label>Namn *</label>
+            <input id="zip-name" placeholder="t.ex. Spelljud v2" required>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field field-full">
+            <label>Beskrivning</label>
+            <textarea id="zip-description" placeholder="Vad innehåller zipen?" rows="3"></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" id="btn-zip-reset">Återställ</button>
+        <button type="submit" class="btn btn-primary" id="btn-zip-submit">Ladda upp</button>
+      </div>
+    </form>
+    <div id="zip-status" style="margin-top:12px;font-size:13px;color:var(--muted)"></div>
+
+    <div class="form-section" style="margin-top:28px">
+      <legend>Uppladdade zippar</legend>
+      <div id="zip-list" style="margin-top:10px"></div>
+    </div>
   </div>
 </section>
 
@@ -620,6 +683,14 @@
 </section>
 
 <!-- ── EXPORT ── -->
+<!-- ── ZIP LIST ── -->
+<section id="page-zip-list" class="page">
+  <div class="form-wrap">
+    <h2>Zip-filer</h2>
+    <div id="ziplist-list" style="margin-top:16px"></div>
+  </div>
+</section>
+
 <section id="page-export" class="page">
   <div class="export-wrap">
     <h2>Exportera SQL</h2>
@@ -640,7 +711,7 @@
 
     <div style="margin-top:32px;padding-top:24px;border-top:1px solid var(--border)">
       <h3 style="font-size:14px;color:var(--blue);margin-bottom:8px">Ladda ner bilder</h3>
-      <p style="font-size:13px;color:var(--muted);margin-bottom:12px">Laddar ner alla kort- och skill-bilder från PocketBase. Sparas i undermapparna <code>cards/</code> och <code>skills/</code>.</p>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:12px">Laddar ner alla kort- och skill-bilder från PocketBase. Sparas i undermapparna <code>skills/</code>, <code>structure/</code>, <code>minon/</code> och <code>spell/</code>.</p>
       <button class="btn btn-primary" id="btn-download-images">Ladda ner bilder (.zip)</button>
       <span id="download-images-status" style="margin-left:12px;font-size:13px;color:var(--muted)"></span>
     </div>
@@ -648,6 +719,58 @@
 </section>
 
 <!-- ── SPELDESIGN ── -->
+<!-- ── GAMEBOARD ── -->
+<section id="page-gameboard" class="page">
+  <div class="form-wrap">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <h2 style="margin:0">Spelbräde</h2>
+      <button class="btn btn-primary" id="btn-gb-new">+ Lägg till bräde/detaljer</button>
+    </div>
+
+    <div id="gb-form-wrap" style="display:none;margin-bottom:28px">
+      <form id="gameboard-form" autocomplete="off">
+        <div class="form-section">
+          <legend>Bild</legend>
+          <div class="field-row">
+            <div class="field field-full">
+              <div class="artwork-upload">
+                <div class="artwork-preview" id="gb-preview">🖼</div>
+                <div class="artwork-right">
+                  <div class="btn-upload" onclick="document.getElementById('gb-input').click()">Välj fil…</div>
+                  <input type="file" id="gb-input" accept="image/*" style="display:none">
+                  <span id="gb-filename" style="font-size:12px;color:var(--muted)">Ingen fil vald</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="form-section">
+          <legend>Info</legend>
+          <div class="field-row">
+            <div class="field field-full">
+              <label>Namn *</label>
+              <input id="gb-name" placeholder="t.ex. Skogsbrädet" required>
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field field-full">
+              <label>Beskrivning</label>
+              <textarea id="gb-description" placeholder="Beskriv brädet…" rows="3"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" id="btn-gb-cancel">Avbryt</button>
+          <button type="submit" class="btn btn-primary" id="btn-gb-submit">Spara bräde</button>
+        </div>
+      </form>
+      <div id="gb-status" style="margin-top:10px;font-size:13px;color:var(--muted)"></div>
+    </div>
+
+    <div id="gb-list"></div>
+  </div>
+</section>
+
 <section id="page-design" class="page">
   <div class="design-wrap">
     <div class="design-header">

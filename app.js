@@ -188,9 +188,13 @@ const pages   = document.querySelectorAll('.page');
 const navBtns = document.querySelectorAll('nav button[data-page]');
 
 const DROPDOWN_PARENTS = {
-  'page-add':       'nav-btn-add',
-  'page-add-skill': 'nav-btn-add',
-  'page-export':    'nav-btn-advanced',
+  'page-add':         'nav-btn-add',
+  'page-add-skill':   'nav-btn-add',
+  'page-upload-zip':  'nav-btn-advanced',
+  'page-design':      'nav-btn-design',
+  'page-gameboard':   'nav-btn-design',
+  'page-export':      'nav-btn-advanced',
+  'page-zip-list':    'nav-btn-advanced',
 };
 
 function showPage(id) {
@@ -234,6 +238,10 @@ document.querySelectorAll('.nav-dropdown-btn').forEach(btn => {
 });
 
 document.addEventListener('click', closeAllDropdowns);
+
+document.querySelectorAll('.nav-submenu button[data-page]').forEach(btn => {
+  btn.addEventListener('click', closeAllDropdowns);
+});
 
 // ── Toast ─────────────────────────────────────────────────────────────────────
 const toast = document.getElementById('toast');
@@ -468,7 +476,7 @@ function openCardDetail(card) {
     : '<div style="color:var(--muted);text-align:center;padding:40px">Ingen bild</div>';
 
   detailName.textContent = card.name;
-  detailId.textContent   = `${card.id} · ${card.card_class || '-'} · Mana ${card.mana}`;
+  detailId.textContent   = `${displayId(card.id)} · ${card.card_class || '-'} · Mana ${card.mana}`;
 
   detailBadges.innerHTML = `
     <span class="badge badge-${card.card_type}">${card.card_type}</span>
@@ -3053,6 +3061,246 @@ function initSmartTemplates() {
 }
 
 document.querySelector('.tpl-tab-btn[data-tab="smart"]').addEventListener('click', initSmartTemplates);
+
+// ── Zip Upload ────────────────────────────────────────────────────────────────
+(function () {
+  const zipForm     = document.getElementById('zip-upload-form');
+  const zipFileInput = document.getElementById('zip-file-input');
+  const zipFilename  = document.getElementById('zip-filename');
+  const zipName      = document.getElementById('zip-name');
+  const zipDesc      = document.getElementById('zip-description');
+  const zipStatus    = document.getElementById('zip-status');
+  const zipList      = document.getElementById('zip-list');
+  const zipSubmit    = document.getElementById('btn-zip-submit');
+
+  let selectedZipFile = null;
+
+  zipFileInput.addEventListener('change', () => {
+    selectedZipFile = zipFileInput.files[0] || null;
+    zipFilename.textContent = selectedZipFile ? selectedZipFile.name : 'Ingen fil vald';
+  });
+
+  document.getElementById('btn-zip-reset').addEventListener('click', () => {
+    zipForm.reset();
+    selectedZipFile = null;
+    zipFilename.textContent = 'Ingen fil vald';
+    zipStatus.textContent = '';
+  });
+
+  zipForm.addEventListener('submit', async e => {
+    e.preventDefault();
+    if (!selectedZipFile) { zipStatus.textContent = 'Välj en zip-fil.'; return; }
+    zipSubmit.disabled = true;
+    zipSubmit.textContent = 'Laddar upp…';
+    zipStatus.textContent = '';
+    try {
+      const fd = new FormData();
+      fd.append('name', zipName.value.trim());
+      fd.append('description', zipDesc.value.trim());
+      fd.append('field', selectedZipFile);
+      await pb.collection('zip_uploads').create(fd);
+      zipStatus.textContent = 'Uppladdning klar!';
+      zipForm.reset();
+      selectedZipFile = null;
+      zipFilename.textContent = 'Ingen fil vald';
+      await renderZipList();
+    } catch (err) {
+      zipStatus.textContent = 'Fel: ' + (err.message || err);
+    } finally {
+      zipSubmit.disabled = false;
+      zipSubmit.textContent = 'Ladda upp';
+    }
+  });
+
+  async function renderZipList() {
+    zipList.textContent = 'Laddar…';
+    try {
+      const items = await pb.collection('zip_uploads').getFullList({ sort: '-created', requestKey: null });
+      if (!items.length) { zipList.textContent = 'Inga zippar uppladdade ännu.'; return; }
+      zipList.innerHTML = items.map(item => {
+        const fileUrl = item.field ? pb.files.getURL(item, item.field) : null;
+        return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+          <div style="flex:1">
+            <strong>${item.name}</strong>
+            ${item.description ? `<div style="font-size:12px;color:var(--muted)">${item.description}</div>` : ''}
+            <div style="font-size:11px;color:var(--muted)">${new Date(item.created).toLocaleString('sv')}</div>
+          </div>
+          ${fileUrl ? `<a href="${fileUrl}" download class="btn btn-secondary" style="font-size:12px">Ladda ner</a>` : ''}
+          <button class="btn btn-secondary" style="font-size:12px;color:var(--danger)" data-zip-delete="${item.id}">Ta bort</button>
+        </div>`;
+      }).join('');
+      zipList.querySelectorAll('[data-zip-delete]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('Ta bort denna zip?')) return;
+          await pb.collection('zip_uploads').delete(btn.dataset.zipDelete);
+          await renderZipList();
+        });
+      });
+    } catch (err) {
+      zipList.textContent = 'Kunde inte hämta lista: ' + (err.message || err);
+    }
+  }
+
+  document.querySelector('nav button[data-page="page-upload-zip"]').addEventListener('click', renderZipList);
+})();
+
+// ── Gameboard ─────────────────────────────────────────────────────────────────
+(function () {
+  const gbFormWrap = document.getElementById('gb-form-wrap');
+  const gbForm     = document.getElementById('gameboard-form');
+  const gbInput    = document.getElementById('gb-input');
+  const gbPreview  = document.getElementById('gb-preview');
+  const gbFilename = document.getElementById('gb-filename');
+  const gbName     = document.getElementById('gb-name');
+  const gbDesc     = document.getElementById('gb-description');
+  const gbStatus   = document.getElementById('gb-status');
+  const gbList     = document.getElementById('gb-list');
+  const gbSubmit   = document.getElementById('btn-gb-submit');
+
+  let selectedFile = null;
+
+  function openForm() { gbFormWrap.style.display = 'block'; }
+  function closeForm() {
+    gbFormWrap.style.display = 'none';
+    gbForm.reset();
+    selectedFile = null;
+    gbPreview.innerHTML = '🖼';
+    gbFilename.textContent = 'Ingen fil vald';
+    gbStatus.textContent = '';
+  }
+
+  document.getElementById('btn-gb-new').addEventListener('click', openForm);
+  document.getElementById('btn-gb-cancel').addEventListener('click', closeForm);
+
+  gbInput.addEventListener('change', () => {
+    selectedFile = gbInput.files[0] || null;
+    gbFilename.textContent = selectedFile ? selectedFile.name : 'Ingen fil vald';
+    if (selectedFile) {
+      const reader = new FileReader();
+      reader.onload = e => { gbPreview.innerHTML = `<img src="${e.target.result}" alt="" style="max-width:100%;max-height:100%;object-fit:contain">`; };
+      reader.readAsDataURL(selectedFile);
+    } else {
+      gbPreview.innerHTML = '🖼';
+    }
+  });
+
+  gbForm.addEventListener('submit', async e => {
+    e.preventDefault();
+    gbSubmit.disabled = true;
+    gbSubmit.textContent = 'Sparar…';
+    gbStatus.textContent = '';
+    try {
+      const fd = new FormData();
+      fd.append('name', gbName.value.trim());
+      fd.append('description', gbDesc.value.trim());
+      if (selectedFile) fd.append('image', selectedFile);
+      await pb.collection('gameboards').create(fd);
+      closeForm();
+      await renderGbList();
+    } catch (err) {
+      gbStatus.textContent = 'Fel: ' + (err.message || err);
+    } finally {
+      gbSubmit.disabled = false;
+      gbSubmit.textContent = 'Spara bräde';
+    }
+  });
+
+  async function renderGbList() {
+    gbList.textContent = 'Laddar…';
+    try {
+      const items = await pb.collection('gameboards').getFullList({ sort: '-created', requestKey: null });
+      if (!items.length) { gbList.innerHTML = '<p style="color:var(--muted);font-size:13px">Inga bräden uppladdade än.</p>'; return; }
+      gbList.innerHTML = items.map(item => {
+        const url = item.image ? pb.files.getURL(item, item.image) : null;
+        return `<div style="border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:16px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+            <div>
+              <strong style="font-size:15px">${item.name}</strong>
+              ${item.description ? `<p style="font-size:13px;color:var(--muted);margin:4px 0 0">${item.description}</p>` : ''}
+            </div>
+            <button class="btn btn-secondary" style="font-size:12px;color:var(--danger)" data-gb-delete="${item.id}">Ta bort</button>
+          </div>
+          ${url ? `<div style="margin-top:8px">
+            <img src="${url}" style="max-width:100%;border-radius:6px;border:1px solid var(--border);display:block;margin-bottom:8px">
+            <button class="btn btn-secondary" style="font-size:12px" data-gb-download-url="${url}" data-gb-download-name="${item.image}">Ladda ner</button>
+            <button class="btn btn-secondary" style="font-size:12px;margin-left:6px" data-gb-preview-url="${url}">Förhandsvisning</button>
+          </div>` : ''}
+        </div>`;
+      }).join('');
+      gbList.querySelectorAll('[data-gb-delete]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('Ta bort detta bräde?')) return;
+          await pb.collection('gameboards').delete(btn.dataset.gbDelete);
+          await renderGbList();
+        });
+      });
+      gbList.querySelectorAll('[data-gb-download-url]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const url  = btn.dataset.gbDownloadUrl;
+          const name = btn.dataset.gbDownloadName;
+          const blob = await fetch(url).then(r => r.blob());
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = name;
+          a.click();
+          URL.revokeObjectURL(a.href);
+        });
+      });
+      gbList.querySelectorAll('[data-gb-preview-url]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const overlay = document.createElement('div');
+          overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.9);display:flex;align-items:center;justify-content:center;z-index:9999;cursor:zoom-out';
+          overlay.innerHTML = `<img src="${btn.dataset.gbPreviewUrl}" style="max-width:95vw;max-height:95vh;object-fit:contain">`;
+          overlay.addEventListener('click', () => overlay.remove());
+          document.body.appendChild(overlay);
+        });
+      });
+    } catch (err) {
+      gbList.textContent = 'Kunde inte hämta lista: ' + (err.message || err);
+    }
+  }
+
+  document.querySelector('nav button[data-page="page-gameboard"]').addEventListener('click', renderGbList);
+})();
+
+// ── Zip List ──────────────────────────────────────────────────────────────────
+(function () {
+  const listEl = document.getElementById('ziplist-list');
+
+  async function renderZipListPage() {
+    listEl.textContent = 'Laddar…';
+    try {
+      const items = await pb.collection('zip_uploads').getFullList({ sort: '-created', requestKey: null });
+      if (!items.length) { listEl.innerHTML = '<p style="color:var(--muted);font-size:13px">Inga zip-filer uppladdade än.</p>'; return; }
+      listEl.innerHTML = items.map(item => {
+        const filename = Array.isArray(item.field) ? item.field[0] : item.field;
+        const url = filename ? `${PB_URL}/api/files/zip_uploads/${item.id}/${encodeURIComponent(filename)}` : null;
+        return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
+          <div style="flex:1">
+            <strong>${item.name}</strong>
+            ${item.description ? `<div style="font-size:12px;color:var(--muted)">${item.description}</div>` : ''}
+            <div style="font-size:11px;color:var(--muted)">${new Date(item.created).toLocaleString('sv')}</div>
+          </div>
+          ${url ? `<button class="btn btn-secondary" style="font-size:12px" data-zl-url="${url}" data-zl-name="${filename}">Ladda ner</button>` : '<span style="font-size:12px;color:var(--muted)">Ingen fil</span>'}
+        </div>`;
+      }).join('');
+      listEl.querySelectorAll('[data-zl-url]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const blob = await fetch(btn.dataset.zlUrl).then(r => r.blob());
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = btn.dataset.zlName;
+          a.click();
+          URL.revokeObjectURL(a.href);
+        });
+      });
+    } catch (err) {
+      listEl.textContent = 'Kunde inte hämta lista: ' + (err.message || err);
+    }
+  }
+
+  document.querySelector('nav button[data-page="page-zip-list"]').addEventListener('click', renderZipListPage);
+})();
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 initAuth();
