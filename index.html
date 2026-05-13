@@ -490,6 +490,31 @@
             <div id="minion-filter-ui"></div>
           </div>
         </div>
+        <legend style="margin-top:16px">Minion — Passive (Aura)</legend>
+        <div class="field-row">
+          <div class="field">
+            <label>Passive ID</label>
+            <select name="passive_id" id="passive_id">
+              <option value="">— ingen —</option>
+              <option value="pack_buff">pack_buff</option>
+            </select>
+          </div>
+          <div class="field" id="passive-value-wrap">
+            <label>Per-Minion Bonus</label>
+            <input name="passive_value" type="number" value="0" min="0">
+          </div>
+          <div class="field" id="passive-cap-wrap">
+            <label>Cap (0 = obegränsat)</label>
+            <input name="passive_cap" type="number" value="0" min="0">
+          </div>
+        </div>
+        <div class="field-row" id="passive-arg-row" style="display:none">
+          <div class="field field-full">
+            <label>Passive Arg</label>
+            <input name="passive_arg" id="passive_arg_hidden" type="hidden">
+            <div id="passive-arg-ui"></div>
+          </div>
+        </div>
       </div>
 
       <!-- SPELL -->
@@ -996,6 +1021,7 @@
               <tr><td><code>TOXIC</code></td><td>Dödar omedelbart allt den skadar, oavsett hur mycket HP målet har.</td></tr>
               <tr><td><code>VAMPIRISM</code></td><td>Läker ägaren med samma mängd skada den gör (lifesteal).</td></tr>
               <tr><td><code>INSTANT</code></td><td>Enbart stavningar — kan spelas under blockfönstret (som en reaktion).</td></tr>
+              <tr><td><code>RESURRECT</code></td><td>Kan återkallas från graven mot mana-kostnad istället för liv. Normalt kostar det LIV att återliva en minion — en RESURRECT-minion kan spelas ut igen mot sin vanliga mana-kostnad, precis som från handen. Återkommer med full HP utan buffs. Kan återkallas flera gånger.</td></tr>
             </tbody>
           </table>
           <div class="guide-tip">Exempel: skriv <code>FLYING, RAPID</code> eller <code>DOUBLE_STRIKE, VAMPIRISM</code> i keywords-fältet.</div>
