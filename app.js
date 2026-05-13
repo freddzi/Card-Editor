@@ -1,8 +1,21 @@
 'use strict';
 
 // ── PocketBase ────────────────────────────────────────────────────────────────
-const PB_URL = 'https://information-fare-reviews-pairs.trycloudflare.com';
+let PB_URL = 'https://peterson-fair-tail-del.trycloudflare.com';
 const pb = new PocketBase(PB_URL);
+
+async function _initPbUrl() {
+  try {
+    const r = await fetch('pb_url.txt?_=' + Date.now());
+    if (r.ok) {
+      const url = (await r.text()).trim();
+      if (url.startsWith('http')) {
+        PB_URL = url;
+        pb.baseUrl = url;
+      }
+    }
+  } catch (_) {}
+}
 
 function imgUrl(record, field, index = 0, bust = false, thumb = '') {
   const val = record?.[field];
@@ -127,6 +140,8 @@ document.getElementById('btn-login').addEventListener('click', async () => {
   const password = document.getElementById('login-password').value;
   const errEl    = document.getElementById('login-error');
   errEl.style.display = 'none';
+
+  await _initPbUrl();
 
   let loginErr = null;
   try {
@@ -546,11 +561,11 @@ btnDelOk.addEventListener('click', async () => {
 const ALL_KEYWORDS = [
   'FLYING','RAPID','RANGE','REACH','FIRST_STRIKE','DOUBLE_STRIKE',
   'TWINSTRIKE','CANT_ATTACK','PARRY','IRON_SKIN','TOXIC','VAMPIRISM','INSTANT',
-  'STUN','SCARE','GUARDIAN','STEALTH','CANT_BLOCK','CONSUME'
+  'STUN','SCARE','GUARDIAN','STEALTH','CANT_BLOCK','CONSUME','RESURRECT'
 ];
 
 const EFFECT_GROUPS = [
-  { group: 'Implementerade i Godot', items: ['deal_damage','draw_card','draw_spell','heal','chain','remove_minion','buff_minion'] },
+  { group: 'Implementerade i Godot', items: ['deal_damage','draw_card','draw_spell','heal','chain','remove_minion','buff_minion','vanish'] },
 ];
 
 function buildEffectOptions() {
@@ -596,6 +611,95 @@ function syncTargetingModeOptions(effectSel, targetingSel) {
   eff.addEventListener('change', () => syncTargetingModeOptions(eff, tgt));
 });
 
+// ── Vanish ability defaults ───────────────────────────────
+{
+  const abilityIdSel = document.querySelector('[name="ability_id"]');
+  if (abilityIdSel) {
+    abilityIdSel.addEventListener('change', () => {
+      if (abilityIdSel.value !== 'vanish') return;
+      const triggerSel  = document.querySelector('[name="ability_trigger"]');
+      const targetSel   = document.querySelector('[name="ability_target_mode"]');
+      const targModeSel = document.querySelector('[name="ability_targeting_mode"]');
+      if (triggerSel)  triggerSel.value  = 'on_attack';
+      if (targetSel)   targetSel.value   = 'self';
+      if (targModeSel) targModeSel.value = 'auto';
+    });
+  }
+}
+
+// ── Passive arg UI (pack_buff) ────────────────────────────
+
+function buildPassiveArgUI(passiveId, container, hiddenInput, initialValue = '') {
+  container.innerHTML = '';
+  const argRow = document.getElementById('passive-arg-row');
+  if (argRow) argRow.style.display = passiveId === 'pack_buff' ? '' : 'none';
+  if (passiveId !== 'pack_buff') {
+    hiddenInput.value = '';
+    return;
+  }
+
+  // Parse initial: "stat" or "stat:subtype"
+  let initStat = 'atk', initSub = '';
+  if (initialValue) {
+    const parts = initialValue.split(':');
+    initStat = parts[0] || 'atk';
+    initSub  = parts[1] || '';
+  }
+
+  const row = document.createElement('div');
+  row.className = 'field-row';
+
+  const statWrap = document.createElement('div');
+  statWrap.className = 'field';
+  statWrap.innerHTML = `<label>Stat</label>
+    <select class="pa-stat">
+      <option value="atk"${initStat==='atk'?' selected':''}>atk</option>
+      <option value="hp"${initStat==='hp'?' selected':''}>hp</option>
+      <option value="both"${initStat==='both'?' selected':''}>both</option>
+    </select>`;
+
+  const subWrap = document.createElement('div');
+  subWrap.className = 'field';
+  subWrap.innerHTML = `<label>Subtype filter (tom = alla)</label>
+    <input class="pa-sub" type="text" placeholder="skeleton" value="${initSub}">`;
+
+  row.appendChild(statWrap);
+  row.appendChild(subWrap);
+  container.appendChild(row);
+
+  const compose = () => {
+    const stat = container.querySelector('.pa-stat').value;
+    const sub  = container.querySelector('.pa-sub').value.trim().toLowerCase();
+    hiddenInput.value = sub ? `${stat}:${sub}` : stat;
+  };
+  container.querySelectorAll('.pa-stat,.pa-sub').forEach(el => {
+    el.addEventListener('change', compose);
+    el.addEventListener('input', compose);
+  });
+  compose();
+}
+
+function reloadPassiveArgUI() {
+  const passiveSel = document.querySelector('#passive_id');
+  const container  = document.querySelector('#passive-arg-ui');
+  const hidden     = document.querySelector('#passive_arg_hidden');
+  if (!passiveSel || !container || !hidden) return;
+  buildPassiveArgUI(passiveSel.value, container, hidden, hidden.value);
+}
+
+{
+  const passiveSel = document.querySelector('#passive_id');
+  if (passiveSel) {
+    passiveSel.addEventListener('change', () => {
+      const container = document.querySelector('#passive-arg-ui');
+      const hidden    = document.querySelector('#passive_arg_hidden');
+      if (container && hidden) buildPassiveArgUI(passiveSel.value, container, hidden, '');
+    });
+    // initial render
+    reloadPassiveArgUI();
+  }
+}
+
 // ── Dynamic effect_arg UI ─────────────────────────────────
 
 const ARG_SETUPS = [
@@ -635,6 +739,13 @@ const ABILITY_EFFECTS = new Set(['deal_damage','heal','remove_minion','draw_card
 function buildArgUI(effectId, targetingMode, container, argInput, initialValue = '', context = 'ability') {
   container.innerHTML = '';
   const raw = initialValue || '';
+
+  // Restore value field visibility (may have been hidden by a previous vanish selection)
+  const _valueWrapId = context === 'spell' ? 'effect-value-wrap'
+                     : context === 'structure' ? 's-ability-value-wrap'
+                     : 'ability-value-wrap';
+  const _vWrap = document.getElementById(_valueWrapId);
+  if (_vWrap) _vWrap.style.display = '';
 
   // ── buff_minion ──────────────────────────────────────────────────────────────
   if (effectId === 'buff_minion') {
@@ -766,6 +877,103 @@ function buildArgUI(effectId, targetingMode, container, argInput, initialValue =
       el.addEventListener('input',  composeBuff);
     });
     composeBuff();
+    return;
+  }
+
+  // ── vanish ───────────────────────────────────────────────────────────────
+  if (effectId === 'vanish') {
+    // Format: "[cost:discard:N:]duration:X[:fx]"
+    let hasCost = false, costCount = 1, initDur = '1', initFx = '';
+    let remaining = raw;
+    if (context === 'ability' && raw.startsWith('cost:')) {
+      hasCost = true;
+      const p = raw.split(':');
+      costCount = parseInt(p[2], 10) || 1;
+      remaining = p.slice(3).join(':');
+    }
+    if (remaining.startsWith('duration:')) {
+      const p = remaining.split(':');
+      initDur = p[1] || '1';
+      initFx  = p[2] || '';
+    }
+
+    const valueWrapId = context === 'spell' ? 'effect-value-wrap'
+                      : context === 'structure' ? 's-ability-value-wrap'
+                      : 'ability-value-wrap';
+    const vWrap = document.getElementById(valueWrapId);
+    if (vWrap) vWrap.style.display = 'none';
+
+    const fxOpts = FX_OPTIONS.map(f => `<option value="${f}">${f}</option>`).join('');
+    const costBlock = context === 'ability' ? `
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px;align-items:flex-end">
+        <div class="field" style="flex:1;min-width:140px">
+          <label style="font-size:12px">Kostnad (utöver mana)</label>
+          <select class="arg-cost-type">
+            <option value="mana">Ingen extra kostnad</option>
+            <option value="discard">Kasta kort (discard)</option>
+          </select>
+        </div>
+        <div class="field arg-discard-count-wrap" style="flex:0 0 auto;min-width:80px">
+          <label style="font-size:12px">Antal kort</label>
+          <input class="arg-discard-count" type="number" min="1" max="5" value="${costCount}">
+        </div>
+      </div>` : '';
+
+    container.innerHTML = costBlock + `
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+        <div class="field" style="flex:1;min-width:140px">
+          <label style="font-size:12px">Varaktighet</label>
+          <select class="arg-vanish-dur">
+            <option value="1">1 tur</option>
+            <option value="2">2 turer</option>
+            <option value="permanent">permanent</option>
+          </select>
+        </div>
+        <div class="field" style="flex:1;min-width:140px">
+          <label style="font-size:12px">Animering (FX)</label>
+          <select class="arg-fx">
+            <option value="">— ingen —</option>
+            ${fxOpts}
+          </select>
+        </div>
+      </div>`;
+
+    container.querySelector('.arg-vanish-dur').value = initDur;
+    container.querySelector('.arg-fx').value = initFx;
+
+    if (context === 'ability') {
+      const costSel   = container.querySelector('.arg-cost-type');
+      const countWrap = container.querySelector('.arg-discard-count-wrap');
+      costSel.value = hasCost ? 'discard' : 'mana';
+      countWrap.style.display = hasCost ? '' : 'none';
+    }
+
+    const composeVanish = () => {
+      const dur    = container.querySelector('.arg-vanish-dur').value;
+      const fx     = container.querySelector('.arg-fx').value;
+      const durStr = fx ? `duration:${dur}:${fx}` : `duration:${dur}`;
+      if (context === 'ability') {
+        const costSel   = container.querySelector('.arg-cost-type');
+        const countWrap = container.querySelector('.arg-discard-count-wrap');
+        const countEl   = container.querySelector('.arg-discard-count');
+        if (costSel.value === 'discard') {
+          const n = Math.max(1, parseInt(countEl.value, 10) || 1);
+          argInput.value = `cost:discard:${n}:${durStr}`;
+          countWrap.style.display = '';
+        } else {
+          argInput.value = durStr;
+          countWrap.style.display = 'none';
+        }
+      } else {
+        argInput.value = durStr;
+      }
+    };
+
+    container.querySelectorAll('.arg-vanish-dur,.arg-fx,.arg-cost-type,.arg-discard-count').forEach(el => {
+      el.addEventListener('change', composeVanish);
+      el.addEventListener('input',  composeVanish);
+    });
+    composeVanish();
     return;
   }
 
@@ -1225,6 +1433,11 @@ async function openEditForm(card) {
     document.querySelector('#minion-ability-arg').value    = card.ability_arg    || '';
     document.querySelector('#minion-target-filter').value  = card.target_filter  || '';
     reloadArgUI('[name="ability_id"]','[name="ability_targeting_mode"]','#minion-ability-arg','#minion-arg-ui','#minion-target-filter','#minion-filter-ui');
+    setFieldVal('passive_id', card.passive_id || '');
+    setFieldVal('passive_value', card.passive_value || 0);
+    setFieldVal('passive_cap', card.passive_cap || 0);
+    document.querySelector('#passive_arg_hidden').value = card.passive_arg || '';
+    reloadPassiveArgUI();
   } else if (card.card_type === 'spell') {
     setFieldVal('effect_id', card.effect_id); setFieldVal('effect_value', card.effect_value);
     setFieldVal('target_mode', card.target_mode); setFieldVal('targeting_mode', card.targeting_mode);
@@ -1343,6 +1556,10 @@ form.addEventListener('submit', async e => {
       ability_targeting_mode: get('ability_targeting_mode') || 'explicit',
       ability_value: parseInt(get('ability_value')) || 0,
       ability_arg: abilityArg,
+      passive_id: get('passive_id') || '',
+      passive_arg: get('passive_arg') || '',
+      passive_value: parseInt(get('passive_value')) || 0,
+      passive_cap: parseInt(get('passive_cap')) || 0,
     };
   } else if (base.card_type === 'spell') {
     const effectId  = get('effect_id');
@@ -1474,10 +1691,10 @@ function buildSQL(rawCards) {
   const structures = cards.filter(c => c.card_type === 'structure');
 
   if (minions.length) {
-    sql += `\n\nINSERT INTO minion_cards (\n    card_id, attack, health, subtype, ability_id, ability_trigger, ability_cost, ability_target_mode, ability_targeting_mode, ability_value, ability_arg, target_filter\n) VALUES\n`;
+    sql += `\n\nINSERT INTO minion_cards (\n    card_id, attack, health, subtype, ability_id, ability_trigger, ability_cost, ability_target_mode, ability_targeting_mode, ability_value, ability_arg, target_filter, passive_id, passive_arg, passive_value, passive_cap\n) VALUES\n`;
     sql += minions.map((c, i) => {
       const comma = i < minions.length - 1 ? ',' : ';';
-      return `    ('${esc(c.id)}', ${c.attack??0}, ${c.health??0}, '${esc(c.subtype)}', '${esc(c.ability_id)}', '${esc(c.ability_trigger)}', ${c.ability_cost??0}, '${esc(c.ability_target_mode)}', '${esc(c.ability_targeting_mode)||'explicit'}', ${c.ability_value??0}, '${esc(c.ability_arg)}', '${esc(c.target_filter)}')${comma}`;
+      return `    ('${esc(c.id)}', ${c.attack??0}, ${c.health??0}, '${esc(c.subtype)}', '${esc(c.ability_id)}', '${esc(c.ability_trigger)}', ${c.ability_cost??0}, '${esc(c.ability_target_mode)}', '${esc(c.ability_targeting_mode)||'explicit'}', ${c.ability_value??0}, '${esc(c.ability_arg)}', '${esc(c.target_filter)}', '${esc(c.passive_id||'')}', '${esc(c.passive_arg||'')}', ${c.passive_value??0}, ${c.passive_cap??0})${comma}`;
     }).join('\n');
   }
 
@@ -1934,6 +2151,7 @@ async function seedDocsIfEmpty() {
     { category:'keyword', title:'LURKER', body:'Minionen kan inte väljas som mål av motståndarens spell-effekter.\nKan heller inte attackeras direkt av fiendens minions.\nStealth-liknande skydd men utan att brytas vid attack.', tags:'evasion,defense', in_godot:true },
     { category:'keyword', title:'SURGE', body:'När minionen attackerar får ägaren X temporär mana för den resterande turen.\nManan försvinner vid turens slut.\nFormatet är SURGE_X, t.ex. SURGE_2 ger 2 mana per attack.', tags:'mana,tempo', in_godot:true },
     { category:'keyword', title:'PLUNDER', body:'När minionen delar ut skada direkt mot motståndarens hjälte får ägaren X temporär mana för den resterande turen.\nManan försvinner vid turens slut.\nFormatet är PLUNDER_X, t.ex. PLUNDER_1.', tags:'mana,tempo,offense', in_godot:true },
+    { category:'keyword', title:'RESURRECT', body:'Minioner med RESURRECT kan återkallas från graven mot mana-kostnad istället för liv.\n\nNormalt kostar det LIV (HP) att återliva en minion från graven.\nEn RESURRECT-minion kan istället spelas ut på nytt mot sin normala mana-kostnad — precis som om du spelade den från handen.\n\nRegler:\n- Minionen måste vara i graven (ha dött under matchen).\n- Du betalar manakostnaden, inte liv.\n- Minionen återkommer med full HP och utan några buffs den haft.\n- RESURRECT-minionen kan återkallas hur många gånger som helst så länge du har mana.', tags:'resurrect,mana,graven' },
 
     // Effects — Skada & AOE
     { category:'effect', title:'deal_damage', body:'Delar ut X skada till ett mål.\nAnvänds av spells och minion-abilities.\neffect_value = mängd skada.\ntarget_mode avgör vad som kan träffas.', tags:'damage' },
@@ -1962,6 +2180,7 @@ async function seedDocsIfEmpty() {
     { category:'effect', title:'recurring_debuff', body:'Ger en minion -X/-X i attack och HP i slutet av varje tur.\neffect_value = mängd per tur. effect_arg = per_turn.', tags:'debuff,dot' },
 
     // Effects — Vanish & Rörelse
+    { category:'effect', title:'vanish', body:'Tar bort ett mål från fältet i X turer (eller permanent).\neffect_arg = duration:1 / duration:2 / duration:permanent.\ntarget_mode avgör vad som kan vanishas (friendly_minion, enemy_minion, any_minion).', tags:'vanish,evasion,control' },
     { category:'effect', title:'vanish_and_damage', body:'Tar bort en minion från fältet (den återkommer nästa tur) och delar ut X skada till ett annat mål.\neffect_value = skada. effect_arg anger skademålet.', tags:'vanish,damage' },
     { category:'effect', title:'vanish_cleanse', body:'Tar bort en vänlig minion från fältet tillfälligt. När den återvänder tas alla debuffar och curses bort.\neffect_value = antal turer borta.', tags:'vanish,cleanse' },
     { category:'effect', title:'vanish_to_lantern', body:'Tar bort en minion och spawnar en 0/4-struktur på FRONT_LINE i dess ställe.\nNär strukturen förstörs återkommer minionen.\ntarget_mode = any_minion.', tags:'vanish,structure' },
@@ -2009,6 +2228,7 @@ async function seedDocsIfEmpty() {
     { category:'ability', title:'on_survive_turn', body:'Förmågan triggar om minionen överlever till slutet av ägarens tur (den var vid liv vid turstarten och levde kvar).', tags:'trigger,endurance' },
     { category:'ability', title:'passive', body:'Förmågan är alltid aktiv och kräver ingen trigger.\nGäller konstant så länge minionen/strukturen är på fältet.', tags:'trigger,passive' },
     { category:'ability', title:'return_to_hand', body:'Skickar minionen tillbaka till ägarens hand.\nAble_id används vanligen med trigger on_damage eller on_attack.\nAll buffar som applicerats på fältet försvinner.', tags:'bounce,defense' },
+    { category:'ability', title:'vanish', body:'Minionen försvinner från fältet i X turer (eller permanent) när förmågan triggar.\nability_arg = duration:1 / duration:2 / duration:permanent.\nability_trigger avgör när det sker (on_play, on_attack, activate, osv.).', tags:'vanish,evasion,control' },
     { category:'ability', title:'vanish_after_attack', body:'Minionen försvinner från fältet efter sin attack och återkommer i BACK_LINE i nästa tur.\nability_arg = duration:1_turn.', tags:'vanish,evasion' },
     { category:'ability', title:'phantom_damage', body:'Minionen delar ut X skada som "phantom" — skadan beräknas separat och kan penetrera visst försvar.\nability_value = phantomskada.', tags:'damage,piercing' },
     { category:'ability', title:'swap_sides', body:'Om minionen överlever sin attack byter den och målet sida — de kontrolleras nu av respektive motståndare.\nability_arg = condition:self_survives.', tags:'control,combat' },
@@ -2027,6 +2247,9 @@ async function seedDocsIfEmpty() {
     { category:'ability', title:'block_cost', body:'Motspelaren måste betala X mana för att blockera den här minionen.\nOm motspelaren inte kan eller vill betala kan minionen inte blockas.\nability_value = manakostnad.', tags:'evasion,cost' },
     { category:'ability', title:'shock_aura', body:'Alla fiender som möter minionen i strid tar X skada innan slags löses.\nability_value = preshock-skada.', tags:'damage,aura,combat' },
     { category:'ability', title:'grab', body:'Om minionen delar ut skada till ett mål som överlever kan det målet inte blockera under resten av attackfasen.\nability_trigger = on_deal_damage. ability_arg = condition:target_survives.', tags:'control,combat' },
+
+    // Passives
+    { category:'passive', title:'pack_buff', body:'Passiv aura: minionen buffar sig själv baserat på antalet andra vänliga minions på fältet.\npassive_arg = stat[:subtype] — stat är atk/hp/both, subtype (valfri) begränsar till en subtyp, ex "atk:skeleton".\npassive_value = buff per matchande minion.\npassive_cap = maximalt antal minions som räknas (0 = obegränsat).\nBuffen spåras via pack_aura_atk/pack_aura_hp och räknas om varje gång brädet ändras.', tags:'passive,aura,tribal,buff' },
 
     // Regler
     { category:'rule', title:'Zoner — FRONT_LINE & BACK_LINE', body:'Alla minions börjar i BACK_LINE när de spelas (om de inte har RAPID).\nFrån FRONT_LINE kan de attackera.\nFlytt sker automatiskt i slutet av ägarens tur.', tags:'zones,movement' },
