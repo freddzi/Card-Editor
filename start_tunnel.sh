@@ -5,6 +5,10 @@ GITHUB_REPO="Card-Editor"
 FILE_PATH="pb_url.txt"
 LOG="$HOME/cloudflared.log"
 
+# Döda gamla instanser
+pkill cloudflared 2>/dev/null
+sleep 2
+
 # Rensa gammal logg
 > "$LOG"
 
