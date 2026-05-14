@@ -4028,11 +4028,8 @@ function _fmtDate(iso) {
 // ── Patch notes ──────────────────────────────────────────────────────────────
 
 async function renderPatchNotes() {
-  const listEl  = document.getElementById('patchnotes-list');
-  const adminEl = document.getElementById('patchnotes-admin');
+  const listEl = document.getElementById('patchnotes-list');
   if (!listEl) return;
-
-  adminEl.style.display = pb.authStore.isValid ? 'block' : 'none';
 
   listEl.innerHTML = '<p style="color:var(--muted)">Laddar...</p>';
   let notes = [];
@@ -4073,45 +4070,6 @@ async function addPatchNote(title, body) {
   await pb.collection('patch_notes').create({ title, body });
 }
 
-(function initPatchNotes() {
-  const addBtn    = document.getElementById('btn-add-patchnote');
-  const form      = document.getElementById('patchnote-form');
-  const saveBtn   = document.getElementById('btn-pn-save');
-  const cancelBtn = document.getElementById('btn-pn-cancel');
-  const errEl     = document.getElementById('pn-form-err');
-
-  if (!addBtn) return;
-
-  addBtn.addEventListener('click', () => {
-    form.style.display = form.style.display === 'none' ? 'block' : 'none';
-    errEl.style.display = 'none';
-  });
-
-  cancelBtn.addEventListener('click', () => {
-    form.style.display = 'none';
-    document.getElementById('pn-title').value = '';
-    document.getElementById('pn-body').value  = '';
-  });
-
-  saveBtn.addEventListener('click', async () => {
-    const title = document.getElementById('pn-title').value.trim();
-    const body  = document.getElementById('pn-body').value.trim();
-    errEl.style.display = 'none';
-    if (!title) { errEl.textContent = 'Titel krävs.'; errEl.style.display = 'block'; return; }
-    if (!body)  { errEl.textContent = 'Innehåll krävs.'; errEl.style.display = 'block'; return; }
-    try {
-      await pb.collection('patch_notes').create({ title, body });
-      form.style.display = 'none';
-      document.getElementById('pn-title').value = '';
-      document.getElementById('pn-body').value  = '';
-      renderPatchNotes();
-      showToast('Patch note sparad!');
-    } catch (err) {
-      errEl.textContent = err?.message || String(err);
-      errEl.style.display = 'block';
-    }
-  });
-})();
 
 // ── Förbättringsförslag ──────────────────────────────────────────────────────
 
