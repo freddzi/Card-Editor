@@ -1821,7 +1821,8 @@ document.getElementById('btn-download-db').addEventListener('click', async () =>
     a.click();
     showToast('.db nedladdat!');
   } catch (err) {
-    showToast('Fel: ' + err.message);
+    const msg = err?.message || String(err) || 'okänt fel';
+    showToast('Fel: ' + msg);
     console.error(err);
   } finally {
     btn.disabled = false;
