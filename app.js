@@ -1170,7 +1170,7 @@ const kwHidden   = document.getElementById('keywords-hidden');
 
 function syncKwHidden() {
   kwHidden.value = [...kwPicker.querySelectorAll('.kw-tag.active')]
-    .map(t => t.dataset.kw).join(', ');
+    .map(t => t.dataset.kw.toUpperCase()).join(', ');
 }
 
 // Keywords som kräver ett numeriskt värde, t.ex. PARRY_50 eller IRON_SKIN_2
