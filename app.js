@@ -568,6 +568,8 @@ const ALL_KEYWORDS = [
   'TWINSTRIKE','CANT_ATTACK','PARRY','IRON_SKIN','TOXIC','VAMPIRISM','INSTANT',
   'STUN','SCARE','GUARDIAN','STEALTH','CANT_BLOCK','CONSUME','RESURRECT'
 ];
+const ALL_KEYWORDS_SET = new Set(ALL_KEYWORDS);
+const extraKeywords = new Set(JSON.parse(localStorage.getItem('extraKeywords') || '[]'));
 
 const EFFECT_GROUPS = [
   { group: 'Implementerade i Godot', items: ['deal_damage','draw_card','draw_spell','heal','chain','remove_minion','buff_minion','vanish'] },
@@ -1179,7 +1181,12 @@ function kwBase(kw) {
 }
 
 function createKwPill(kw, active = false) {
+  kw = kw.toUpperCase();
   const base = kwBase(kw);
+  if (!ALL_KEYWORDS_SET.has(base)) {
+    extraKeywords.add(base);
+    localStorage.setItem('extraKeywords', JSON.stringify([...extraKeywords]));
+  }
 
   // Hitta befintlig pill via base-keyword (hanterar PARRY_50 → matchar PARRY-pill)
   const existing = kwPicker.querySelector(`[data-kw-base="${CSS.escape(base)}"]`);
@@ -1237,6 +1244,7 @@ function createKwPill(kw, active = false) {
 
 ALL_KEYWORDS.forEach(kw => createKwPill(kw));
 
+
 function closeKwDropdown() {
   kwDropdown.hidden = true;
   kwAddBtn.textContent = '+ Lägg till';
@@ -1286,6 +1294,7 @@ document.addEventListener('click', (e) => {
 function resetKeywords() {
   kwPicker.innerHTML = '';
   ALL_KEYWORDS.forEach(kw => createKwPill(kw));
+  extraKeywords.forEach(kw => createKwPill(kw));
   kwHidden.value = '';
   closeKwDropdown();
 }
