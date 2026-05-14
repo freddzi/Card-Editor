@@ -1806,45 +1806,9 @@ document.getElementById('btn-download-db').addEventListener('click', async () =>
       );
     `);
 
-    const cardStmt = db.prepare(`INSERT OR REPLACE INTO cards VALUES (?,?,?,?,?,?,?,?,?,?)`);
-    for (const c of cards) {
-      cardStmt.run([c.id, c.name, c.mana??0, c.card_class, c.card_type, c.description,
-        c.artwork_path, c.rarity, c.keywords, c.draft_tag]);
-    }
-    cardStmt.free();
-
-    const minions = cards.filter(c => c.card_type === 'minion');
-    if (minions.length) {
-      const s = db.prepare(`INSERT OR REPLACE INTO minion_cards VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
-      for (const c of minions) {
-        s.run([c.id, c.attack??0, c.health??0, c.subtype, c.ability_id, c.ability_trigger,
-          c.ability_cost??0, c.ability_target_mode, c.ability_targeting_mode||'explicit',
-          c.ability_value??0, c.ability_arg, c.target_filter, c.passive_id||'',
-          c.passive_arg||'', c.passive_value??0, c.passive_cap??0]);
-      }
-      s.free();
-    }
-
-    const spells = cards.filter(c => c.card_type === 'spell');
-    if (spells.length) {
-      const s = db.prepare(`INSERT OR REPLACE INTO spell_cards VALUES (?,?,?,?,?,?,?,?,?,?)`);
-      for (const c of spells) {
-        s.run([c.id, c.effect_id, c.effect_value??0, c.target_mode, c.targeting_mode||'explicit',
-          c.school, c.effect_arg, c.repeat_count??1, c.repeat_mode||'same_target', c.target_filter]);
-      }
-      s.free();
-    }
-
-    const structures = cards.filter(c => c.card_type === 'structure');
-    if (structures.length) {
-      const s = db.prepare(`INSERT OR REPLACE INTO structure_cards VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
-      for (const c of structures) {
-        s.run([c.id, c.armor??1, c.subtype, c.maintenance_cost??0, c.ability_id,
-          c.ability_cost??0, c.ability_target_mode, c.ability_targeting_mode||'explicit',
-          c.ability_value??0, c.ability_arg, c.repair_cost??0, c.repair_value??0,
-          c.trigger_id, c.trigger_value??0, c.trigger_target_mode||'enemy_hero', c.target_filter]);
-      }
-      s.free();
+    if (cards.length) {
+      const dataSql = buildSQL(cards).replace(/^PRAGMA[^\n]*\n/gm, '').replace(/^DELETE[^\n]*\n/gm, '');
+      db.run(dataSql);
     }
 
     const bytes = db.export();
