@@ -80,11 +80,16 @@ async function updateCard(id, base, extra, imageFile, imageFile2) {
 
   const oldArtwork = Array.isArray(editingCardArtwork) ? editingCardArtwork : [];
 
+  const isSpell = base.card_type === 'spell';
+
   if (imageFile && imageFile2) {
-    formData.append('artwork', imageFile);
-    formData.append('artwork', imageFile2);
+    if (oldArtwork[0]) formData.append('artwork-', oldArtwork[0]);
+    if (oldArtwork[1]) formData.append('artwork-', oldArtwork[1]);
+    formData.append('artwork+', imageFile);
+    formData.append('artwork+', imageFile2);
   } else if (imageFile) {
     if (oldArtwork[0]) formData.append('artwork-', oldArtwork[0]);
+    if (isSpell && oldArtwork[1]) formData.append('artwork-', oldArtwork[1]);
     formData.append('artwork+', imageFile);
   } else if (imageFile2) {
     if (oldArtwork[1]) formData.append('artwork-', oldArtwork[1]);
@@ -1864,7 +1869,8 @@ document.getElementById('btn-download-images').addEventListener('click', async (
     const type  = (c.card_type  || 'unknown').toLowerCase();
     const cls   = (c.card_class || 'unknown').toLowerCase().replace(/\s+/g, '_');
     const gid   = displayId(c.id);
-    return artworks.map((_, i) => ({ url: imgUrl(c, 'artwork', i), filename: `${gid}_v${i + 1}.png`, folder: `${type}/${cls}` }));
+    const limit = c.card_type === 'spell' ? 1 : artworks.length;
+    return artworks.slice(0, limit).map((_, i) => ({ url: imgUrl(c, 'artwork', i), filename: `${gid}_v${i + 1}.png`, folder: `${type}/${cls}` }));
   });
 
   const skillPaths = skills
