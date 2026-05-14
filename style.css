@@ -1935,18 +1935,14 @@ body.theme-light {
 }
 
 /* ── Patch notes & Suggestions ─────────────────────────────────────────────── */
-.pn-card {
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 16px 18px;
-  margin-bottom: 14px;
+.pn-entry {
+  margin-bottom: 22px;
 }
-.pn-header {
+.pn-meta {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
   flex-wrap: wrap;
 }
 .pn-title {
@@ -1960,14 +1956,30 @@ body.theme-light {
   color: var(--muted);
   white-space: nowrap;
 }
-.pn-body {
-  white-space: pre-wrap;
+.pn-textarea {
+  width: 100%;
+  min-height: 90px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
   font-family: inherit;
   font-size: 13.5px;
   color: var(--text);
-  margin: 0;
+  resize: vertical;
+  box-sizing: border-box;
   line-height: 1.6;
+  cursor: default;
 }
+.pn-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px 18px;
+  margin-bottom: 14px;
+}
+.pn-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+.pn-body { white-space: pre-wrap; font-family: inherit; font-size: 13.5px; color: var(--text); margin: 0; line-height: 1.6; }
 .btn-icon {
   background: none;
   border: none;

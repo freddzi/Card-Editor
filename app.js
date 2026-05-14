@@ -4046,13 +4046,13 @@ async function renderPatchNotes() {
   }
 
   listEl.innerHTML = notes.map(n => `
-    <div class="pn-card" data-pn-id="${n.id}">
-      <div class="pn-header">
+    <div class="pn-entry" data-pn-id="${n.id}">
+      <div class="pn-meta">
         <span class="pn-title">${escHtml(n.title)}</span>
         <span class="pn-date">${_fmtDate(n.created)}</span>
         ${pb.authStore.isValid ? `<button class="btn-icon pn-delete" data-pn-id="${n.id}" title="Ta bort">🗑</button>` : ''}
       </div>
-      <pre class="pn-body">${escHtml(n.body)}</pre>
+      <textarea class="pn-textarea" readonly>${escHtml(n.body)}</textarea>
     </div>
   `).join('');
 
