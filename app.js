@@ -1873,9 +1873,14 @@ document.getElementById('btn-download-images').addEventListener('click', async (
     return artworks.slice(0, limit).map((_, i) => ({ url: imgUrl(c, 'artwork', i), filename: `${gid}_v${i + 1}.png`, folder: `${type}/${cls}` }));
   });
 
-  const skillPaths = skills
-    .filter(s => s.image?.[0] || (typeof s.image === 'string' && s.image))
-    .map(s => ({ url: imgUrl(s, 'image'), filename: Array.isArray(s.image) ? s.image[0] : s.image, folder: 'skills' }));
+  const skillPaths = skills.flatMap(s => {
+    const paths = [];
+    if (s.image?.[0] || (typeof s.image === 'string' && s.image))
+      paths.push({ url: imgUrl(s, 'image'), filename: Array.isArray(s.image) ? s.image[0] : s.image, folder: 'skills' });
+    if (s.icon?.[0] || (typeof s.icon === 'string' && s.icon))
+      paths.push({ url: imgUrl(s, 'icon'), filename: Array.isArray(s.icon) ? s.icon[0] : s.icon, folder: 'skills/icons' });
+    return paths;
+  });
 
   const imagePaths = [...cardPaths, ...skillPaths];
 
