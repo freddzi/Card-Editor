@@ -56,6 +56,13 @@
     </div>
     <button data-page="page-templates">Mallar</button>
     <div class="nav-dropdown">
+      <button class="nav-dropdown-btn" id="nav-btn-patcher">Patcher ▾</button>
+      <div class="nav-dropdown-menu">
+        <button data-page="page-patchnotes">Patch notes</button>
+        <button data-page="page-suggestions">Förbättringsförslag</button>
+      </div>
+    </div>
+    <div class="nav-dropdown">
       <button class="nav-dropdown-btn" id="nav-btn-advanced">Export/Ladda ner ▾</button>
       <div class="nav-dropdown-menu">
         <button data-page="page-export">Exportera SQL</button>
@@ -1291,6 +1298,49 @@
     </div>
   </div>
 </div>
+
+<!-- ── PATCH NOTES ── -->
+<section id="page-patchnotes" class="page">
+  <div class="export-wrap" style="max-width:760px">
+    <h2>Patch notes</h2>
+    <div id="patchnotes-admin" style="display:none;margin-bottom:24px">
+      <button class="btn btn-green" id="btn-add-patchnote">+ Ny patch note</button>
+      <div id="patchnote-form" style="display:none;margin-top:16px;background:var(--surface2);padding:18px;border-radius:8px">
+        <label style="display:block;margin-bottom:6px;font-weight:600">Titel / version</label>
+        <input id="pn-title" type="text" class="input-field" style="width:100%;margin-bottom:10px" placeholder="t.ex. v0.4.2 – Attackfas">
+        <label style="display:block;margin-bottom:6px;font-weight:600">Innehåll</label>
+        <textarea id="pn-body" rows="8" class="input-field" style="width:100%;resize:vertical;font-family:monospace" placeholder="- Lade till RANGE-keyword&#10;- Fixade burn-animation..."></textarea>
+        <div style="margin-top:10px;display:flex;gap:8px">
+          <button class="btn btn-green" id="btn-pn-save">Spara</button>
+          <button class="btn btn-secondary" id="btn-pn-cancel">Avbryt</button>
+        </div>
+        <p id="pn-form-err" style="color:var(--red);margin-top:8px;display:none"></p>
+      </div>
+    </div>
+    <div id="patchnotes-list"><p style="color:var(--muted)">Laddar...</p></div>
+  </div>
+</section>
+
+<!-- ── FÖRBÄTTRINGSFÖRSLAG ── -->
+<section id="page-suggestions" class="page">
+  <div class="export-wrap" style="max-width:760px">
+    <h2>Förbättringsförslag – Decksmith</h2>
+    <div style="background:var(--surface2);padding:18px;border-radius:8px;margin-bottom:28px">
+      <label style="display:block;margin-bottom:6px;font-weight:600">Titel</label>
+      <input id="sug-title" type="text" class="input-field" style="width:100%;margin-bottom:10px" placeholder="Kortfattad titel på förslaget">
+      <label style="display:block;margin-bottom:6px;font-weight:600">Beskrivning</label>
+      <textarea id="sug-body" rows="5" class="input-field" style="width:100%;resize:vertical" placeholder="Beskriv förbättringen..."></textarea>
+      <label style="display:block;margin:10px 0 6px;font-weight:600">Namn (valfritt)</label>
+      <input id="sug-author" type="text" class="input-field" style="width:260px" placeholder="Ditt namn">
+      <div style="margin-top:12px">
+        <button class="btn btn-green" id="btn-sug-submit">Skicka förslag</button>
+      </div>
+      <p id="sug-form-err" style="color:var(--red);margin-top:8px;display:none"></p>
+    </div>
+    <h3 style="margin-bottom:12px">Inkomna förslag</h3>
+    <div id="suggestions-list"><p style="color:var(--muted)">Laddar...</p></div>
+  </div>
+</section>
 
 <div id="toast" class="toast"></div>
 

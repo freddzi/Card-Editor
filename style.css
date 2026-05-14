@@ -1933,3 +1933,49 @@ body.theme-light {
   background-clip: text;
   animation: hrs-shimmer 2.5s linear infinite;
 }
+
+/* ── Patch notes & Suggestions ─────────────────────────────────────────────── */
+.pn-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px 18px;
+  margin-bottom: 14px;
+}
+.pn-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.pn-title {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--gold);
+  flex: 1;
+}
+.pn-date {
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.pn-body {
+  white-space: pre-wrap;
+  font-family: inherit;
+  font-size: 13.5px;
+  color: var(--text);
+  margin: 0;
+  line-height: 1.6;
+}
+.btn-icon {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 15px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  opacity: 0.6;
+  transition: opacity .15s;
+}
+.btn-icon:hover { opacity: 1; background: var(--surface3,var(--border)); }

@@ -208,13 +208,15 @@ const pages   = document.querySelectorAll('.page');
 const navBtns = document.querySelectorAll('nav button[data-page]');
 
 const DROPDOWN_PARENTS = {
-  'page-add':         'nav-btn-add',
-  'page-add-skill':   'nav-btn-add',
-  'page-upload-zip':  'nav-btn-advanced',
-  'page-design':      'nav-btn-design',
-  'page-gameboard':   'nav-btn-design',
-  'page-export':      'nav-btn-advanced',
-  'page-zip-list':    'nav-btn-advanced',
+  'page-add':          'nav-btn-add',
+  'page-add-skill':    'nav-btn-add',
+  'page-upload-zip':   'nav-btn-advanced',
+  'page-design':       'nav-btn-design',
+  'page-gameboard':    'nav-btn-design',
+  'page-export':       'nav-btn-advanced',
+  'page-zip-list':     'nav-btn-advanced',
+  'page-patchnotes':   'nav-btn-patcher',
+  'page-suggestions':  'nav-btn-patcher',
 };
 
 function showPage(id) {
@@ -229,6 +231,8 @@ function showPage(id) {
   if (id === 'page-overview-skills') renderSkillsGrid();
   if (id === 'page-list')            renderCardList();
   if (id === 'page-export')          renderExport();
+  if (id === 'page-patchnotes')      renderPatchNotes();
+  if (id === 'page-suggestions')     renderSuggestions();
 }
 
 navBtns.forEach(b => b.addEventListener('click', () => {
@@ -1672,6 +1676,9 @@ document.getElementById('btn-clear-filters').addEventListener('click', () => {
 const sqlOutput = document.getElementById('sql-output');
 
 function esc(v) { return String(v ?? '').replace(/'/g, "''"); }
+function escHtml(v) {
+  return String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 
 function convertCard(c) {
   const gid = displayId(c.id);
@@ -4009,3 +4016,165 @@ document.querySelector('nav button[data-page="page-design"]').addEventListener('
   await seedDocsIfEmpty();
   renderDocs();
 });
+
+// ── Patcher ───────────────────────────────────────────────────────────────────
+
+function _fmtDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleDateString('sv-SE', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+// ── Patch notes ──────────────────────────────────────────────────────────────
+
+async function renderPatchNotes() {
+  const listEl  = document.getElementById('patchnotes-list');
+  const adminEl = document.getElementById('patchnotes-admin');
+  if (!listEl) return;
+
+  adminEl.style.display = pb.authStore.isValid ? 'block' : 'none';
+
+  listEl.innerHTML = '<p style="color:var(--muted)">Laddar...</p>';
+  let notes = [];
+  try {
+    notes = await pb.collection('patch_notes').getFullList({ sort: '-created', requestKey: null });
+  } catch (e) {
+    listEl.innerHTML = '<p style="color:var(--red)">Kunde inte ladda patch notes.</p>';
+    return;
+  }
+
+  if (notes.length === 0) {
+    listEl.innerHTML = '<p style="color:var(--muted)">Inga patch notes ännu.</p>';
+    return;
+  }
+
+  listEl.innerHTML = notes.map(n => `
+    <div class="pn-card" data-pn-id="${n.id}">
+      <div class="pn-header">
+        <span class="pn-title">${escHtml(n.title)}</span>
+        <span class="pn-date">${_fmtDate(n.created)}</span>
+        ${pb.authStore.isValid ? `<button class="btn-icon pn-delete" data-pn-id="${n.id}" title="Ta bort">🗑</button>` : ''}
+      </div>
+      <pre class="pn-body">${escHtml(n.body)}</pre>
+    </div>
+  `).join('');
+
+  listEl.querySelectorAll('.pn-delete').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Ta bort denna patch note?')) return;
+      await pb.collection('patch_notes').delete(btn.dataset.pnId);
+      renderPatchNotes();
+    });
+  });
+}
+
+// Exporterad helper – anropas av Claude efter uppdateringar
+async function addPatchNote(title, body) {
+  await pb.collection('patch_notes').create({ title, body });
+}
+
+(function initPatchNotes() {
+  const addBtn    = document.getElementById('btn-add-patchnote');
+  const form      = document.getElementById('patchnote-form');
+  const saveBtn   = document.getElementById('btn-pn-save');
+  const cancelBtn = document.getElementById('btn-pn-cancel');
+  const errEl     = document.getElementById('pn-form-err');
+
+  if (!addBtn) return;
+
+  addBtn.addEventListener('click', () => {
+    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+    errEl.style.display = 'none';
+  });
+
+  cancelBtn.addEventListener('click', () => {
+    form.style.display = 'none';
+    document.getElementById('pn-title').value = '';
+    document.getElementById('pn-body').value  = '';
+  });
+
+  saveBtn.addEventListener('click', async () => {
+    const title = document.getElementById('pn-title').value.trim();
+    const body  = document.getElementById('pn-body').value.trim();
+    errEl.style.display = 'none';
+    if (!title) { errEl.textContent = 'Titel krävs.'; errEl.style.display = 'block'; return; }
+    if (!body)  { errEl.textContent = 'Innehåll krävs.'; errEl.style.display = 'block'; return; }
+    try {
+      await pb.collection('patch_notes').create({ title, body });
+      form.style.display = 'none';
+      document.getElementById('pn-title').value = '';
+      document.getElementById('pn-body').value  = '';
+      renderPatchNotes();
+      showToast('Patch note sparad!');
+    } catch (err) {
+      errEl.textContent = err?.message || String(err);
+      errEl.style.display = 'block';
+    }
+  });
+})();
+
+// ── Förbättringsförslag ──────────────────────────────────────────────────────
+
+async function renderSuggestions() {
+  const listEl = document.getElementById('suggestions-list');
+  if (!listEl) return;
+
+  listEl.innerHTML = '<p style="color:var(--muted)">Laddar...</p>';
+  let items = [];
+  try {
+    items = await pb.collection('suggestions').getFullList({ sort: '-created', requestKey: null });
+  } catch (e) {
+    listEl.innerHTML = '<p style="color:var(--red)">Kunde inte ladda förslag.</p>';
+    return;
+  }
+
+  if (items.length === 0) {
+    listEl.innerHTML = '<p style="color:var(--muted)">Inga förslag ännu.</p>';
+    return;
+  }
+
+  listEl.innerHTML = items.map(s => `
+    <div class="pn-card" data-sug-id="${s.id}">
+      <div class="pn-header">
+        <span class="pn-title">${escHtml(s.title)}</span>
+        <span class="pn-date">${_fmtDate(s.created)}${s.author ? ' · ' + escHtml(s.author) : ''}</span>
+        ${pb.authStore.isValid ? `<button class="btn-icon pn-delete" data-sug-id="${s.id}" title="Ta bort">🗑</button>` : ''}
+      </div>
+      <pre class="pn-body">${escHtml(s.body)}</pre>
+    </div>
+  `).join('');
+
+  listEl.querySelectorAll('.pn-delete').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Ta bort detta förslag?')) return;
+      await pb.collection('suggestions').delete(btn.dataset.sugId);
+      renderSuggestions();
+    });
+  });
+}
+
+(function initSuggestions() {
+  const submitBtn = document.getElementById('btn-sug-submit');
+  const errEl     = document.getElementById('sug-form-err');
+  if (!submitBtn) return;
+
+  submitBtn.addEventListener('click', async () => {
+    const title  = document.getElementById('sug-title').value.trim();
+    const body   = document.getElementById('sug-body').value.trim();
+    const author = document.getElementById('sug-author').value.trim();
+    errEl.style.display = 'none';
+    if (!title) { errEl.textContent = 'Titel krävs.'; errEl.style.display = 'block'; return; }
+    if (!body)  { errEl.textContent = 'Beskrivning krävs.'; errEl.style.display = 'block'; return; }
+    try {
+      await pb.collection('suggestions').create({ title, body, author });
+      document.getElementById('sug-title').value  = '';
+      document.getElementById('sug-body').value   = '';
+      document.getElementById('sug-author').value = '';
+      renderSuggestions();
+      showToast('Förslag skickat!');
+    } catch (err) {
+      errEl.textContent = err?.message || String(err);
+      errEl.style.display = 'block';
+    }
+  });
+})();
