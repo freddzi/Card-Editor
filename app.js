@@ -1765,6 +1765,106 @@ document.getElementById('btn-download-sql').addEventListener('click', () => {
   showToast('SQL nedladdat!');
 });
 
+document.getElementById('btn-download-db').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-download-db');
+  btn.disabled = true;
+  btn.textContent = 'Bygger .db…';
+  try {
+    const all   = await loadCards();
+    const cards = filterExportCards(all);
+    const suffix = exportInlagdFilter === 'true' ? '_inlagda' : exportInlagdFilter === 'false' ? '_ej_inlagda' : '';
+
+    const SQL = await initSqlJs({
+      locateFile: file => `https://cdn.jsdelivr.net/npm/sql.js@1.12.0/dist/${file}`,
+    });
+    const db = new SQL.Database();
+
+    db.run(`
+      CREATE TABLE IF NOT EXISTS cards (
+        id TEXT PRIMARY KEY, name TEXT, mana INTEGER, card_class TEXT,
+        card_type TEXT, description TEXT, artwork_path TEXT, rarity TEXT,
+        keywords TEXT, draft_tag TEXT
+      );
+      CREATE TABLE IF NOT EXISTS minion_cards (
+        card_id TEXT PRIMARY KEY, attack INTEGER, health INTEGER, subtype TEXT,
+        ability_id TEXT, ability_trigger TEXT, ability_cost INTEGER,
+        ability_target_mode TEXT, ability_targeting_mode TEXT, ability_value INTEGER,
+        ability_arg TEXT, target_filter TEXT, passive_id TEXT, passive_arg TEXT,
+        passive_value INTEGER, passive_cap INTEGER
+      );
+      CREATE TABLE IF NOT EXISTS spell_cards (
+        card_id TEXT PRIMARY KEY, effect_id TEXT, effect_value INTEGER,
+        target_mode TEXT, targeting_mode TEXT, school TEXT, effect_arg TEXT,
+        repeat_count INTEGER, repeat_mode TEXT, target_filter TEXT
+      );
+      CREATE TABLE IF NOT EXISTS structure_cards (
+        card_id TEXT PRIMARY KEY, armor INTEGER, subtype TEXT, maintenance_cost INTEGER,
+        ability_id TEXT, ability_cost INTEGER, ability_target_mode TEXT,
+        ability_targeting_mode TEXT, ability_value INTEGER, ability_arg TEXT,
+        repair_cost INTEGER, repair_value INTEGER, trigger_id TEXT, trigger_value INTEGER,
+        trigger_target_mode TEXT, target_filter TEXT
+      );
+    `);
+
+    const cardStmt = db.prepare(`INSERT OR REPLACE INTO cards VALUES (?,?,?,?,?,?,?,?,?,?)`);
+    for (const c of cards) {
+      cardStmt.run([c.id, c.name, c.mana??0, c.card_class, c.card_type, c.description,
+        c.artwork_path, c.rarity, c.keywords, c.draft_tag]);
+    }
+    cardStmt.free();
+
+    const minions = cards.filter(c => c.card_type === 'minion');
+    if (minions.length) {
+      const s = db.prepare(`INSERT OR REPLACE INTO minion_cards VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+      for (const c of minions) {
+        s.run([c.id, c.attack??0, c.health??0, c.subtype, c.ability_id, c.ability_trigger,
+          c.ability_cost??0, c.ability_target_mode, c.ability_targeting_mode||'explicit',
+          c.ability_value??0, c.ability_arg, c.target_filter, c.passive_id||'',
+          c.passive_arg||'', c.passive_value??0, c.passive_cap??0]);
+      }
+      s.free();
+    }
+
+    const spells = cards.filter(c => c.card_type === 'spell');
+    if (spells.length) {
+      const s = db.prepare(`INSERT OR REPLACE INTO spell_cards VALUES (?,?,?,?,?,?,?,?,?,?)`);
+      for (const c of spells) {
+        s.run([c.id, c.effect_id, c.effect_value??0, c.target_mode, c.targeting_mode||'explicit',
+          c.school, c.effect_arg, c.repeat_count??1, c.repeat_mode||'same_target', c.target_filter]);
+      }
+      s.free();
+    }
+
+    const structures = cards.filter(c => c.card_type === 'structure');
+    if (structures.length) {
+      const s = db.prepare(`INSERT OR REPLACE INTO structure_cards VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+      for (const c of structures) {
+        s.run([c.id, c.armor??1, c.subtype, c.maintenance_cost??0, c.ability_id,
+          c.ability_cost??0, c.ability_target_mode, c.ability_targeting_mode||'explicit',
+          c.ability_value??0, c.ability_arg, c.repair_cost??0, c.repair_value??0,
+          c.trigger_id, c.trigger_value??0, c.trigger_target_mode||'enemy_hero', c.target_filter]);
+      }
+      s.free();
+    }
+
+    const bytes = db.export();
+    db.close();
+    const blob = new Blob([bytes], { type: 'application/octet-stream' });
+    const a = Object.assign(document.createElement('a'), {
+      href: URL.createObjectURL(blob),
+      download: `cards_export${suffix}.db`,
+    });
+    a.click();
+    showToast('.db nedladdat!');
+  } catch (err) {
+    showToast('Fel: ' + err.message);
+    console.error(err);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Ladda ner .db';
+  }
+});
+
 document.getElementById('btn-export-json').addEventListener('click', async () => {
   const all   = await loadCards();
   const cards = filterExportCards(all).map(convertCard);
