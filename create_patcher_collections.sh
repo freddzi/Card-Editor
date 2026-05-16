@@ -3,9 +3,13 @@
 # Kör: bash create_patcher_collections.sh
 
 PB_URL="http://192.168.50.24:8091"
-read -p "Admin email: " EMAIL
-read -s -p "Admin password: " PASSWORD
-echo ""
+EMAIL="${1}"
+PASSWORD="${2}"
+if [ -z "$EMAIL" ] || [ -z "$PASSWORD" ]; then
+  read -p "Admin email: " EMAIL
+  read -s -p "Admin password: " PASSWORD
+  echo ""
+fi
 
 RESPONSE=$(curl -s -X POST "$PB_URL/api/collections/_superusers/auth-with-password" \
   -H "Content-Type: application/json" \

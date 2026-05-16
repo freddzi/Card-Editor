@@ -133,8 +133,12 @@ const loginScreen = document.getElementById('login-screen');
 const appEl       = document.getElementById('app');
 
 async function initAuth() {
-  if (pb.authStore.isValid) showApp();
-  else                      showLogin();
+  if (pb.authStore.isValid && sessionStorage.getItem('ce-session')) {
+    showApp();
+  } else {
+    pb.authStore.clear();
+    showLogin();
+  }
 }
 
 function showApp()   { loginScreen.style.display = 'none';  appEl.style.display = 'block'; }
@@ -158,6 +162,7 @@ document.getElementById('btn-login').addEventListener('click', async () => {
     errEl.textContent = 'Fel email eller lösenord.';
     errEl.style.display = 'block';
   } else {
+    sessionStorage.setItem('ce-session', '1');
     showApp();
     showPage('page-overview');
     renderGrid();
@@ -169,6 +174,7 @@ document.getElementById('login-password').addEventListener('keydown', e => {
 });
 
 document.getElementById('btn-logout').addEventListener('click', () => {
+  sessionStorage.removeItem('ce-session');
   pb.authStore.clear();
   showLogin();
 });
