@@ -1303,6 +1303,16 @@
 <section id="page-patchnotes" class="page">
   <div class="export-wrap" style="max-width:760px">
     <h2>Patch notes</h2>
+    <div style="background:var(--surface2);padding:18px;border-radius:8px;margin-bottom:28px">
+      <label style="display:block;margin-bottom:6px;font-weight:600">Titel</label>
+      <input id="pn-title" type="text" class="input-field" style="width:100%;margin-bottom:10px" placeholder="t.ex. v1.3 – Bugfixar">
+      <label style="display:block;margin-bottom:6px;font-weight:600">Innehåll</label>
+      <textarea id="pn-body" rows="5" class="input-field" style="width:100%;resize:vertical" placeholder="Beskriv vad som ändrades..."></textarea>
+      <div style="margin-top:12px">
+        <button class="btn btn-green" id="btn-pn-submit">Publicera patch note</button>
+      </div>
+      <p id="pn-form-err" style="color:var(--red);margin-top:8px;display:none"></p>
+    </div>
     <div id="patchnotes-list"><p style="color:var(--muted)">Laddar...</p></div>
   </div>
 </section>

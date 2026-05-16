@@ -4014,6 +4014,16 @@ document.querySelector('.tpl-tab-btn[data-tab="smart"]').addEventListener('click
   document.querySelector('nav button[data-page="page-zip-list"]').addEventListener('click', renderZipListPage);
 })();
 
+// Ctrl+Shift+R → logga ut och visa inloggning (ingen reload)
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey && e.shiftKey && e.code === 'KeyR') {
+    e.preventDefault();
+    sessionStorage.removeItem('ce-session');
+    pb.authStore.clear();
+    showLogin();
+  }
+});
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 initAuth();
 
@@ -4071,10 +4081,31 @@ async function renderPatchNotes() {
   });
 }
 
-// Exporterad helper – anropas av Claude efter uppdateringar
 async function addPatchNote(title, body) {
   await pb.collection('patch_notes').create({ title, body });
 }
+
+document.getElementById('btn-pn-submit').addEventListener('click', async () => {
+  const title  = document.getElementById('pn-title').value.trim();
+  const body   = document.getElementById('pn-body').value.trim();
+  const errEl  = document.getElementById('pn-form-err');
+  errEl.style.display = 'none';
+  if (!title || !body) {
+    errEl.textContent = 'Fyll i både titel och innehåll.';
+    errEl.style.display = 'block';
+    return;
+  }
+  try {
+    await addPatchNote(title, body);
+    document.getElementById('pn-title').value = '';
+    document.getElementById('pn-body').value  = '';
+    renderPatchNotes();
+    showToast('Patch note publicerad!');
+  } catch (e) {
+    errEl.textContent = 'Fel: ' + e.message;
+    errEl.style.display = 'block';
+  }
+});
 
 
 // ── Förbättringsförslag ──────────────────────────────────────────────────────
