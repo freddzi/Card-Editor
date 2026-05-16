@@ -42,11 +42,34 @@ body {
 
 .login-box h1 {
   text-align: center;
-  color: var(--gold);
   font-size: 22px;
   letter-spacing: 2px;
   text-transform: uppercase;
   margin-bottom: 28px;
+}
+
+/* ── POLLUX TITLE ── */
+@keyframes pollux-glow {
+  0%, 100% { text-shadow: 0 0 10px #f5c518, 0 0 30px #f5c518, 0 0 60px #ff8c00, 0 0 100px #ff4500; }
+  50%       { text-shadow: 0 0 20px #fffb00, 0 0 60px #ffd700, 0 0 100px #ff6a00, 0 0 160px #ff0080; }
+}
+@keyframes pollux-shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.pollux-title {
+  font-family: 'Raleway', 'Montserrat', sans-serif;
+  font-weight: 700;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  background: linear-gradient(90deg, #f5c518, #ff8c00, #ff4500, #ff0080, #a000ff, #00bfff, #f5c518);
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: pollux-shimmer 3s linear infinite, pollux-glow 2s ease-in-out infinite;
+  filter: drop-shadow(0 0 8px rgba(245, 197, 24, 0.7));
 }
 
 /* ── NAV ── */
@@ -64,9 +87,8 @@ header {
 }
 
 header h1 {
-  font-size: 18px;
-  color: var(--gold);
-  letter-spacing: 1px;
+  font-size: 20px;
+  letter-spacing: 4px;
   white-space: nowrap;
 }
 
