@@ -2298,16 +2298,7 @@ async function seedDocsIfEmpty() {
     { category:'keyword', title:'MANA_LEECH', body:'När minionen delar ut skada direkt mot motståndarens hjälte får ägaren X temporär mana för den resterande turen.\nManan försvinner vid turens slut.\nFormatet är MANA_LEECH_X, t.ex. MANA_LEECH_1.', tags:'mana,tempo,offense', in_godot:true },
     { category:'keyword', title:'RESURRECT', body:'Minioner med RESURRECT kan återkallas från graven mot mana-kostnad istället för liv.\n\nNormalt kostar det LIV (HP) att återliva en minion från graven.\nEn RESURRECT-minion kan istället spelas ut på nytt mot sin normala mana-kostnad — precis som om du spelade den från handen.\n\nRegler:\n- Minionen måste vara i graven (ha dött under matchen).\n- Du betalar manakostnaden, inte liv.\n- Minionen återkommer med full HP och utan några buffs den haft.\n- RESURRECT-minionen kan återkallas hur många gånger som helst så länge du har mana.', tags:'resurrect,mana,graven' },
     { category:'keyword', title:'TRANSFORM', body:'Minionen växlar form beroende på vems tur det är.\n\nPå ägarens tur: minionen är i sin GRUNDFORM (de stats som är inlagda normalt på kortet).\nPå motståndarens tur: minionen transformeras till ALTERNATIVFORMEN — med nya attack-, HP- och keyword-värden.\nVid turstarten återgår/transformerar den automatiskt.\n\nAlt-formen definieras av fälten transform_attack, transform_health och transform_keywords på kortet.\n\nAnvändning:\n- En defensiv minion som blir offensiv under motståndarens tur.\n- En svag minion som tillfälligt får ett skrämmande keyword på motståndarsidan.\n- Skapar oförutsägbarhet och strategiska val kring när man attackerar/blockar.', tags:'transform,form,turn' },
-    { category:'keyword', title:'ENTHRALL', body:'Om en ENTHRALL-minion skadar en fiendekreatur och det överlever → du tar kontroll av det.
-
-Formatet är ENTHRALL_N där N = max attack för att effekten ska trigga. T.ex. ENTHRALL_3 fungerar bara om minionens attack är ≤ 3.
-ENTHRALL utan värde fungerar alltid oavsett attack.
-
-Offret hamnar på din BACK_LINE med attacks_left = 0.
-
-Användning:
-- Sno motståndarens minion utan att riskera din (behöver inte överleva).
-- Kombinera med låg attack och hög health för att maximera steals.', tags:'enthrall,control,steal,charm' },
+    { category:'keyword', title:'ENTHRALL', body:'Om en ENTHRALL-minion skadar en fiendekreatur och det överlever → du tar kontroll av det.\n\nFormatet är ENTHRALL_N där N = max attack för att effekten ska trigga. T.ex. ENTHRALL_3 fungerar bara om minionens attack är ≤ 3.\nENTHRALL utan värde fungerar alltid oavsett attack.\n\nOffret hamnar på din BACK_LINE med attacks_left = 0.\n\nAnvändning:\n- Sno motståndarens minion utan att riskera din (behöver inte överleva).\n- Kombinera med låg attack och hög health för att maximera steals.', tags:'enthrall,control,steal,charm' },
     { category:'keyword', title:'POSSESS', body:'När en POSSESS-minion överlever ett anfall mot en fiendekreatur och BÅDA minioner överlever — byter de ägare.\n\nDin POSSESS-minion hamnar hos motståndaren, och fiendekreaturet hamnar hos dig.\nBåda minioner placeras på sin nya ägares BACK_LINE med attacks_left = 0.\n\nOm någon av miniaturerna dör i striden sker inget byte.\n\nMotståndaren kan använda den kapade minionen mot dig — och du kan göra likadant med din nyförvärvade.\n\nAnvändning:\n- Stjäl motståndarens starkaste minion mot kostnaden av din POSSESS-minion.\n- Skapa kaos med strategiska byten av nyckelminioner.', tags:'possess,swap,control,steal' },
 
     // Effects — Skada & AOE
