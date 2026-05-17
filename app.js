@@ -100,6 +100,8 @@ async function updateCard(id, base, extra, imageFile, imageFile2) {
     await pb.collection('cards').update(id, formData);
     return true;
   } catch (err) {
+    const saveErr = document.getElementById('form-save-error');
+    if (saveErr) { saveErr.textContent = 'Fel vid sparning: ' + err.message; saveErr.style.display = ''; }
     showToast('Fel: ' + err.message);
     return false;
   }
@@ -1551,6 +1553,8 @@ document.querySelector('input[name="name"]').addEventListener('input', e => chec
 form.addEventListener('submit', async e => {
   e.preventDefault();
   const submitBtn = form.querySelector('button[type="submit"]');
+  const saveErr = document.getElementById('form-save-error');
+  if (saveErr) saveErr.style.display = 'none';
   submitBtn.disabled = true;
   submitBtn.textContent = 'Sparar…';
 
@@ -1570,9 +1574,10 @@ form.addEventListener('submit', async e => {
   };
 
   if (!base.id || !base.name || !base.card_type) {
+    if (saveErr) { saveErr.textContent = 'ID, Namn och Typ krävs.'; saveErr.style.display = ''; }
     showToast('ID, Namn och Typ krävs.');
     submitBtn.disabled = false;
-    submitBtn.textContent = 'Spara kort';
+    submitBtn.textContent = editingId ? 'Spara ändringar' : 'Spara kort';
     return;
   }
 
