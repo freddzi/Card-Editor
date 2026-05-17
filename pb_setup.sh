@@ -73,7 +73,14 @@ create "cards" '{
     {"name":"repair_value","type":"number"},
     {"name":"trigger_id","type":"text"},
     {"name":"trigger_value","type":"number"},
-    {"name":"trigger_target_mode","type":"text"}
+    {"name":"trigger_target_mode","type":"text"},
+    {"name":"passive_id","type":"text"},
+    {"name":"passive_arg","type":"text"},
+    {"name":"passive_value","type":"number"},
+    {"name":"passive_cap","type":"number"},
+    {"name":"transform_attack","type":"number"},
+    {"name":"transform_health","type":"number"},
+    {"name":"transform_keywords","type":"text"}
   ]
 }'
 
