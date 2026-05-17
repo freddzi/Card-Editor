@@ -474,7 +474,7 @@ detailModal.addEventListener('click', e => { if (e.target === detailModal) detai
 document.getElementById('btn-detail-edit').addEventListener('click', () => {
   if (!currentDetailCard) return;
   detailModal.classList.remove('open');
-  openEditForm(currentDetailCard);
+  openEditForm(currentDetailCard).catch(err => showToast('Fel vid öppning: ' + err.message));
 });
 
 document.getElementById('btn-detail-inlagd').addEventListener('click', async () => {
@@ -604,9 +604,9 @@ btnDelOk.addEventListener('click', async () => {
 
 // ── Keyword picker ────────────────────────────────────────────────────────────
 const ALL_KEYWORDS = [
-  'FLYING','RAPID','RANGE','REACH','FIRST_STRIKE','DOUBLE_STRIKE',
+  'FLYING','RANGE','REACH','FIRST_STRIKE','DOUBLE_STRIKE',
   'TWINSTRIKE','CANT_ATTACK','PARRY','IRON_SKIN','TOXIC','VAMPIRISM',
-  'STUN','SCARE','GUARDIAN','STEALTH','CANT_BLOCK','CONSUME','RESURRECT','TRANSFORM','POSSESS'
+  'STUN','SCARE','GUARDIAN','STEALTH','CONSUME','RESURRECT','TRANSFORM','POSSESS'
 ];
 const ALL_KEYWORDS_SET = new Set(ALL_KEYWORDS);
 const extraKeywords = new Set(JSON.parse(localStorage.getItem('extraKeywords') || '[]'));
@@ -1219,7 +1219,7 @@ function syncKwHidden() {
 }
 
 // Keywords som kräver ett numeriskt värde, t.ex. PARRY_50 eller IRON_SKIN_2
-const VALUE_KEYWORDS = new Set(['PARRY', 'IRON_SKIN', 'PLUNDER', 'SURGE']);
+const VALUE_KEYWORDS = new Set(['PARRY', 'IRON_SKIN', 'PLUNDER']);
 
 function kwBase(kw) {
   return kw.replace(/_\d+$/, '');
@@ -1456,7 +1456,9 @@ async function openEditForm(card) {
   editingCardArtwork = Array.isArray(card.artwork) ? card.artwork : (card.artwork ? [card.artwork] : []);
   await refreshAllCards();
   document.getElementById('form-title').textContent = `Redigera kort — ${card.name}`;
-  form.querySelector('button[type="submit"]').textContent = 'Spara ändringar';
+  const submitBtn = form.querySelector('button[type="submit"]');
+  submitBtn.textContent = 'Spara ändringar';
+  submitBtn.disabled = false;
   document.getElementById('btn-cancel-edit').style.display = 'inline-block';
 
   setFieldVal('id',          card.id);
@@ -2271,7 +2273,6 @@ async function seedDocsIfEmpty() {
   const seed = [
     // Keywords
     { category:'keyword', title:'FLYING', body:'Minionen kan bara blockas av andra minions med FLYING eller REACH.\nFlyande minions kan attackera fritt förbi marktrupper.', tags:'combat,movement' },
-    { category:'keyword', title:'RAPID', body:'Minionen går direkt till FRONT_LINE när den spelas, utan att behöva vänta en tur.\nNormalt startar minions i BACK_LINE och kan inte attackera förrän nästa tur.', tags:'combat,tempo' },
     { category:'keyword', title:'REACH', body:'Minionen kan blockera FLYING-minions trots att den inte flyger själv.\nBra defensivt verktyg mot flygande hot.', tags:'combat,defense' },
     { category:'keyword', title:'RANGE', body:'Minionen kan attackera utan att ta motskada vid direkt attack.\nFienden svarar inte med skada.', tags:'combat,offense' },
     { category:'keyword', title:'FIRST_STRIKE', body:'Minionen delar ut sin skada innan motståndaren i strid.\nOm motståndaren dör av first strike-skadan svarar den aldrig.', tags:'combat' },
@@ -2287,10 +2288,8 @@ async function seedDocsIfEmpty() {
     { category:'keyword', title:'SCARE', body:'Minionen skrämmer fiender vid kontakt — det skrämda målet tvingas till BACK_LINE och kan inte attackera den turen.\nSCARE triggar vanligen on_attack eller passivt (first_attacker).', tags:'combat,control' },
     { category:'keyword', title:'GUARDIAN', body:'Minionen kan blockera attacker riktade mot din core även från BACK_LINE.\nFiender måste slå igenom GUARDIAN-minionen för att nå din core.', tags:'defense,combat' },
     { category:'keyword', title:'STEALTH', body:'Minionen kan inte väljas som mål av motspelaren tills den attackerar eller påverkar en fiende.\nSTEALTH bryts när minionen delar ut skada.', tags:'evasion,offense' },
-    { category:'keyword', title:'CANT_BLOCK', body:'Minionen kan inte användas som blocker. Kan fortfarande attackera och använda aktiverade förmågor.', tags:'combat,restriction' },
     { category:'keyword', title:'CONSUME', body:'När minionen dödar en fiendeminion äter den upp den och får dess attack- och/eller HP-värden.\neffect_arg styr vilka stats som absorberas.', tags:'combat,sustain', in_godot:true },
     { category:'keyword', title:'LURKER', body:'Minionen kan inte väljas som mål av motståndarens spell-effekter.\nKan heller inte attackeras direkt av fiendens minions.\nStealth-liknande skydd men utan att brytas vid attack.', tags:'evasion,defense', in_godot:true },
-    { category:'keyword', title:'SURGE', body:'När minionen attackerar får ägaren X temporär mana för den resterande turen.\nManan försvinner vid turens slut.\nFormatet är SURGE_X, t.ex. SURGE_2 ger 2 mana per attack.', tags:'mana,tempo', in_godot:true },
     { category:'keyword', title:'PLUNDER', body:'När minionen delar ut skada direkt mot motståndarens hjälte får ägaren X temporär mana för den resterande turen.\nManan försvinner vid turens slut.\nFormatet är PLUNDER_X, t.ex. PLUNDER_1.', tags:'mana,tempo,offense', in_godot:true },
     { category:'keyword', title:'RESURRECT', body:'Minioner med RESURRECT kan återkallas från graven mot mana-kostnad istället för liv.\n\nNormalt kostar det LIV (HP) att återliva en minion från graven.\nEn RESURRECT-minion kan istället spelas ut på nytt mot sin normala mana-kostnad — precis som om du spelade den från handen.\n\nRegler:\n- Minionen måste vara i graven (ha dött under matchen).\n- Du betalar manakostnaden, inte liv.\n- Minionen återkommer med full HP och utan några buffs den haft.\n- RESURRECT-minionen kan återkallas hur många gånger som helst så länge du har mana.', tags:'resurrect,mana,graven' },
     { category:'keyword', title:'TRANSFORM', body:'Minionen växlar form beroende på vems tur det är.\n\nPå ägarens tur: minionen är i sin GRUNDFORM (de stats som är inlagda normalt på kortet).\nPå motståndarens tur: minionen transformeras till ALTERNATIVFORMEN — med nya attack-, HP- och keyword-värden.\nVid turstarten återgår/transformerar den automatiskt.\n\nAlt-formen definieras av fälten transform_attack, transform_health och transform_keywords på kortet.\n\nAnvändning:\n- En defensiv minion som blir offensiv under motståndarens tur.\n- En svag minion som tillfälligt får ett skrämmande keyword på motståndarsidan.\n- Skapar oförutsägbarhet och strategiska val kring när man attackerar/blockar.', tags:'transform,form,turn' },
@@ -2335,7 +2334,7 @@ async function seedDocsIfEmpty() {
     { category:'effect', title:'resurrect_dead_this_turn', body:'Alla minions som dog under denna tur återkommer till ägarens BACK_LINE.\ntarget_mode = self (påverkar alla egna döda den turen).', tags:'resurrect,necro' },
     { category:'effect', title:'banish_grave_spawn', body:'Tar bort X slumpmässiga minions från fiendens gravhög permanent och spawnar ett Skeleton per borttagen minion.\neffect_value = antal. effect_arg = spawn:<stats/typ>.', tags:'grave,spawn' },
     { category:'effect', title:'mass_reanimate_as_spirit', body:'Tar bort X minions från den egna gravhögen och spawnar en kraftfull Spirit-minion. Ger dessutom +1 attack till alla egna minions.\neffect_value = antal från graven. effect_arg = spawn:<stats> och buff.', tags:'grave,spawn,buff' },
-    { category:'effect', title:'on_death_spawn_spirit', body:'Fäster en deathrattle på en vänlig minion. När den dör spawnas en Spirit med angivna stats och RAPID.\neffect_arg = spawn:<stats/typ>/RAPID.', tags:'deathrattle,spawn' },
+    { category:'effect', title:'on_death_spawn_spirit', body:'Fäster en deathrattle på en vänlig minion. När den dör spawnas en Spirit med angivna stats och DASH.\neffect_arg = spawn:<stats/typ>/DASH.', tags:'deathrattle,spawn' },
     { category:'effect', title:'sacrifice_tribe_buff_hp', body:'Offrar alla egna minions av en viss subtyp och ger en vänlig minion +HP lika med antal offrade (max X).\neffect_arg = subtype:<typ>,max:<X>.', tags:'sacrifice,buff,tribal' },
     { category:'effect', title:'sacrifice_tribe_draw', body:'Dödar alla egna minions av en viss subtyp och drar ett kort per dödad.\neffect_arg = subtype:<typ>.', tags:'sacrifice,card-draw,tribal' },
     { category:'effect', title:'shuffle_tribe_on_death', body:'Alla minions av en viss subtyp som dör denna tur blandas tillbaka i decket istället för att gå till graven.\neffect_arg = subtype:<typ>,this_turn.', tags:'grave,shuffle,tribal' },
@@ -2395,7 +2394,7 @@ async function seedDocsIfEmpty() {
     { category:'passive', title:'pack_buff', body:'Passiv aura: minionen buffar sig själv baserat på antalet andra vänliga minions på fältet.\npassive_arg = stat[:subtype] — stat är atk/hp/both, subtype (valfri) begränsar till en subtyp, ex "atk:skeleton".\npassive_value = buff per matchande minion.\npassive_cap = maximalt antal minions som räknas (0 = obegränsat).\nBuffen spåras via pack_aura_atk/pack_aura_hp och räknas om varje gång brädet ändras.', tags:'passive,aura,tribal,buff' },
 
     // Regler
-    { category:'rule', title:'Zoner — FRONT_LINE & BACK_LINE', body:'Alla minions börjar i BACK_LINE när de spelas (om de inte har RAPID).\nFrån FRONT_LINE kan de attackera.\nFlytt sker automatiskt i slutet av ägarens tur.', tags:'zones,movement' },
+    { category:'rule', title:'Zoner — FRONT_LINE & BACK_LINE', body:'Alla minions börjar i BACK_LINE när de spelas (om de inte har DASH).\nFrån FRONT_LINE kan de attackera.\nFlytt sker automatiskt i slutet av ägarens tur.', tags:'zones,movement' },
     { category:'rule', title:'Faser per tur', body:'DRAW → MAIN → ATTACK → BLOCK → CLEANUP → END_TURN\n\nDRAW: Spelaren drar ett kort.\nMAIN: Spela kort, aktivera förmågor.\nATTACK: Deklarera attacker med FRONT_LINE-minions.\nBLOCK: Motspelaren tilldelar blockers.\nCLEANUP: Strid löses, döda minions tas bort.\nEND_TURN: Korteffekter med "efter tur"-villkor utlöses.', tags:'phases,turn' },
     { category:'rule', title:'Mana', body:'Varje spelare börjar med 1 mana och ökar med 1 per tur upp till max (10 eller konfigurerat).\nOanvänd mana försvinner i slutet av turen — den rullas inte över.', tags:'resources,mana' },
     { category:'rule', title:'Kortens UID-system', body:'Varje kortinstans får ett unikt runtime-ID (uid).\nSpelare 0 börjar på uid 1, spelare 1 börjar på 1 000 000.\nDetta förhindrar kollisioner mellan spelares kort.', tags:'technical,uid' },
@@ -2668,26 +2667,10 @@ async function seedTemplatesIfEmpty() {
         attack:2, health:1, subtype:'Beast',
       },
       field_notes: {
-        keywords: 'FLYING = kan bara blockas av FLYING eller REACH. Skriv alltid VERSALER. Flera keywords: "FLYING, RAPID".',
+        keywords: 'FLYING = kan bara blockas av FLYING eller REACH. Skriv alltid VERSALER. Flera keywords: "FLYING, RANGE".',
         description: 'Kortets regeltext. Skriv ut keywords här med stor bokstav för tydlighet: "Flying."',
         attack: '2 attack med 1 health = fragil men hotfull. Svårt att blocka utan FLYING/REACH.',
         subtype: 'Beast = tematisk för flygande djur. Kan ge synergier med beastsynergikort.',
-      },
-    },
-    {
-      name: 'Minion med RAPID (anfaller direkt)',
-      description: 'Kan anfalla omedelbart när den spelas — går direkt till FRONT_LINE utan att vänta en tur.',
-      card_type: 'minion', is_builtin: true,
-      card_data: {
-        mana:3, card_class:'Wasteland', rarity:'uncommon',
-        description:'Rapid.',
-        keywords:'RAPID',
-        attack:3, health:2, subtype:'',
-      },
-      field_notes: {
-        keywords: 'RAPID = ingen "summoning sickness". Anfaller direkt på den tur den spelas.',
-        mana: '3 mana för en 3/2 med RAPID är balanserat — tempovärdet är högt.',
-        attack: '3 attack = kan döda de flesta 2-mana-minions direkt. Bra för att ta board control.',
       },
     },
     {
@@ -3538,7 +3521,6 @@ const _origRenderGrid = renderGrid;
 
 const SMART_KW = [
   { id:'FLYING',        label:'FLYING',        tip:'Kan bara blockas av FLYING/REACH' },
-  { id:'RAPID',         label:'RAPID',         tip:'Anfaller direkt när spelad' },
   { id:'RANGE',         label:'RANGE',         tip:'Ignorerar blockers helt' },
   { id:'FIRST_STRIKE',  label:'FIRST_STRIKE',  tip:'Slår före motståndaren' },
   { id:'DOUBLE_STRIKE', label:'DOUBLE_STRIKE', tip:'Anfaller två gånger' },
@@ -3615,7 +3597,7 @@ const SMART_SPELL_MANA = [
 ];
 
 function kwDesc(kw) {
-  const map = { FLYING:'Flying.', RAPID:'Rapid.', RANGE:'Range.', FIRST_STRIKE:'First Strike.',
+  const map = { FLYING:'Flying.', RANGE:'Range.', FIRST_STRIKE:'First Strike.',
     DOUBLE_STRIKE:'Double Strike.', VAMPIRISM:'Vampirism.', TOXIC:'Toxic.', CANT_ATTACK:"Can't Attack." };
   return map[kw] || '';
 }
