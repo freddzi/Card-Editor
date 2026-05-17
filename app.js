@@ -605,7 +605,7 @@ btnDelOk.addEventListener('click', async () => {
 // ── Keyword picker ────────────────────────────────────────────────────────────
 const ALL_KEYWORDS = [
   'FLYING','RAPID','RANGE','REACH','FIRST_STRIKE','DOUBLE_STRIKE',
-  'TWINSTRIKE','CANT_ATTACK','PARRY','IRON_SKIN','TOXIC','VAMPIRISM','INSTANT',
+  'TWINSTRIKE','CANT_ATTACK','PARRY','IRON_SKIN','TOXIC','VAMPIRISM',
   'STUN','SCARE','GUARDIAN','STEALTH','CANT_BLOCK','CONSUME','RESURRECT','TRANSFORM','POSSESS'
 ];
 const ALL_KEYWORDS_SET = new Set(ALL_KEYWORDS);
