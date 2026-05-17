@@ -607,7 +607,7 @@ btnDelOk.addEventListener('click', async () => {
 // ── Keyword picker ────────────────────────────────────────────────────────────
 const ALL_KEYWORDS = [
   'AIRBORNE','RANGE','REACH','FIRST_STRIKE','DOUBLE_STRIKE',
-  'TWINSTRIKE','CANT_ATTACK','PARRY','IRON_SKIN','TOXIC','VAMPIRISM',
+  'TWINSTRIKE','CANT_ATTACK','PARRY','IRON_SKIN','POISON','VAMPIRISM',
   'STUN','SCARE','GUARDIAN','STEALTH','CONSUME','RESURRECT','TRANSFORM','POSSESS','ENTHRALL'
 ];
 const ALL_KEYWORDS_SET = new Set(ALL_KEYWORDS);
@@ -2286,7 +2286,7 @@ async function seedDocsIfEmpty() {
     { category:'keyword', title:'CANT_ATTACK', body:'Minionen kan inte deklarera attacker. Kan fortfarande blockera och använda aktiverade förmågor.', tags:'combat,restriction' },
     { category:'keyword', title:'PARRY', body:'Minionen reducerar inkommande skada med sitt PARRY-värde. Ex: PARRY_2 reducerar all inkommande skada med 2.', tags:'defense,combat' },
     { category:'keyword', title:'IRON_SKIN', body:'Minionen är immun mot skada under 1 (eller definierat värde). Svår att ta bort med pytteskador.', tags:'defense' },
-    { category:'keyword', title:'TOXIC', body:'Varje poäng skada den här minionen delar ut dödar målet direkt, oavsett hur mycket HP målet har kvar.', tags:'combat,removal' },
+    { category:'keyword', title:'POISON', body:'Varje poäng skada den här minionen delar ut dödar målet direkt, oavsett hur mycket HP målet har kvar.', tags:'combat,removal' },
     { category:'keyword', title:'VAMPIRISM', body:'Minionen återfår HP lika med den skada den delar ut. Lifesteal.', tags:'combat,sustain' },
     { category:'keyword', title:'INSTANT', body:'Spellen med INSTANT kan spelas utanför din tur, som en reaktion.', tags:'timing,spell' },
     { category:'keyword', title:'STUN', body:'Minionen är bedövad och kan varken attackera eller blockera under sin bedövade tur.\nSTUN löser sig i slutet av ägarens tur.', tags:'combat,restriction' },
@@ -2817,19 +2817,19 @@ async function seedTemplatesIfEmpty() {
       },
     },
     {
-      name: 'TOXIC + FIRST_STRIKE (enkel removal)',
-      description: 'TOXIC dödar allt den skadar. FIRST_STRIKE slår innan motståndaren. Dödlig kombination.',
+      name: 'POISON + FIRST_STRIKE (enkel removal)',
+      description: 'POISON dödar allt den skadar. FIRST_STRIKE slår innan motståndaren. Dödlig kombination.',
       card_type: 'minion', is_builtin: true,
       card_data: {
         mana:4, card_class:'Dark', rarity:'rare',
-        description:'First Strike. Toxic.',
-        keywords:'FIRST_STRIKE, TOXIC',
+        description:'First Strike. Poison.',
+        keywords:'FIRST_STRIKE, POISON',
         attack:1, health:3, subtype:'Demon',
       },
       field_notes: {
-        keywords: 'FIRST_STRIKE + TOXIC = slår sin 1-skada INNAN motståndaren och dödar den direkt oavsett health. Extremt effektiv removal.',
-        attack: '1 attack räcker med TOXIC — varje poäng skada dödar. Håll attack låg och kompensera med health.',
-        health: '3 health = överlever de flesta 2-mana-minions utan TOXIC/FIRST_STRIKE.',
+        keywords: 'FIRST_STRIKE + POISON = slår sin 1-skada INNAN motståndaren och dödar den direkt oavsett health. Extremt effektiv removal.',
+        attack: '1 attack räcker med POISON — varje poäng skada dödar. Håll attack låg och kompensera med health.',
+        health: '3 health = överlever de flesta 2-mana-minions utan POISON/FIRST_STRIKE.',
         mana: '4 mana för dessa keywords är rätt balanserat — effekterna är starka.',
       },
     },
@@ -3531,7 +3531,7 @@ const SMART_KW = [
   { id:'FIRST_STRIKE',  label:'FIRST_STRIKE',  tip:'Slår före motståndaren' },
   { id:'DOUBLE_STRIKE', label:'DOUBLE_STRIKE', tip:'Anfaller två gånger' },
   { id:'VAMPIRISM',     label:'VAMPIRISM',     tip:'Läker ägaren med skada den gör' },
-  { id:'TOXIC',         label:'TOXIC',         tip:'Dödar allt den skadar direkt' },
+  { id:'POISON',         label:'POISON',         tip:'Dödar allt den skadar direkt' },
   { id:'CANT_ATTACK',   label:'CANT_ATTACK',   tip:'Kan inte anfalla' },
 ];
 
@@ -3604,7 +3604,7 @@ const SMART_SPELL_MANA = [
 
 function kwDesc(kw) {
   const map = { AIRBORNE:'Flying.', RANGE:'Range.', FIRST_STRIKE:'First Strike.',
-    DOUBLE_STRIKE:'Double Strike.', VAMPIRISM:'Vampirism.', TOXIC:'Toxic.', CANT_ATTACK:"Can't Attack." };
+    DOUBLE_STRIKE:'Double Strike.', VAMPIRISM:'Vampirism.', POISON:'Poison.', CANT_ATTACK:"Can't Attack." };
   return map[kw] || '';
 }
 
