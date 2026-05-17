@@ -1,11 +1,14 @@
 #!/bin/bash
 # Lägger till saknade fält i cards-kollektionen (passive_*, transform_*)
+# Användning: bash pb_migrate_add_fields.sh <pb_url> <email> <password>
 set -e
 
 PB_URL="${1:-http://192.168.50.24:8091}"
-read -p "Admin email: " EMAIL
-read -s -p "Admin password: " PASSWORD
-echo ""
+EMAIL="${2:-}"
+PASSWORD="${3:-}"
+
+if [ -z "$EMAIL" ]; then read -p "Admin email: " EMAIL; fi
+if [ -z "$PASSWORD" ]; then read -s -p "Admin password: " PASSWORD; echo ""; fi
 
 echo "Loggar in..."
 RESPONSE=$(curl -s -X POST "$PB_URL/api/collections/_superusers/auth-with-password" \
