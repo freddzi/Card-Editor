@@ -257,6 +257,24 @@ function closeAllDropdowns() {
   document.querySelectorAll('.nav-dropdown').forEach(d => d.classList.remove('open'));
 }
 
+// ── Submenu hover (JS-baserat för pålitlighet) ────────────────────────────────
+document.querySelectorAll('.nav-submenu-item').forEach(item => {
+  const sub = item.querySelector('.nav-submenu');
+  if (!sub) return;
+  let leaveTimer;
+  item.addEventListener('mouseenter', () => {
+    clearTimeout(leaveTimer);
+    sub.style.display = 'block';
+  });
+  item.addEventListener('mouseleave', () => {
+    leaveTimer = setTimeout(() => { sub.style.display = ''; }, 80);
+  });
+  sub.addEventListener('mouseenter', () => clearTimeout(leaveTimer));
+  sub.addEventListener('mouseleave', () => {
+    leaveTimer = setTimeout(() => { sub.style.display = ''; }, 80);
+  });
+});
+
 // ── Toast ─────────────────────────────────────────────────────────────────────
 const toast = document.getElementById('toast');
 let toastTimer;
