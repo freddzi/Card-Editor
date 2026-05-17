@@ -604,7 +604,7 @@ btnDelOk.addEventListener('click', async () => {
 
 // ── Keyword picker ────────────────────────────────────────────────────────────
 const ALL_KEYWORDS = [
-  'FLYING','RANGE','REACH','FIRST_STRIKE','DOUBLE_STRIKE',
+  'AIRBORNE','RANGE','REACH','FIRST_STRIKE','DOUBLE_STRIKE',
   'TWINSTRIKE','CANT_ATTACK','PARRY','IRON_SKIN','TOXIC','VAMPIRISM',
   'STUN','SCARE','GUARDIAN','STEALTH','CONSUME','RESURRECT','TRANSFORM','POSSESS'
 ];
@@ -2272,8 +2272,8 @@ async function seedDocsIfEmpty() {
 
   const seed = [
     // Keywords
-    { category:'keyword', title:'FLYING', body:'Minionen kan bara blockas av andra minions med FLYING eller REACH.\nFlyande minions kan attackera fritt förbi marktrupper.', tags:'combat,movement' },
-    { category:'keyword', title:'REACH', body:'Minionen kan blockera FLYING-minions trots att den inte flyger själv.\nBra defensivt verktyg mot flygande hot.', tags:'combat,defense' },
+    { category:'keyword', title:'AIRBORNE', body:'Minionen kan bara blockas av andra minions med AIRBORNE eller REACH.\nFlyande minions kan attackera fritt förbi marktrupper.', tags:'combat,movement' },
+    { category:'keyword', title:'REACH', body:'Minionen kan blockera AIRBORNE-minions trots att den inte flyger själv.\nBra defensivt verktyg mot flygande hot.', tags:'combat,defense' },
     { category:'keyword', title:'RANGE', body:'Minionen kan attackera utan att ta motskada vid direkt attack.\nFienden svarar inte med skada.', tags:'combat,offense' },
     { category:'keyword', title:'FIRST_STRIKE', body:'Minionen delar ut sin skada innan motståndaren i strid.\nOm motståndaren dör av first strike-skadan svarar den aldrig.', tags:'combat' },
     { category:'keyword', title:'DOUBLE_STRIKE', body:'Minionen attackerar två gånger per strid — först med first strike, sedan igen i normal stridsupplösning.', tags:'combat,offense' },
@@ -2657,19 +2657,19 @@ async function seedTemplatesIfEmpty() {
       },
     },
     {
-      name: 'Minion med FLYING',
-      description: 'Flying-minion som bara kan blockas av andra FLYING eller REACH. Bra aggro-hottar.',
+      name: 'Minion med AIRBORNE',
+      description: 'Flying-minion som bara kan blockas av andra AIRBORNE eller REACH. Bra aggro-hottar.',
       card_type: 'minion', is_builtin: true,
       card_data: {
         mana:2, card_class:'Dark', rarity:'common',
         description:'Flying.',
-        keywords:'FLYING',
+        keywords:'AIRBORNE',
         attack:2, health:1, subtype:'Beast',
       },
       field_notes: {
-        keywords: 'FLYING = kan bara blockas av FLYING eller REACH. Skriv alltid VERSALER. Flera keywords: "FLYING, RANGE".',
+        keywords: 'AIRBORNE = kan bara blockas av AIRBORNE eller REACH. Skriv alltid VERSALER. Flera keywords: "AIRBORNE, RANGE".',
         description: 'Kortets regeltext. Skriv ut keywords här med stor bokstav för tydlighet: "Flying."',
-        attack: '2 attack med 1 health = fragil men hotfull. Svårt att blocka utan FLYING/REACH.',
+        attack: '2 attack med 1 health = fragil men hotfull. Svårt att blocka utan AIRBORNE/REACH.',
         subtype: 'Beast = tematisk för flygande djur. Kan ge synergier med beastsynergikort.',
       },
     },
@@ -3520,7 +3520,7 @@ const _origRenderGrid = renderGrid;
 // ── Smart Templates ───────────────────────────────────────────────────────────
 
 const SMART_KW = [
-  { id:'FLYING',        label:'FLYING',        tip:'Kan bara blockas av FLYING/REACH' },
+  { id:'AIRBORNE',        label:'AIRBORNE',        tip:'Kan bara blockas av AIRBORNE/REACH' },
   { id:'RANGE',         label:'RANGE',         tip:'Ignorerar blockers helt' },
   { id:'FIRST_STRIKE',  label:'FIRST_STRIKE',  tip:'Slår före motståndaren' },
   { id:'DOUBLE_STRIKE', label:'DOUBLE_STRIKE', tip:'Anfaller två gånger' },
@@ -3597,7 +3597,7 @@ const SMART_SPELL_MANA = [
 ];
 
 function kwDesc(kw) {
-  const map = { FLYING:'Flying.', RANGE:'Range.', FIRST_STRIKE:'First Strike.',
+  const map = { AIRBORNE:'Flying.', RANGE:'Range.', FIRST_STRIKE:'First Strike.',
     DOUBLE_STRIKE:'Double Strike.', VAMPIRISM:'Vampirism.', TOXIC:'Toxic.', CANT_ATTACK:"Can't Attack." };
   return map[kw] || '';
 }
