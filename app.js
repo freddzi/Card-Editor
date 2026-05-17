@@ -594,7 +594,7 @@ btnDelOk.addEventListener('click', async () => {
 const ALL_KEYWORDS = [
   'FLYING','RAPID','RANGE','REACH','FIRST_STRIKE','DOUBLE_STRIKE',
   'TWINSTRIKE','CANT_ATTACK','PARRY','IRON_SKIN','TOXIC','VAMPIRISM','INSTANT',
-  'STUN','SCARE','GUARDIAN','STEALTH','CANT_BLOCK','CONSUME','RESURRECT'
+  'STUN','SCARE','GUARDIAN','STEALTH','CANT_BLOCK','CONSUME','RESURRECT','TRANSFORM'
 ];
 const ALL_KEYWORDS_SET = new Set(ALL_KEYWORDS);
 const extraKeywords = new Set(JSON.parse(localStorage.getItem('extraKeywords') || '[]'));
@@ -1196,9 +1196,14 @@ const kwDropdown = document.getElementById('kw-dropdown');
 const kwAddBtn   = document.getElementById('kw-add-btn');
 const kwHidden   = document.getElementById('keywords-hidden');
 
+const transformSection = document.getElementById('transform-section');
+
 function syncKwHidden() {
   kwHidden.value = [...kwPicker.querySelectorAll('.kw-tag.active')]
     .map(t => t.dataset.kw.toUpperCase()).join(', ');
+  const hasTransform = [...kwPicker.querySelectorAll('.kw-tag.active')]
+    .some(t => t.dataset.kwBase === 'TRANSFORM');
+  if (transformSection) transformSection.style.display = hasTransform ? '' : 'none';
 }
 
 // Keywords som kräver ett numeriskt värde, t.ex. PARRY_50 eller IRON_SKIN_2
@@ -1480,6 +1485,9 @@ async function openEditForm(card) {
     setFieldVal('passive_cap', card.passive_cap || 0);
     document.querySelector('#passive_arg_hidden').value = card.passive_arg || '';
     reloadPassiveArgUI();
+    setFieldVal('transform_attack', card.transform_attack || 0);
+    setFieldVal('transform_health', card.transform_health || 0);
+    setFieldVal('transform_keywords', card.transform_keywords || '');
   } else if (card.card_type === 'spell') {
     setFieldVal('effect_id', card.effect_id); setFieldVal('effect_value', card.effect_value);
     setFieldVal('target_mode', card.target_mode); setFieldVal('targeting_mode', card.targeting_mode);
@@ -1602,6 +1610,9 @@ form.addEventListener('submit', async e => {
       passive_arg: get('passive_arg') || '',
       passive_value: parseInt(get('passive_value')) || 0,
       passive_cap: parseInt(get('passive_cap')) || 0,
+      transform_attack: parseInt(get('transform_attack')) || 0,
+      transform_health: parseInt(get('transform_health')) || 0,
+      transform_keywords: get('transform_keywords') || '',
     };
   } else if (base.card_type === 'spell') {
     const effectId  = get('effect_id');
@@ -1736,10 +1747,10 @@ function buildSQL(rawCards) {
   const structures = cards.filter(c => c.card_type === 'structure');
 
   if (minions.length) {
-    sql += `\n\nINSERT INTO minion_cards (\n    card_id, attack, health, subtype, ability_id, ability_trigger, ability_cost, ability_target_mode, ability_targeting_mode, ability_value, ability_arg, target_filter, passive_id, passive_arg, passive_value, passive_cap\n) VALUES\n`;
+    sql += `\n\nINSERT INTO minion_cards (\n    card_id, attack, health, subtype, ability_id, ability_trigger, ability_cost, ability_target_mode, ability_targeting_mode, ability_value, ability_arg, target_filter, passive_id, passive_arg, passive_value, passive_cap, transform_attack, transform_health, transform_keywords\n) VALUES\n`;
     sql += minions.map((c, i) => {
       const comma = i < minions.length - 1 ? ',' : ';';
-      return `    ('${esc(c.id)}', ${c.attack??0}, ${c.health??0}, '${esc(c.subtype)}', '${esc(c.ability_id)}', '${esc(c.ability_trigger)}', ${c.ability_cost??0}, '${esc(c.ability_target_mode)}', '${esc(c.ability_targeting_mode)||'explicit'}', ${c.ability_value??0}, '${esc(c.ability_arg)}', '${esc(c.target_filter)}', '${esc(c.passive_id||'')}', '${esc(c.passive_arg||'')}', ${c.passive_value??0}, ${c.passive_cap??0})${comma}`;
+      return `    ('${esc(c.id)}', ${c.attack??0}, ${c.health??0}, '${esc(c.subtype)}', '${esc(c.ability_id)}', '${esc(c.ability_trigger)}', ${c.ability_cost??0}, '${esc(c.ability_target_mode)}', '${esc(c.ability_targeting_mode)||'explicit'}', ${c.ability_value??0}, '${esc(c.ability_arg)}', '${esc(c.target_filter)}', '${esc(c.passive_id||'')}', '${esc(c.passive_arg||'')}', ${c.passive_value??0}, ${c.passive_cap??0}, ${c.transform_attack??0}, ${c.transform_health??0}, '${esc(c.transform_keywords||'')}')${comma}`;
     }).join('\n');
   }
 
@@ -1835,7 +1846,9 @@ document.getElementById('btn-download-db').addEventListener('click', async () =>
         ability_id TEXT, ability_trigger TEXT, ability_cost INTEGER,
         ability_target_mode TEXT, ability_targeting_mode TEXT, ability_value INTEGER,
         ability_arg TEXT, target_filter TEXT, passive_id TEXT, passive_arg TEXT,
-        passive_value INTEGER, passive_cap INTEGER
+        passive_value INTEGER, passive_cap INTEGER,
+        transform_attack INTEGER DEFAULT 0, transform_health INTEGER DEFAULT 0,
+        transform_keywords TEXT DEFAULT ''
       );
       CREATE TABLE IF NOT EXISTS spell_cards (
         card_id TEXT PRIMARY KEY, effect_id TEXT, effect_value INTEGER,
@@ -2268,6 +2281,7 @@ async function seedDocsIfEmpty() {
     { category:'keyword', title:'SURGE', body:'När minionen attackerar får ägaren X temporär mana för den resterande turen.\nManan försvinner vid turens slut.\nFormatet är SURGE_X, t.ex. SURGE_2 ger 2 mana per attack.', tags:'mana,tempo', in_godot:true },
     { category:'keyword', title:'PLUNDER', body:'När minionen delar ut skada direkt mot motståndarens hjälte får ägaren X temporär mana för den resterande turen.\nManan försvinner vid turens slut.\nFormatet är PLUNDER_X, t.ex. PLUNDER_1.', tags:'mana,tempo,offense', in_godot:true },
     { category:'keyword', title:'RESURRECT', body:'Minioner med RESURRECT kan återkallas från graven mot mana-kostnad istället för liv.\n\nNormalt kostar det LIV (HP) att återliva en minion från graven.\nEn RESURRECT-minion kan istället spelas ut på nytt mot sin normala mana-kostnad — precis som om du spelade den från handen.\n\nRegler:\n- Minionen måste vara i graven (ha dött under matchen).\n- Du betalar manakostnaden, inte liv.\n- Minionen återkommer med full HP och utan några buffs den haft.\n- RESURRECT-minionen kan återkallas hur många gånger som helst så länge du har mana.', tags:'resurrect,mana,graven' },
+    { category:'keyword', title:'TRANSFORM', body:'Minionen växlar form beroende på vems tur det är.\n\nPå ägarens tur: minionen är i sin GRUNDFORM (de stats som är inlagda normalt på kortet).\nPå motståndarens tur: minionen transformeras till ALTERNATIVFORMEN — med nya attack-, HP- och keyword-värden.\nVid turstarten återgår/transformerar den automatiskt.\n\nAlt-formen definieras av fälten transform_attack, transform_health och transform_keywords på kortet.\n\nAnvändning:\n- En defensiv minion som blir offensiv under motståndarens tur.\n- En svag minion som tillfälligt får ett skrämmande keyword på motståndarsidan.\n- Skapar oförutsägbarhet och strategiska val kring när man attackerar/blockar.', tags:'transform,form,turn' },
 
     // Effects — Skada & AOE
     { category:'effect', title:'deal_damage', body:'Delar ut X skada till ett mål.\nAnvänds av spells och minion-abilities.\neffect_value = mängd skada.\ntarget_mode avgör vad som kan träffas.', tags:'damage' },
