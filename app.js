@@ -615,7 +615,7 @@ const ALL_KEYWORDS_SET = new Set(ALL_KEYWORDS);
 const extraKeywords = new Set(JSON.parse(localStorage.getItem('extraKeywords') || '[]'));
 
 const EFFECT_GROUPS = [
-  { group: 'Implementerade i Godot', items: ['deal_damage','draw_card','draw_spell','heal','chain','remove_minion','buff_minion','vanish','bounce_after_attack','clone_minion','sacrifice_draw'] },
+  { group: 'Implementerade i Godot', items: ['deal_damage','draw_card','draw_spell','heal','chain','remove_minion','buff_minion','vanish','bounce_after_attack','clone_minion','kill_draw'] },
 ];
 
 function buildEffectOptions() {
@@ -805,8 +805,8 @@ function buildArgUI(effectId, targetingMode, container, argInput, initialValue =
   const _vWrap = document.getElementById(_valueWrapId);
   if (_vWrap) _vWrap.style.display = '';
 
-  // ── sacrifice_draw ───────────────────────────────────────────────────────────
-  if (effectId === 'sacrifice_draw') {
+  // ── kill_draw ───────────────────────────────────────────────────────────
+  if (effectId === 'kill_draw') {
     container.innerHTML = `
       <div class="field">
         <label style="font-size:12px">Subtype att offra <span style="color:var(--muted)">(lämna tomt = alla egna minions)</span></label>
