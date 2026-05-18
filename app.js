@@ -632,7 +632,7 @@ function buildEffectOptions() {
   document.querySelectorAll(sel).forEach(el => { el.innerHTML = buildEffectOptions(); });
 });
 
-const NO_AUTO_EFFECTS = new Set(['remove_minion', 'chain', 'buff_minion']);
+const NO_AUTO_EFFECTS = new Set(['remove_minion', 'chain']);
 
 function syncTargetingModeOptions(effectSel, targetingSel) {
   const effect = effectSel.value;
