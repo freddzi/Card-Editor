@@ -805,6 +805,21 @@ function buildArgUI(effectId, targetingMode, container, argInput, initialValue =
   const _vWrap = document.getElementById(_valueWrapId);
   if (_vWrap) _vWrap.style.display = '';
 
+  // ── sacrifice_draw ───────────────────────────────────────────────────────────
+  if (effectId === 'sacrifice_draw') {
+    container.innerHTML = `
+      <div class="field">
+        <label style="font-size:12px">Subtype att offra <span style="color:var(--muted)">(lämna tomt = alla egna minions)</span></label>
+        <input class="arg-subtype" placeholder="t.ex. skeleton">
+      </div>`;
+    container.querySelector('.arg-subtype').value = raw;
+    container.querySelector('.arg-subtype').addEventListener('input', e => {
+      argInput.value = e.target.value.trim().toLowerCase();
+    });
+    argInput.value = raw;
+    return;
+  }
+
   // ── buff_minion ──────────────────────────────────────────────────────────────
   if (effectId === 'buff_minion') {
     // Ability-context kan ha "cost:discard:N:stat[:temp[:sub]]"
