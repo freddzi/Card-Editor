@@ -139,8 +139,8 @@ const DEV_MODE = window.location.hostname === 'localhost' || window.location.hos
 async function initAuth() {
   await _initPbUrl();
   if (DEV_MODE) {
-    // Lokalt: ladda URL från pb_url.txt men kräv fortfarande PocketBase-auth för att kunna spara
-    if (pb.authStore.isValid) {
+    // file://-protokoll: skippa inloggning direkt (ingen sparfunktion behövs för att kolla UI)
+    if (window.location.protocol === 'file:' || pb.authStore.isValid) {
       showApp();
     } else {
       showLogin();
