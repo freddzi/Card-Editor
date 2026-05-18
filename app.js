@@ -608,7 +608,8 @@ btnDelOk.addEventListener('click', async () => {
 const ALL_KEYWORDS = [
   'AIRBORNE','RANGE','REACH','FIRST_STRIKE','DOUBLE_STRIKE',
   'TWINSTRIKE','CANT_ATTACK','PARRY','IRON_SKIN','POISON','VAMPIRISM',
-  'STUN','SCARE','GUARDIAN','STEALTH','CONSUME','RESURRECT','TRANSFORM','POSSESS','ENTHRALL'
+  'STUN','SCARE','GUARDIAN','STEALTH','CONSUME','RESURRECT','TRANSFORM','POSSESS','ENTHRALL',
+  'DEVOUR','SPELL_DISCOUNT'
 ];
 const ALL_KEYWORDS_SET = new Set(ALL_KEYWORDS);
 const extraKeywords = new Set(JSON.parse(localStorage.getItem('extraKeywords') || '[]'));
@@ -1229,7 +1230,7 @@ function syncKwHidden() {
 }
 
 // Keywords som kräver ett numeriskt värde, t.ex. PARRY_50 eller IRON_SKIN_2
-const VALUE_KEYWORDS = new Set(['PARRY', 'IRON_SKIN', 'MANA_LEECH', 'ENTHRALL']);
+const VALUE_KEYWORDS = new Set(['PARRY', 'IRON_SKIN', 'MANA_LEECH', 'ENTHRALL', 'SPELL_DISCOUNT']);
 
 function kwBase(kw) {
   return kw.replace(/_\d+$/, '');
