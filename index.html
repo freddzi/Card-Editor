@@ -147,6 +147,7 @@
       <option value="chain">chain</option>
       <option value="remove_minion">remove_minion</option>
       <option value="buff_minion">buff_minion</option>
+      <option value="clone_minion">clone_minion</option>
     </select>
     <input id="filter-mana" type="number" min="0" placeholder="Mana ≤" style="width:80px">
     <input id="filter-attack" type="number" min="0" placeholder="Attack ≥" style="width:90px">
@@ -508,10 +509,11 @@
             <select name="passive_id" id="passive_id">
               <option value="">— ingen —</option>
               <option value="pack_buff">pack_buff</option>
+              <option value="spell_discount">spell_discount</option>
             </select>
           </div>
           <div class="field" id="passive-value-wrap">
-            <label>Per-Minion Bonus</label>
+            <label id="passive-value-label">Per-Minion Bonus</label>
             <input name="passive_value" type="number" value="0" min="0">
           </div>
           <div class="field" id="passive-cap-wrap">
@@ -563,6 +565,7 @@
               <option value="heal">heal</option>
               <option value="chain">chain</option>
               <option value="remove_minion">remove_minion</option>
+              <option value="clone_minion">clone_minion</option>
             </select>
           </div>
           <div class="field" id="effect-value-wrap">

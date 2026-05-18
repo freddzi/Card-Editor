@@ -680,8 +680,16 @@ function syncTargetingModeOptions(effectSel, targetingSel) {
 
 function buildPassiveArgUI(passiveId, container, hiddenInput, initialValue = '') {
   container.innerHTML = '';
-  const argRow = document.getElementById('passive-arg-row');
-  if (argRow) argRow.style.display = passiveId === 'pack_buff' ? '' : 'none';
+  const argRow  = document.getElementById('passive-arg-row');
+  const capWrap = document.getElementById('passive-cap-wrap');
+  const valLabel = document.getElementById('passive-value-label');
+
+  if (argRow)  argRow.style.display  = passiveId === 'pack_buff' ? '' : 'none';
+  if (capWrap) capWrap.style.display = passiveId === 'pack_buff' ? '' : 'none';
+  if (valLabel) {
+    valLabel.textContent = passiveId === 'spell_discount' ? 'Minskning (1–7)' : 'Per-Minion Bonus';
+  }
+
   if (passiveId !== 'pack_buff') {
     hiddenInput.value = '';
     return;
