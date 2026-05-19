@@ -2296,8 +2296,8 @@ document.querySelectorAll('.doc-cat-btn').forEach(btn => {
 
 // Seed om databasen är tom
 async function seedDocsIfEmpty() {
-  const res = await pb.collection('game_docs').getList(1, 1).catch(() => ({ totalItems: 0 }));
-  if (res.totalItems > 0) return;
+  const existing = await pb.collection('game_docs').getFullList({ requestKey: null }).catch(() => []);
+  const existingTitles = new Set(existing.map(d => d.title));
 
   const seed = [
     // Keywords
@@ -2435,7 +2435,11 @@ async function seedDocsIfEmpty() {
     { category:'suggestion', title:'Mall för nya förslag', body:'Använd den här posten som mall.\nBeskriv:\n1. Problemet / idén\n2. Föreslaget beteende\n3. Eventuella undantag eller interaktioner\n4. Prioritet (låg/medium/hög)', tags:'meta' },
   ];
 
-  for (const item of seed) await pb.collection('game_docs').create(item);
+  for (const item of seed) {
+    if (!existingTitles.has(item.title)) {
+      await pb.collection('game_docs').create(item);
+    }
+  }
 }
 
 // Kör seed och rendera när sidan visas
