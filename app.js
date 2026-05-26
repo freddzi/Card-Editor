@@ -1,7 +1,7 @@
 'use strict';
 
 // ── PocketBase ────────────────────────────────────────────────────────────────
-let PB_URL = 'https://peterson-fair-tail-del.trycloudflare.com';
+let PB_URL = 'https://investors-sufficiently-invest-grammar.trycloudflare.com';
 const pb = new PocketBase(PB_URL);
 
 async function _initPbUrl() {
