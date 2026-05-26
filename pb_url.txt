@@ -1,1 +1,1 @@
-https://investors-sufficiently-invest-grammar.trycloudflare.com
+https://api.trycloudflare.com
