@@ -1076,11 +1076,12 @@ function buildArgUI(effectId, targetingMode, container, argInput, initialValue =
       }
     }
 
-    // Parsa splash från raw: "splash:N:target_mode"
+    // Parsa splash och push från raw
     const splashMatch = raw.match(/splash:(\d+):([a-z_]+)/);
     const initSplashEnabled = !!splashMatch;
     const initSplashAmount  = splashMatch ? splashMatch[1] : '1';
     const initSplashTarget  = splashMatch ? splashMatch[2] : 'enemy_hero';
+    const initPushEnabled   = raw.split('|').map(s => s.trim()).includes('push');
 
     // draw_card / draw_spell har ingen FX-animation → visa bara discard (abilities) eller inget (spell)
     const hasFx = !['draw_card','draw_spell'].includes(effectId);
@@ -1109,11 +1110,11 @@ function buildArgUI(effectId, targetingMode, container, argInput, initialValue =
         </div>
       </div>` : '';
 
-    // Splash-block: bara för deal_damage i alla contexts
+    // Extra-block: bara för deal_damage
     const splashTargetOpts = ['enemy_hero','friendly_hero','enemy_minion','friendly_minion','any_target']
       .map(t => `<option value="${t}">${t}</option>`).join('');
     const splashBlock = effectId === 'deal_damage' ? `
-      <div style="margin-top:10px;padding:8px;border:1px solid var(--border, #444);border-radius:6px;background:var(--bg2,#1a1a2e)">
+      <div style="margin-top:10px;padding:8px;border:1px solid var(--border,#444);border-radius:6px;background:var(--bg2,#1a1a2e)">
         <label style="font-size:12px;display:flex;align-items:center;gap:6px;cursor:pointer">
           <input type="checkbox" class="arg-splash-enable" ${initSplashEnabled ? 'checked' : ''}>
           <strong>Splash-skada</strong>
@@ -1125,11 +1126,14 @@ function buildArgUI(effectId, targetingMode, container, argInput, initialValue =
           </div>
           <div class="field" style="flex:1;min-width:160px">
             <label style="font-size:12px">Mål</label>
-            <select class="arg-splash-target">
-              ${splashTargetOpts}
-            </select>
+            <select class="arg-splash-target">${splashTargetOpts}</select>
           </div>
         </div>
+        <label style="font-size:12px;display:flex;align-items:center;gap:6px;cursor:pointer;margin-top:8px">
+          <input type="checkbox" class="arg-push-enable" ${initPushEnabled ? 'checked' : ''}>
+          <strong>Push to backline</strong>
+          <span style="color:var(--muted,#888);font-weight:normal">— skjut tillbaka minion till backline</span>
+        </label>
       </div>` : '';
 
     if (!costBlock && !hasFx && !splashBlock) { argInput.value = ''; return; }
@@ -1149,26 +1153,29 @@ function buildArgUI(effectId, targetingMode, container, argInput, initialValue =
       countWrap.style.display = hasCost ? '' : 'none';
     }
 
-    // Splash toggle
     if (splashBlock) {
       container.querySelector('.arg-splash-enable').addEventListener('change', e => {
         container.querySelector('.arg-splash-fields').style.display = e.target.checked ? 'flex' : 'none';
         composeFx();
       });
+      container.querySelector('.arg-push-enable').addEventListener('change', composeFx);
     }
 
     const composeFx = () => {
       const fx = hasFx ? (container.querySelector('.arg-fx')?.value || '') : '';
 
-      let splashSuffix = '';
+      const parts = [fx];
       if (splashBlock) {
-        const enabled = container.querySelector('.arg-splash-enable')?.checked;
-        if (enabled) {
+        if (container.querySelector('.arg-splash-enable')?.checked) {
           const amt = parseInt(container.querySelector('.arg-splash-amount')?.value, 10) || 1;
           const tgt = container.querySelector('.arg-splash-target')?.value || 'enemy_hero';
-          splashSuffix = `${fx ? '|' : ''}splash:${amt}:${tgt}`;
+          parts.push(`splash:${amt}:${tgt}`);
+        }
+        if (container.querySelector('.arg-push-enable')?.checked) {
+          parts.push('push');
         }
       }
+      const composed = parts.filter(Boolean).join('|');
 
       if (context === 'ability') {
         const costSel   = container.querySelector('.arg-cost-type');
@@ -1176,14 +1183,14 @@ function buildArgUI(effectId, targetingMode, container, argInput, initialValue =
         const countEl   = container.querySelector('.arg-discard-count');
         if (costSel.value === 'discard') {
           const n = Math.max(1, parseInt(countEl.value, 10) || 1);
-          argInput.value = fx ? `cost:discard:${n}:${fx}${splashSuffix}` : `cost:discard:${n}${splashSuffix}`;
+          argInput.value = fx ? `cost:discard:${n}:${fx}${composed.slice(fx.length)}` : `cost:discard:${n}${composed ? '|' + composed : ''}`;
           countWrap.style.display = '';
         } else {
-          argInput.value = fx + splashSuffix;
+          argInput.value = composed;
           countWrap.style.display = 'none';
         }
       } else {
-        argInput.value = fx + splashSuffix;
+        argInput.value = composed;
       }
     };
     container.querySelectorAll('.arg-fx,.arg-cost-type,.arg-discard-count,.arg-splash-amount,.arg-splash-target').forEach(el => {
