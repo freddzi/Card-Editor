@@ -1065,8 +1065,22 @@ function buildArgUI(effectId, targetingMode, container, argInput, initialValue =
         initFx = raw;
       }
     } else {
-      initFx = raw; // spell: hela arg är FX
+      // spell: dela upp i FX-del och splash-del
+      if (raw.includes('|')) {
+        const [fxPart, splashPart] = raw.split('|');
+        initFx = fxPart;
+      } else if (raw.startsWith('splash:')) {
+        initFx = '';
+      } else {
+        initFx = raw;
+      }
     }
+
+    // Parsa splash från raw: "splash:N:target_mode"
+    const splashMatch = raw.match(/splash:(\d+):([a-z_]+)/);
+    const initSplashEnabled = !!splashMatch;
+    const initSplashAmount  = splashMatch ? splashMatch[1] : '1';
+    const initSplashTarget  = splashMatch ? splashMatch[2] : 'enemy_hero';
 
     // draw_card / draw_spell har ingen FX-animation → visa bara discard (abilities) eller inget (spell)
     const hasFx = !['draw_card','draw_spell'].includes(effectId);
@@ -1095,14 +1109,38 @@ function buildArgUI(effectId, targetingMode, container, argInput, initialValue =
         </div>
       </div>` : '';
 
-    if (!costBlock && !hasFx) { argInput.value = ''; return; }
+    // Splash-block: bara för deal_damage i alla contexts
+    const splashTargetOpts = ['enemy_hero','friendly_hero','enemy_minion','friendly_minion','any_target']
+      .map(t => `<option value="${t}">${t}</option>`).join('');
+    const splashBlock = effectId === 'deal_damage' ? `
+      <div style="margin-top:10px;padding:8px;border:1px solid var(--border, #444);border-radius:6px;background:var(--bg2,#1a1a2e)">
+        <label style="font-size:12px;display:flex;align-items:center;gap:6px;cursor:pointer">
+          <input type="checkbox" class="arg-splash-enable" ${initSplashEnabled ? 'checked' : ''}>
+          <strong>Splash-skada</strong>
+        </label>
+        <div class="arg-splash-fields" style="display:${initSplashEnabled ? 'flex' : 'none'};gap:10px;flex-wrap:wrap;margin-top:8px;align-items:flex-end">
+          <div class="field" style="flex:0 0 auto;min-width:70px">
+            <label style="font-size:12px">Skada</label>
+            <input class="arg-splash-amount" type="number" min="1" max="20" value="${initSplashAmount}">
+          </div>
+          <div class="field" style="flex:1;min-width:160px">
+            <label style="font-size:12px">Mål</label>
+            <select class="arg-splash-target">
+              ${splashTargetOpts}
+            </select>
+          </div>
+        </div>
+      </div>` : '';
+
+    if (!costBlock && !hasFx && !splashBlock) { argInput.value = ''; return; }
 
     container.innerHTML = costBlock + (hasFx || fxBlock ? `
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
         ${fxBlock}
-      </div>` : '');
+      </div>` : '') + splashBlock;
 
     if (hasFx) container.querySelector('.arg-fx').value = initFx;
+    if (splashBlock) container.querySelector('.arg-splash-target').value = initSplashTarget;
 
     if (context === 'ability') {
       const costSel   = container.querySelector('.arg-cost-type');
@@ -1111,25 +1149,44 @@ function buildArgUI(effectId, targetingMode, container, argInput, initialValue =
       countWrap.style.display = hasCost ? '' : 'none';
     }
 
+    // Splash toggle
+    if (splashBlock) {
+      container.querySelector('.arg-splash-enable').addEventListener('change', e => {
+        container.querySelector('.arg-splash-fields').style.display = e.target.checked ? 'flex' : 'none';
+        composeFx();
+      });
+    }
+
     const composeFx = () => {
       const fx = hasFx ? (container.querySelector('.arg-fx')?.value || '') : '';
+
+      let splashSuffix = '';
+      if (splashBlock) {
+        const enabled = container.querySelector('.arg-splash-enable')?.checked;
+        if (enabled) {
+          const amt = parseInt(container.querySelector('.arg-splash-amount')?.value, 10) || 1;
+          const tgt = container.querySelector('.arg-splash-target')?.value || 'enemy_hero';
+          splashSuffix = `${fx ? '|' : ''}splash:${amt}:${tgt}`;
+        }
+      }
+
       if (context === 'ability') {
         const costSel   = container.querySelector('.arg-cost-type');
         const countWrap = container.querySelector('.arg-discard-count-wrap');
         const countEl   = container.querySelector('.arg-discard-count');
         if (costSel.value === 'discard') {
           const n = Math.max(1, parseInt(countEl.value, 10) || 1);
-          argInput.value = fx ? `cost:discard:${n}:${fx}` : `cost:discard:${n}`;
+          argInput.value = fx ? `cost:discard:${n}:${fx}${splashSuffix}` : `cost:discard:${n}${splashSuffix}`;
           countWrap.style.display = '';
         } else {
-          argInput.value = fx;
+          argInput.value = fx + splashSuffix;
           countWrap.style.display = 'none';
         }
       } else {
-        argInput.value = fx;
+        argInput.value = fx + splashSuffix;
       }
     };
-    container.querySelectorAll('.arg-fx,.arg-cost-type,.arg-discard-count').forEach(el => {
+    container.querySelectorAll('.arg-fx,.arg-cost-type,.arg-discard-count,.arg-splash-amount,.arg-splash-target').forEach(el => {
       el.addEventListener('change', composeFx);
       el.addEventListener('input',  composeFx);
     });
