@@ -1153,14 +1153,6 @@ function buildArgUI(effectId, targetingMode, container, argInput, initialValue =
       countWrap.style.display = hasCost ? '' : 'none';
     }
 
-    if (splashBlock) {
-      container.querySelector('.arg-splash-enable').addEventListener('change', e => {
-        container.querySelector('.arg-splash-fields').style.display = e.target.checked ? 'flex' : 'none';
-        composeFx();
-      });
-      container.querySelector('.arg-push-enable').addEventListener('change', composeFx);
-    }
-
     const composeFx = () => {
       const fx = hasFx ? (container.querySelector('.arg-fx')?.value || '') : '';
 
@@ -1193,6 +1185,14 @@ function buildArgUI(effectId, targetingMode, container, argInput, initialValue =
         argInput.value = composed;
       }
     };
+    if (splashBlock) {
+      container.querySelector('.arg-splash-enable').addEventListener('change', e => {
+        container.querySelector('.arg-splash-fields').style.display = e.target.checked ? 'flex' : 'none';
+        composeFx();
+      });
+      container.querySelector('.arg-push-enable').addEventListener('change', composeFx);
+    }
+
     container.querySelectorAll('.arg-fx,.arg-cost-type,.arg-discard-count,.arg-splash-amount,.arg-splash-target').forEach(el => {
       el.addEventListener('change', composeFx);
       el.addEventListener('input',  composeFx);
