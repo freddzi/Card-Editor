@@ -615,7 +615,7 @@ const ALL_KEYWORDS_SET = new Set(ALL_KEYWORDS);
 const extraKeywords = new Set(JSON.parse(localStorage.getItem('extraKeywords') || '[]'));
 
 const EFFECT_GROUPS = [
-  { group: 'Implementerade i Godot', items: ['deal_damage','draw_card','draw_spell','heal','chain','remove_minion','buff_minion','vanish','bounce_after_attack','clone_minion','kill_draw'] },
+  { group: 'Implementerade i Godot', items: ['deal_damage','draw_card','draw_spell','heal','chain','remove_minion','buff_minion','vanish','bounce_after_attack','clone_minion','kill_draw','grant_keyword'] },
 ];
 
 function buildEffectOptions() {
@@ -804,6 +804,27 @@ function buildArgUI(effectId, targetingMode, container, argInput, initialValue =
                      : 'ability-value-wrap';
   const _vWrap = document.getElementById(_valueWrapId);
   if (_vWrap) _vWrap.style.display = '';
+
+  // ── grant_keyword ───────────────────────────────────────────────────────
+  if (effectId === 'grant_keyword') {
+    const ALL_KEYWORDS = ['AIRBORNE','DASH','RANGE','REACH','DOUBLE_STRIKE','FIRST_STRIKE','TWINSTRIKE',
+      'PARRY','IRON_SKIN','POISON','VAMPIRISM','STEALTH','LURKER','INFEST','SCARE','CHAIN',
+      'CONSUME','SURGE','MANA_LEECH','RESURRECT','TRANSFORM','POSSESS','ENTHRALL','DEVOUR',
+      'SPELL_DISCOUNT','DIES_AFTER_ATTACK','RECOVER','CANT_ATTACK'];
+    const opts = ALL_KEYWORDS.map(k => `<option value="${k}">${k}</option>`).join('');
+    container.innerHTML = `
+      <div class="field" style="min-width:160px">
+        <label style="font-size:12px">Keyword att ge</label>
+        <select class="arg-kw">${opts}</select>
+      </div>`;
+    container.querySelector('.arg-kw').value = raw.trim().toUpperCase() || 'AIRBORNE';
+    container.querySelector('.arg-kw').addEventListener('change', e => {
+      argInput.value = e.target.value;
+    });
+    argInput.value = container.querySelector('.arg-kw').value;
+    if (_vWrap) _vWrap.style.display = 'none';
+    return;
+  }
 
   // ── kill_draw ───────────────────────────────────────────────────────────
   if (effectId === 'kill_draw') {
@@ -1076,7 +1097,11 @@ function buildArgUI(effectId, targetingMode, container, argInput, initialValue =
       }
     }
 
-    // Parsa splash och push från raw
+    // Parsa range, splash och push från raw
+    const rangeMatch = raw.match(/range:(\d+):(\d+)/);
+    const initRangeEnabled = !!rangeMatch;
+    const initRangeMin = rangeMatch ? rangeMatch[1] : '1';
+    const initRangeMax = rangeMatch ? rangeMatch[2] : '6';
     const splashMatch = raw.match(/splash:(\d+):([a-z_]+)/);
     const initSplashEnabled = !!splashMatch;
     const initSplashAmount  = splashMatch ? splashMatch[1] : '1';
@@ -1111,6 +1136,25 @@ function buildArgUI(effectId, targetingMode, container, argInput, initialValue =
       </div>` : '';
 
     // Extra-block: bara för deal_damage
+    const rangeBlock = effectId === 'deal_damage' ? `
+      <div style="margin-top:10px;padding:8px;border:1px solid var(--border,#444);border-radius:6px;background:var(--bg2,#1a1a2e)">
+        <label style="font-size:12px;display:flex;align-items:center;gap:6px;cursor:pointer">
+          <input type="checkbox" class="arg-range-enable" ${initRangeEnabled ? 'checked' : ''}>
+          <strong>Slumpad skada (range)</strong>
+        </label>
+        <div class="arg-range-fields" style="display:${initRangeEnabled ? 'flex' : 'none'};gap:10px;flex-wrap:wrap;margin-top:8px;align-items:flex-end">
+          <div class="field" style="flex:0 0 auto;min-width:70px">
+            <label style="font-size:12px">Min</label>
+            <input class="arg-range-min" type="number" min="1" max="99" value="${initRangeMin}">
+          </div>
+          <div class="field" style="flex:0 0 auto;min-width:70px">
+            <label style="font-size:12px">Max</label>
+            <input class="arg-range-max" type="number" min="1" max="99" value="${initRangeMax}">
+          </div>
+          <span style="color:var(--muted,#888);font-size:12px;align-self:flex-end;padding-bottom:4px">effect_value ignoreras när range är aktivt</span>
+        </div>
+      </div>` : '';
+
     const splashTargetOpts = ['enemy_hero','friendly_hero','enemy_minion','friendly_minion','any_target']
       .map(t => `<option value="${t}">${t}</option>`).join('');
     const splashBlock = effectId === 'deal_damage' ? `
@@ -1136,12 +1180,12 @@ function buildArgUI(effectId, targetingMode, container, argInput, initialValue =
         </label>
       </div>` : '';
 
-    if (!costBlock && !hasFx && !splashBlock) { argInput.value = ''; return; }
+    if (!costBlock && !hasFx && !splashBlock && !rangeBlock) { argInput.value = ''; return; }
 
     container.innerHTML = costBlock + (hasFx || fxBlock ? `
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
         ${fxBlock}
-      </div>` : '') + splashBlock;
+      </div>` : '') + (rangeBlock || '') + splashBlock;
 
     if (hasFx) container.querySelector('.arg-fx').value = initFx;
     if (splashBlock) container.querySelector('.arg-splash-target').value = initSplashTarget;
@@ -1157,6 +1201,11 @@ function buildArgUI(effectId, targetingMode, container, argInput, initialValue =
       const fx = hasFx ? (container.querySelector('.arg-fx')?.value || '') : '';
 
       const parts = [fx];
+      if (rangeBlock && container.querySelector('.arg-range-enable')?.checked) {
+        const mn = parseInt(container.querySelector('.arg-range-min')?.value, 10) || 1;
+        const mx = parseInt(container.querySelector('.arg-range-max')?.value, 10) || 6;
+        parts.push(`range:${mn}:${mx}`);
+      }
       if (splashBlock) {
         if (container.querySelector('.arg-splash-enable')?.checked) {
           const amt = parseInt(container.querySelector('.arg-splash-amount')?.value, 10) || 1;
@@ -1185,6 +1234,13 @@ function buildArgUI(effectId, targetingMode, container, argInput, initialValue =
         argInput.value = composed;
       }
     };
+    if (rangeBlock) {
+      container.querySelector('.arg-range-enable').addEventListener('change', e => {
+        container.querySelector('.arg-range-fields').style.display = e.target.checked ? 'flex' : 'none';
+        composeFx();
+      });
+    }
+
     if (splashBlock) {
       container.querySelector('.arg-splash-enable').addEventListener('change', e => {
         container.querySelector('.arg-splash-fields').style.display = e.target.checked ? 'flex' : 'none';
@@ -1193,7 +1249,7 @@ function buildArgUI(effectId, targetingMode, container, argInput, initialValue =
       container.querySelector('.arg-push-enable').addEventListener('change', composeFx);
     }
 
-    container.querySelectorAll('.arg-fx,.arg-cost-type,.arg-discard-count,.arg-splash-amount,.arg-splash-target').forEach(el => {
+    container.querySelectorAll('.arg-fx,.arg-cost-type,.arg-discard-count,.arg-range-min,.arg-range-max,.arg-splash-amount,.arg-splash-target').forEach(el => {
       el.addEventListener('change', composeFx);
       el.addEventListener('input',  composeFx);
     });
