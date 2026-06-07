@@ -616,6 +616,7 @@ const extraKeywords = new Set(JSON.parse(localStorage.getItem('extraKeywords') |
 
 const EFFECT_GROUPS = [
   { group: 'Implementerade i Godot', items: ['deal_damage','draw_card','draw_spell','heal','chain','remove_minion','buff_minion','vanish','bounce_after_attack','clone_minion','kill_draw','grant_keyword'] },
+  { group: 'Structure Triggers', items: ['resurrect_as_token'] },
 ];
 
 function buildEffectOptions() {
