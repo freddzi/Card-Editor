@@ -1670,6 +1670,7 @@ async function openEditForm(card) {
     setFieldVal('trigger_id', card.trigger_id); setFieldVal('trigger_value', card.trigger_value);
     setFieldVal('trigger_target_mode', card.trigger_target_mode);
     setFieldVal('trigger_condition', card.trigger_condition || 'start_of_turn');
+    setFieldVal('trigger_arg', card.trigger_arg || '');
   }
 
   // Visa befintliga bilder
@@ -1830,6 +1831,7 @@ form.addEventListener('submit', async e => {
       trigger_value: parseInt(get('trigger_value')) || 0,
       trigger_target_mode: get('trigger_target_mode') || 'enemy_hero',
       trigger_condition: get('trigger_condition') || 'start_of_turn',
+      trigger_arg: get('trigger_arg'),
     };
   }
 
@@ -1928,10 +1930,10 @@ function buildSQL(rawCards) {
   }
 
   if (structures.length) {
-    sql += `\n\nINSERT INTO structure_cards (\n    card_id, armor, subtype, maintenance_cost, ability_id, ability_trigger, ability_cost, ability_target_mode, ability_targeting_mode, ability_value, ability_arg, repair_cost, repair_value, trigger_id, trigger_value, trigger_target_mode, trigger_condition, target_filter\n) VALUES\n`;
+    sql += `\n\nINSERT INTO structure_cards (\n    card_id, armor, subtype, maintenance_cost, ability_id, ability_trigger, ability_cost, ability_target_mode, ability_targeting_mode, ability_value, ability_arg, repair_cost, repair_value, trigger_id, trigger_value, trigger_target_mode, trigger_condition, trigger_arg, target_filter\n) VALUES\n`;
     sql += structures.map((c, i) => {
       const comma = i < structures.length - 1 ? ',' : ';';
-      return `    ('${esc(c.id)}', ${c.armor??1}, '${esc(c.subtype)}', ${c.maintenance_cost??0}, '${esc(c.ability_id)}', '${esc(c.ability_trigger)}', ${c.ability_cost??0}, '${esc(c.ability_target_mode)}', '${esc(c.ability_targeting_mode)||'explicit'}', ${c.ability_value??0}, '${esc(c.ability_arg)}', ${c.repair_cost??0}, ${c.repair_value??0}, '${esc(c.trigger_id)}', ${c.trigger_value??0}, '${esc(c.trigger_target_mode)||'enemy_hero'}', '${esc(c.trigger_condition)||'start_of_turn'}', '${esc(c.target_filter)}')${comma}`;
+      return `    ('${esc(c.id)}', ${c.armor??1}, '${esc(c.subtype)}', ${c.maintenance_cost??0}, '${esc(c.ability_id)}', '${esc(c.ability_trigger)}', ${c.ability_cost??0}, '${esc(c.ability_target_mode)}', '${esc(c.ability_targeting_mode)||'explicit'}', ${c.ability_value??0}, '${esc(c.ability_arg)}', ${c.repair_cost??0}, ${c.repair_value??0}, '${esc(c.trigger_id)}', ${c.trigger_value??0}, '${esc(c.trigger_target_mode)||'enemy_hero'}', '${esc(c.trigger_condition)||'start_of_turn'}', '${esc(c.trigger_arg)}', '${esc(c.target_filter)}')${comma}`;
     }).join('\n');
   }
 
@@ -2025,7 +2027,7 @@ document.getElementById('btn-download-db').addEventListener('click', async () =>
         ability_id TEXT, ability_trigger TEXT, ability_cost INTEGER, ability_target_mode TEXT,
         ability_targeting_mode TEXT, ability_value INTEGER, ability_arg TEXT,
         repair_cost INTEGER, repair_value INTEGER, trigger_id TEXT, trigger_value INTEGER,
-        trigger_target_mode TEXT, trigger_condition TEXT, target_filter TEXT
+        trigger_target_mode TEXT, trigger_condition TEXT, trigger_arg TEXT, target_filter TEXT
       );
     `);
 
