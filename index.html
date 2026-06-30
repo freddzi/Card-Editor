@@ -56,6 +56,7 @@
       </div>
     </div>
     <button data-page="page-templates">Mallar</button>
+    <button data-page="page-pool">Pool</button>
     <div class="nav-dropdown">
       <button class="nav-dropdown-btn" id="nav-btn-patcher">Patcher ▾</button>
       <div class="nav-dropdown-menu">
@@ -1255,6 +1256,19 @@
         <button class="btn btn-primary" id="btn-tpl-save">Spara mall</button>
       </div>
     </div>
+  </div>
+</section>
+
+<!-- ── POOL ── -->
+<section id="page-pool" class="page">
+  <div class="export-wrap" style="max-width:500px;text-align:center;padding-top:60px">
+    <h2>Pool</h2>
+    <p style="color:var(--muted);margin-bottom:32px">8-ball pool — 2 spelare online. Starta servern först, anslut sedan som klient.</p>
+    <button class="btn btn-primary" id="btn-start-pool" style="font-size:18px;padding:16px 48px">Starta Pool</button>
+  </div>
+  <div id="pool-overlay" style="display:none;position:fixed;inset:0;background:#000;z-index:9999">
+    <button id="btn-pool-close" style="position:absolute;top:12px;right:16px;z-index:10000;background:rgba(0,0,0,0.6);color:#fff;border:1px solid #555;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:15px">✕ Stäng</button>
+    <iframe id="pool-frame" src="" style="width:100%;height:100%;border:none"></iframe>
   </div>
 </section>
 

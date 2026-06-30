@@ -4359,3 +4359,18 @@ async function renderSuggestions() {
     }
   });
 })();
+
+// ── Pool ──────────────────────────────────────────────────────────────────────
+document.getElementById('btn-start-pool').addEventListener('click', () => {
+  const overlay = document.getElementById('pool-overlay');
+  const frame = document.getElementById('pool-frame');
+  frame.src = 'pool/index.html';
+  overlay.style.display = 'block';
+});
+
+document.getElementById('btn-pool-close').addEventListener('click', () => {
+  const overlay = document.getElementById('pool-overlay');
+  const frame = document.getElementById('pool-frame');
+  overlay.style.display = 'none';
+  frame.src = '';
+});

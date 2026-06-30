@@ -160,7 +160,7 @@ structures = {
     "A00005": {"trigger_id": "on_friendly_minion_death", "ability_id": "resurrect_weakened",    "trigger_value": 2, "ability_arg": "min_attack:2,new_attack:1"},
     "A00008": {"trigger_id": "on_play_spell",            "ability_id": "draw_card",              "trigger_value": 1, "ability_arg": ""},
     "A00009": {"trigger_id": "passive",                  "ability_id": "deny_mana_gain",         "trigger_value": 0, "ability_arg": "target:enemy"},
-    "A00010": {"trigger_id": "on_minion_death_count",    "ability_id": "self_destroy_spawn",     "trigger_value": 5, "ability_arg": "spawn:5/5/Demon,count_per_turn"},
+    "A00010": {"trigger_id": "death_count_spawn", "trigger_value": 5, "trigger_target_mode": "demon", "trigger_condition": "on_friendly_minion_death", "trigger_arg": "5/5"},
     "A00011": {"trigger_id": "on_every_n_turns",         "ability_id": "force_kill_own_minion",  "trigger_value": 2, "ability_arg": "target:enemy"},
     "A00012": {"trigger_id": "on_core_attack",           "ability_id": "spawn_token",            "trigger_value": 0, "ability_arg": "1/1/ZombeeBee/FLYING/TOXIC"},
     "A00015": {"trigger_id": "on_friendly_attack",       "ability_id": "move_to_backline",       "trigger_value": 0, "ability_arg": "after_attack"},

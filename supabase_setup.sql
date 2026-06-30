@@ -97,10 +97,20 @@ CREATE TABLE game_docs (
 );
 
 -- Migration (kör om tabellerna redan finns):
--- ALTER TABLE game_docs       ADD COLUMN IF NOT EXISTS in_godot       BOOLEAN NOT NULL DEFAULT false;
--- ALTER TABLE minion_cards    ADD COLUMN IF NOT EXISTS target_filter  TEXT    NOT NULL DEFAULT '';
--- ALTER TABLE spell_cards     ADD COLUMN IF NOT EXISTS target_filter  TEXT    NOT NULL DEFAULT '';
--- ALTER TABLE structure_cards ADD COLUMN IF NOT EXISTS target_filter  TEXT    NOT NULL DEFAULT '';
+-- ALTER TABLE game_docs       ADD COLUMN IF NOT EXISTS in_godot            BOOLEAN NOT NULL DEFAULT false;
+-- ALTER TABLE minion_cards    ADD COLUMN IF NOT EXISTS target_filter        TEXT    NOT NULL DEFAULT '';
+-- ALTER TABLE minion_cards    ADD COLUMN IF NOT EXISTS passive_id           TEXT    NOT NULL DEFAULT '';
+-- ALTER TABLE minion_cards    ADD COLUMN IF NOT EXISTS passive_arg          TEXT    NOT NULL DEFAULT '';
+-- ALTER TABLE minion_cards    ADD COLUMN IF NOT EXISTS passive_value        INTEGER NOT NULL DEFAULT 0;
+-- ALTER TABLE minion_cards    ADD COLUMN IF NOT EXISTS passive_cap          INTEGER NOT NULL DEFAULT 0;
+-- ALTER TABLE minion_cards    ADD COLUMN IF NOT EXISTS transform_attack     INTEGER NOT NULL DEFAULT 0;
+-- ALTER TABLE minion_cards    ADD COLUMN IF NOT EXISTS transform_health     INTEGER NOT NULL DEFAULT 0;
+-- ALTER TABLE minion_cards    ADD COLUMN IF NOT EXISTS transform_keywords   TEXT    NOT NULL DEFAULT '';
+-- ALTER TABLE spell_cards     ADD COLUMN IF NOT EXISTS target_filter        TEXT    NOT NULL DEFAULT '';
+-- ALTER TABLE structure_cards ADD COLUMN IF NOT EXISTS target_filter        TEXT    NOT NULL DEFAULT '';
+-- ALTER TABLE structure_cards ADD COLUMN IF NOT EXISTS ability_trigger      TEXT    NOT NULL DEFAULT '';
+-- ALTER TABLE structure_cards ADD COLUMN IF NOT EXISTS trigger_condition    TEXT    NOT NULL DEFAULT 'start_of_turn';
+-- ALTER TABLE structure_cards ADD COLUMN IF NOT EXISTS trigger_arg          TEXT    NOT NULL DEFAULT '';
 
 ALTER TABLE game_docs ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "public_all" ON game_docs FOR ALL USING (true) WITH CHECK (true);
