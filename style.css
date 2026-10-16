@@ -1054,6 +1054,7 @@ body.theme-light {
 .doc-godot-label input[type="checkbox"] { width: 16px; height: 16px; accent-color: #5ab87a; cursor: pointer; }
 
 .doc-card-title { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.doc-card-time { font-size: 11px; color: var(--muted); margin: -2px 0 4px; }
 
 .doc-card-body {
   font-size: 13px; color: var(--muted); line-height: 1.5;

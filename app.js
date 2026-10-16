@@ -606,7 +606,7 @@ btnDelOk.addEventListener('click', async () => {
 
 // ── Keyword picker ────────────────────────────────────────────────────────────
 const ALL_KEYWORDS = [
-  'AIRBORNE','RANGE','REACH','FIRST_STRIKE','DOUBLE_STRIKE',
+  'AIRBORNE','RANGE','REACH','FIRST_STRIKE','DOUBLE_ATTACK',
   'TWINSTRIKE','CANT_ATTACK','PARRY','IRON_SKIN','POISON','VAMPIRISM',
   'STUN','SCARE','GUARDIAN','STEALTH','CONSUME','RESURRECT','TRANSFORM','POSSESS','ENTHRALL',
   'DEVOUR','SPELL_DISCOUNT','DIES_AFTER_ATTACK','RECOVER'
@@ -807,7 +807,7 @@ function buildArgUI(effectId, targetingMode, container, argInput, initialValue =
 
   // ── grant_keyword ───────────────────────────────────────────────────────
   if (effectId === 'grant_keyword') {
-    const ALL_KEYWORDS = ['AIRBORNE','DASH','RANGE','REACH','DOUBLE_STRIKE','FIRST_STRIKE','TWINSTRIKE',
+    const ALL_KEYWORDS = ['AIRBORNE','DASH','RANGE','REACH','DOUBLE_ATTACK','FIRST_STRIKE','TWINSTRIKE',
       'PARRY','IRON_SKIN','POISON','VAMPIRISM','STEALTH','LURKER','INFEST','SCARE','CHAIN',
       'CONSUME','SURGE','MANA_LEECH','RESURRECT','TRANSFORM','POSSESS','ENTHRALL','DEVOUR',
       'SPELL_DISCOUNT','DIES_AFTER_ATTACK','RECOVER','CANT_ATTACK'];
@@ -2232,6 +2232,14 @@ async function loadDocs() {
   }
 }
 
+// Tidsstämpel för poster som har ett skapat-datum (fältet "created" finns från 2026-10-16)
+function docTimestamp(d) {
+  if (!d.created) return '';
+  const t = new Date(d.created.replace(' ', 'T'));
+  if (isNaN(t)) return '';
+  return t.toLocaleString('sv-SE', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+}
+
 function renderDocCard(d, showToggle) {
   const tagsHtml = d.tags
     ? `<div class="doc-card-tags">${d.tags.split(',').map(t => `<span class="doc-tag">${t.trim()}</span>`).join('')}</div>`
@@ -2245,6 +2253,7 @@ function renderDocCard(d, showToggle) {
     <div class="doc-card${d.in_godot ? ' in-godot' : ''}" data-id="${d.id}">
       <div class="doc-card-left">
         <div class="doc-card-title">${d.title}</div>
+        ${docTimestamp(d) ? `<div class="doc-card-time">${docTimestamp(d)}</div>` : ''}
         <div class="doc-card-body">${d.body || '<em style="color:var(--muted)">Ingen beskrivning</em>'}</div>
         ${tagsHtml}
       </div>
@@ -2314,8 +2323,8 @@ async function renderDocs() {
   docList.querySelectorAll('.doc-godot-toggle').forEach(btn => {
     btn.addEventListener('click', async e => {
       e.stopPropagation();
-      const id = parseInt(btn.dataset.id);
-      const doc = docs.find(d => d.id === id);
+      // PocketBase-id är text (t.ex. "22h6n6w1whe3p59"), inte tal
+      const doc = docs.find(d => d.id === btn.dataset.id);
       if (!doc) return;
       await pb.collection('game_docs').update(doc.id, { in_godot: !doc.in_godot });
       renderDocs();
@@ -2348,6 +2357,14 @@ function openDocDetail(doc) {
   docDetailBadge.textContent = CAT_LABELS[doc.category] || doc.category;
   docDetailBadge.className = `doc-cat-badge cat-${doc.category}`;
   docDetailBody.textContent = doc.body || '';
+  const ts = docTimestamp(doc);
+  if (ts) {
+    const tEl = document.createElement('div');
+    tEl.className = 'doc-card-time';
+    tEl.style.marginBottom = '10px';
+    tEl.textContent = `Skapad ${ts}`;
+    docDetailBody.prepend(tEl);
+  }
   docDetailTags.innerHTML = doc.tags
     ? doc.tags.split(',').map(t => `<span class="doc-tag">${t.trim()}</span>`).join('')
     : '';
@@ -2429,7 +2446,7 @@ async function seedDocsIfEmpty() {
     { category:'keyword', title:'REACH', body:'Minionen kan blockera AIRBORNE-minions trots att den inte flyger själv.\nBra defensivt verktyg mot flygande hot.', tags:'combat,defense' },
     { category:'keyword', title:'RANGE', body:'Minionen kan attackera utan att ta motskada vid direkt attack.\nFienden svarar inte med skada.', tags:'combat,offense' },
     { category:'keyword', title:'FIRST_STRIKE', body:'Minionen delar ut sin skada innan motståndaren i strid.\nOm motståndaren dör av first strike-skadan svarar den aldrig.', tags:'combat' },
-    { category:'keyword', title:'DOUBLE_STRIKE', body:'Minionen attackerar två gånger per strid — först med first strike, sedan igen i normal stridsupplösning.', tags:'combat,offense' },
+    { category:'keyword', title:'DOUBLE_ATTACK', body:'I strid mot minion: båda slår, lever båda slår DOUBLE_ATTACK en gång till. Med RANGE: en andra pil om målet lever. Inte mot core.', tags:'combat,offense' },
     { category:'keyword', title:'TWINSTRIKE', body:'Minionen slår två separata måltavlor i en och samma attack.', tags:'combat,offense' },
     { category:'keyword', title:'CANT_ATTACK', body:'Minionen kan inte deklarera attacker. Kan fortfarande blockera och använda aktiverade förmågor.', tags:'combat,restriction' },
     { category:'keyword', title:'PARRY', body:'Minionen reducerar inkommande skada med sitt PARRY-värde. Ex: PARRY_2 reducerar all inkommande skada med 2.', tags:'defense,combat' },
@@ -3682,7 +3699,7 @@ const SMART_KW = [
   { id:'AIRBORNE',        label:'AIRBORNE',        tip:'Kan bara blockas av AIRBORNE/REACH' },
   { id:'RANGE',         label:'RANGE',         tip:'Ignorerar blockers helt' },
   { id:'FIRST_STRIKE',  label:'FIRST_STRIKE',  tip:'Slår före motståndaren' },
-  { id:'DOUBLE_STRIKE', label:'DOUBLE_STRIKE', tip:'Anfaller två gånger' },
+  { id:'DOUBLE_ATTACK', label:'DOUBLE_ATTACK', tip:'Slår en gång till i strid om båda lever' },
   { id:'VAMPIRISM',     label:'VAMPIRISM',     tip:'Läker ägaren med skada den gör' },
   { id:'POISON',         label:'POISON',         tip:'Dödar allt den skadar direkt' },
   { id:'CANT_ATTACK',   label:'CANT_ATTACK',   tip:'Kan inte anfalla' },
@@ -3757,7 +3774,7 @@ const SMART_SPELL_MANA = [
 
 function kwDesc(kw) {
   const map = { AIRBORNE:'Flying.', RANGE:'Range.', FIRST_STRIKE:'First Strike.',
-    DOUBLE_STRIKE:'Double Strike.', VAMPIRISM:'Vampirism.', POISON:'Poison.', CANT_ATTACK:"Can't Attack." };
+    DOUBLE_ATTACK:'Double Attack.', VAMPIRISM:'Vampirism.', POISON:'Poison.', CANT_ATTACK:"Can't Attack." };
   return map[kw] || '';
 }
 
