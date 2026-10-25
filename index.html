@@ -257,6 +257,8 @@
 <section id="page-create-card" class="page">
   <div class="cc-wrap">
     <h2>Skapa kort</h2>
+    <div class="cc-layout">
+    <div class="cc-left">
     <div class="form-section cc-controls">
       <div class="cc-row">
         <label>Klass</label>
@@ -287,6 +289,10 @@
     <div class="cc-previews">
       <figure class="cc-preview" data-kind="hand"><canvas id="cc-canvas-hand"></canvas><figcaption>Hand</figcaption></figure>
       <figure class="cc-preview" data-kind="ute"><canvas id="cc-canvas-ute"></canvas><figcaption>Ute</figcaption></figure>
+    </div>
+    </div>
+    <!-- Kortformuläret (#card-form) flyttas hit när sidan visas -->
+    <div class="cc-right" id="cc-form-slot"></div>
     </div>
   </div>
 </section>
@@ -356,7 +362,7 @@
     <form id="card-form" autocomplete="off" novalidate>
 
       <!-- Artwork -->
-      <div class="form-section">
+      <div class="form-section artwork-section">
         <div class="field-row">
           <div class="field field-full">
             <legend>Kortbild</legend>

@@ -254,7 +254,8 @@ function showPage(id) {
   if (id === 'page-export')          renderExport();
   if (id === 'page-patchnotes')      renderPatchNotes();
   if (id === 'page-suggestions')     renderSuggestions();
-  if (id === 'page-create-card')     ccRenderAll();
+  if (id === 'page-create-card')     ccShow();
+  if (id === 'page-add')             ccHide();
 }
 
 navBtns.forEach(b => b.addEventListener('click', () => {
@@ -1838,6 +1839,11 @@ form.addEventListener('submit', async e => {
     };
   }
 
+  const ccMode = form.classList.contains('cc-mode');
+  if (ccMode && cc.art) {
+    [selectedImageFile, selectedImageFile2] = await ccExportFiles(base.id, base.card_type);
+  }
+
   const ok = editingId
     ? await updateCard(editingId, base, extra, selectedImageFile, selectedImageFile2)
     : await saveCard(base, extra, selectedImageFile, selectedImageFile2);
@@ -1850,6 +1856,7 @@ form.addEventListener('submit', async e => {
     if (editingId) lastUpdatedId = editingId;
     showToast(editingId ? `"${base.name}" uppdaterat!` : `"${base.name}" sparat!`);
     await resetForm();
+    if (ccMode) ccClearArt();
     showPage('page-overview');
   }
 });
@@ -4385,10 +4392,11 @@ async function renderSuggestions() {
 // Ramarna i frames/ har en genomskinlig bildruta. Den uppladdade bilden ritas
 // bakom ramen, klipps till bildrutan och tonas mot kanten.
 const CC_CLASSES = [
-  { key: 'dark',     label: 'Dark' },
-  { key: 'the_blue', label: 'The Blue' },
-  { key: 'forest',   label: 'Forest' },
-  { key: 'neutral',  label: 'Neutral' },
+  { key: 'dark',      label: 'Dark' },
+  { key: 'wasteland', label: 'Wasteland' },
+  { key: 'the_blue',  label: 'The Blue' },
+  { key: 'forest',    label: 'Forest' },
+  { key: 'neutral',   label: 'Neutral' },
 ];
 const CC_KINDS = ['hand', 'ute'];
 const cc = {
@@ -4396,7 +4404,7 @@ const cc = {
   art: null,
   artName: '',
   active: 'hand',
-  views: { hand: null, ute: null },   // { cx, cy, zoom } i ramens pixlar
+  views: { hand: null, ute: null },   // { dx, dy, zoom }: förskjutning i andelar av bildrutan
   frames: {},                          // 'dark_hand' -> { img, mask, box, overlay, overlayKey }
 };
 
@@ -4472,8 +4480,13 @@ function ccCoverScale(frame) {
   return Math.max(frame.box.w / cc.art.naturalWidth, frame.box.h / cc.art.naturalHeight);
 }
 
-function ccDefaultView(frame) {
-  return { cx: frame.box.x + frame.box.w / 2, cy: frame.box.y + frame.box.h / 2, zoom: 1 };
+function ccDefaultView() {
+  return { dx: 0, dy: 0, zoom: 1 };
+}
+
+// Bildens mittpunkt i ramens pixlar
+function ccCenter(frame, v) {
+  return { x: frame.box.x + frame.box.w * (0.5 + v.dx), y: frame.box.y + frame.box.h * (0.5 + v.dy) };
 }
 
 async function ccRender(kind) {
@@ -4487,10 +4500,11 @@ async function ccRender(kind) {
   ctx.clearRect(0, 0, w, h);
 
   if (cc.art) {
-    const v = cc.views[kind] || (cc.views[kind] = ccDefaultView(frame));
+    const v = cc.views[kind] || (cc.views[kind] = ccDefaultView());
     const s = ccCoverScale(frame) * v.zoom;
     const aw = cc.art.naturalWidth * s, ah = cc.art.naturalHeight * s;
-    ctx.drawImage(cc.art, v.cx - aw / 2, v.cy - ah / 2, aw, ah);
+    const c = ccCenter(frame, v);
+    ctx.drawImage(cc.art, c.x - aw / 2, c.y - ah / 2, aw, ah);
     ctx.globalCompositeOperation = 'destination-in';
     ctx.drawImage(frame.mask, 0, 0);
     ctx.globalCompositeOperation = 'source-atop';
@@ -4536,6 +4550,58 @@ async function ccSetArt(file) {
   }
 }
 
+function ccNeedsUte() {
+  const t = typeSelect.value;
+  return t === 'minion' || t === 'structure';
+}
+
+// Klass och typ i formuläret styr vilka ramar som visas
+function ccSyncFromForm() {
+  const label = form.querySelector('[name="card_class"]').value;
+  cc.cls = (CC_CLASSES.find(c => c.label === label) || CC_CLASSES[0]).key;
+  document.querySelectorAll('#cc-class-pills .cc-pill').forEach(b => b.classList.toggle('active', b.dataset.cls === cc.cls));
+  document.querySelector('.cc-preview[data-kind="ute"]').style.display = ccNeedsUte() ? '' : 'none';
+  if (!ccNeedsUte() && cc.active === 'ute') ccSetActive('hand');
+}
+
+async function ccShow() {
+  document.getElementById('cc-form-slot').appendChild(form);
+  form.classList.add('cc-mode');
+  if (editingId) await resetForm();
+  await refreshAllCards();
+  document.getElementById('field-id').value = await nextId();
+  ccSyncFromForm();
+  ccRenderAll();
+}
+
+function ccHide() {
+  document.querySelector('#page-add .form-wrap').appendChild(form);
+  form.classList.remove('cc-mode');
+}
+
+function ccClearArt() {
+  if (cc.art) URL.revokeObjectURL(cc.art.src);
+  cc.art = null;
+  cc.artName = '';
+  cc.views = { hand: null, ute: null };
+  document.getElementById('cc-art-input').value = '';
+  document.getElementById('cc-art-filename').textContent = 'eller släpp en bild på korten';
+  ccSyncFromForm();
+  ccSyncZoomSlider();
+  ccRenderAll();
+}
+
+// De färdiga korten som filer: v1 = hand, v2 = ute (bara minion/structure)
+async function ccExportFiles(id, type) {
+  await Promise.all(CC_KINDS.map(ccRender));
+  const toFile = (kind, suffix) => new Promise(resolve =>
+    document.getElementById(`cc-canvas-${kind}`).toBlob(blob =>
+      resolve(new File([blob], `${id}_${suffix}.png`, { type: 'image/png' })), 'image/png'));
+  const hand = await toFile('hand', 'v1');
+  const ute  = (type === 'minion' || type === 'structure') ? await toFile('ute', 'v2') : null;
+  return [hand, ute];
+}
+
 (function initCreateCard() {
   const pills = document.getElementById('cc-class-pills');
   if (!pills) return;
@@ -4548,8 +4614,17 @@ async function ccSetArt(file) {
     if (!btn) return;
     cc.cls = btn.dataset.cls;
     pills.querySelectorAll('.cc-pill').forEach(b => b.classList.toggle('active', b === btn));
+    form.querySelector('[name="card_class"]').value = CC_CLASSES.find(c => c.key === cc.cls).label;
     ccRenderAll();
   });
+
+  const onFormChange = () => {
+    if (!form.classList.contains('cc-mode')) return;
+    ccSyncFromForm();
+    ccRenderAll();
+  };
+  form.querySelector('[name="card_class"]').addEventListener('change', onFormChange);
+  typeSelect.addEventListener('change', onFormChange);
 
   document.getElementById('cc-art-input').addEventListener('change', e => ccSetArt(e.target.files[0]));
 
@@ -4572,7 +4647,7 @@ async function ccSetArt(file) {
   document.getElementById('cc-download').addEventListener('click', () => {
     if (!cc.art) { showToast('Välj en bild först.'); return; }
     const base = (cc.artName || 'kort').replace(/\s+/g, '_').toLowerCase();
-    CC_KINDS.forEach(kind => {
+    CC_KINDS.filter(kind => kind === 'hand' || ccNeedsUte()).forEach(kind => {
       document.getElementById(`cc-canvas-${kind}`).toBlob(blob => {
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
@@ -4599,14 +4674,15 @@ async function ccSetArt(file) {
       if (!v) return;
       canvas.setPointerCapture(e.pointerId);
       const p = toFrame(e.clientX, e.clientY);
-      drag = { px: p.x, py: p.y, cx: v.cx, cy: v.cy };
+      drag = { px: p.x, py: p.y, dx: v.dx, dy: v.dy };
     });
     canvas.addEventListener('pointermove', e => {
       if (!drag) return;
       const p = toFrame(e.clientX, e.clientY);
       const v = cc.views[kind];
-      v.cx = drag.cx + p.x - drag.px;
-      v.cy = drag.cy + p.y - drag.py;
+      const { box } = cc.frames[`${cc.cls}_${kind}`];
+      v.dx = drag.dx + (p.x - drag.px) / box.w;
+      v.dy = drag.dy + (p.y - drag.py) / box.h;
       ccRender(kind);
     });
     const endDrag = () => { drag = null; };
@@ -4621,9 +4697,11 @@ async function ccSetArt(file) {
       const zoom = Math.min(4, Math.max(0.3, v.zoom * Math.exp(-e.deltaY * 0.0015)));
       // Zooma runt muspekaren
       const p = toFrame(e.clientX, e.clientY);
+      const frame = cc.frames[`${cc.cls}_${kind}`];
+      const c = ccCenter(frame, v);
       const k = zoom / v.zoom;
-      v.cx = p.x - (p.x - v.cx) * k;
-      v.cy = p.y - (p.y - v.cy) * k;
+      v.dx += (p.x - c.x) * (1 - k) / frame.box.w;
+      v.dy += (p.y - c.y) * (1 - k) / frame.box.h;
       v.zoom = zoom;
       ccSyncZoomSlider();
       ccRender(kind);

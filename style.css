@@ -1781,7 +1781,14 @@ body.theme-light .toast {
 }
 
 /* ── SKAPA KORT ── */
-.cc-wrap { max-width: 1000px; margin: 0 auto; }
+.cc-wrap { max-width: 1500px; margin: 0 auto; }
+.cc-layout { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+.cc-left { position: sticky; top: 16px; }
+@media (max-width: 1100px) {
+  .cc-layout { grid-template-columns: minmax(0, 1fr); }
+  .cc-left { position: static; }
+}
+#card-form.cc-mode .artwork-section { display: none; }
 .cc-wrap h2 {
   font-size: 16px;
   color: var(--blue);
@@ -1819,7 +1826,7 @@ body.theme-light .toast {
 .cc-preview { margin: 0; text-align: center; }
 .cc-preview canvas {
   display: block;
-  height: min(70vh, 560px);
+  height: min(52vh, 480px);
   max-width: 100%;
   object-fit: contain;
   border-radius: 10px;
