@@ -479,10 +479,10 @@
             <input name="subtype" placeholder="Beast">
           </div>
         </div>
-        <legend style="margin-top:16px">Minion — Ability</legend>
+        <legend style="margin-top:16px">Minion — Förmåga</legend>
         <div class="field-row">
           <div class="field">
-            <label>Ability ID</label>
+            <label>Förmåga</label>
             <select name="ability_id">
               <option value="">— ingen —</option>
               <option value="deal_damage">deal_damage</option>
@@ -494,7 +494,7 @@
             </select>
           </div>
           <div class="field">
-            <label>Trigger</label>
+            <label>När</label>
             <select name="ability_trigger">
               <option value="">— ingen —</option>
               <option value="activate">activate</option>
@@ -505,7 +505,7 @@
             </select>
           </div>
           <div class="field">
-            <label>Cost</label>
+            <label>Kostnad (mana)</label>
             <input name="ability_cost" type="number" min="0" value="0">
           </div>
         </div>
@@ -532,16 +532,17 @@
               <option value="explicit">explicit</option>
               <option value="random">random</option>
               <option value="auto">auto</option>
+              <option value="all">all</option>
             </select>
           </div>
           <div class="field" id="ability-value-wrap">
-            <label>Value</label>
+            <label>Värde</label>
             <input name="ability_value" type="number" value="0">
           </div>
         </div>
         <div class="field-row">
           <div class="field field-full">
-            <label>Ability Arg</label>
+            <label>Inställningar</label>
             <input name="ability_arg" id="minion-ability-arg" type="hidden">
             <div id="minion-arg-ui"></div>
             <input name="target_filter" id="minion-target-filter" type="hidden">
@@ -556,6 +557,8 @@
               <option value="">— ingen —</option>
               <option value="pack_buff">pack_buff</option>
               <option value="spell_discount">spell_discount</option>
+              <option value="tribe_aura">tribe_aura</option>
+              <option value="full_health">full_health</option>
             </select>
           </div>
           <div class="field" id="passive-value-wrap">
@@ -602,7 +605,7 @@
         <legend>Spell — Effekt</legend>
         <div class="field-row">
           <div class="field">
-            <label>Effect ID</label>
+            <label>Effekt</label>
             <select name="effect_id">
               <option value="">— ingen —</option>
               <option value="deal_damage">deal_damage</option>
@@ -615,7 +618,7 @@
             </select>
           </div>
           <div class="field" id="effect-value-wrap">
-            <label>Effect Value</label>
+            <label>Värde</label>
             <input name="effect_value" type="number" value="0">
           </div>
           <div class="field">
@@ -652,12 +655,11 @@
         </div>
         <div class="field-row" id="spell-arg-row">
           <div class="field field-full">
-            <label>Effect Arg</label>
+            <label>Inställningar</label>
             <input name="effect_arg" id="spell-effect-arg" type="hidden">
             <div id="spell-arg-ui"></div>
           </div>
           <div class="field field-full">
-            <label>Target Filter <span style="font-size:11px;color:var(--muted)">(valfritt, visas vid targeting_mode=all)</span></label>
             <input name="target_filter" id="spell-target-filter" type="hidden">
             <div id="spell-filter-ui"></div>
           </div>
@@ -699,10 +701,10 @@
             <input name="maintenance_cost" type="number" min="0" value="0">
           </div>
         </div>
-        <legend style="margin-top:16px">Structure — Ability</legend>
+        <legend style="margin-top:16px">Structure — Förmåga</legend>
         <div class="field-row">
           <div class="field">
-            <label>Ability ID</label>
+            <label>Förmåga</label>
             <select name="s_ability_id" id="s_ability_id">
               <option value="">— ingen —</option>
               <option value="deal_damage">deal_damage</option>
@@ -714,7 +716,7 @@
             </select>
           </div>
           <div class="field">
-            <label>Trigger</label>
+            <label>När</label>
             <select name="s_ability_trigger" id="s_ability_trigger">
               <option value="">— ingen —</option>
               <option value="activate">activate</option>
@@ -725,7 +727,7 @@
             </select>
           </div>
           <div class="field">
-            <label>Cost</label>
+            <label>Kostnad (mana)</label>
             <input name="s_ability_cost" type="number" min="0" value="0">
           </div>
         </div>
@@ -754,14 +756,15 @@
               <option value="explicit">explicit</option>
               <option value="random">random</option>
               <option value="auto">auto</option>
+              <option value="all">all</option>
             </select>
           </div>
           <div class="field" id="s-ability-value-wrap">
-            <label>Value</label>
+            <label>Värde</label>
             <input name="s_ability_value" type="number" value="0">
           </div>
           <div class="field">
-            <label>Ability Arg</label>
+            <label>Inställningar</label>
             <input name="s_ability_arg" id="structure-ability-arg" type="hidden">
             <div id="structure-arg-ui"></div>
             <input name="target_filter" id="structure-target-filter" type="hidden">

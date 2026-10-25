@@ -617,15 +617,82 @@ const ALL_KEYWORDS = [
 const ALL_KEYWORDS_SET = new Set(ALL_KEYWORDS);
 const extraKeywords = new Set(JSON.parse(localStorage.getItem('extraKeywords') || '[]'));
 
-const EFFECT_GROUPS = [
-  { group: 'Implementerade i Godot', items: ['deal_damage','draw_card','draw_spell','heal','chain','remove_minion','buff_minion','vanish','bounce_after_attack','clone_minion','kill_draw','grant_keyword','resurrect_as_token','add_mana'] },
-];
+// Alla effecter som spelet stödjer, med svensk förklaring. value = vad "Värde" betyder (null = används inte).
+const EFFECT_INFO = {
+  'Skada': {
+    deal_damage:           ['Gör skada', 'Skada'],
+    chain:                 ['Kedjeskada som hoppar vidare', 'Skada'],
+    damage_and_cant_block: ['Skada + kan inte blocka', 'Skada'],
+    damage_by_mana:        ['Skada lika med din kvarvarande mana', null],
+    self_damage_by_attack: ['Minionen skadar sig själv med sitt anfall', null],
+    wither:                ['Vissna (tappar styrka)', 'Mängd'],
+  },
+  'Ta bort': {
+    destroy_minion:        ['Förstör en minion (dör som vanligt)', null],
+    remove_minion:         ['Ta bort en minion', null],
+    vanish:                ['Försvinn (vanish)', null],
+    expire:                ['Försvinner efter några turer', 'Turer'],
+    polymorph:             ['Förvandla en minion', null],
+    destroy_structure:     ['Förstör en structure', null],
+  },
+  'Läka och förstärka': {
+    heal:                  ['Läk', 'Hälsa'],
+    buff_minion:           ['Förstärk (+anfall / +hälsa)', 'Bonus'],
+    buff_attack_reduce_hp: ['+anfall men −hälsa', 'Mängd'],
+    grant_keyword:         ['Ge ett nyckelord', null],
+    remove_keyword:        ['Ta bort ett nyckelord', null],
+    grant_ability:         ['Ge en förmåga', null],
+    clone_minion:          ['Klona en minion', null],
+    set_structure_armor:   ['Sätt structurens rustning', 'Rustning'],
+    sacrifice_minion_heal: ['Offra en minion och läk', 'Hälsa'],
+  },
+  'Styra striden': {
+    stun:                  ['Bedöva (stun)', null],
+    freeze:                ['Frys', null],
+    cant_block:            ['Kan inte blocka', 'Turer'],
+    interrupt:             ['Avbryt ett anfall', null],
+    guard:                 ['Vakta en egen minion', null],
+    move_row:              ['Flytta till andra raden', null],
+    bounce_minion:         ['Skicka tillbaka till handen', null],
+    bounce_after_attack:   ['Tillbaka till handen efter anfall', null],
+    switch_sides:          ['Ta kontroll (byter sida)', null],
+    vulnerable:            ['Structure tar mer skada (%)', 'Procent'],
+    rally:                 ['Anfallare mot coren får +anfall', 'Anfall'],
+  },
+  'Kort och lek': {
+    draw_card:             ['Dra kort', 'Antal'],
+    draw_spell:            ['Dra en spell ur leken', 'Antal'],
+    search_deck:           ['Sök i leken (välj 1 av 3)', null],
+    draw_next_turn:        ['Dra kort nästa tur', 'Antal'],
+    kill_draw:             ['Offra en minion och dra kort', 'Antal'],
+    discard_random:        ['Kasta slumpade kort', 'Antal'],
+    shuffle_to_deck:       ['Blanda in i leken', null],
+    duplicate_in_deck:     ['Kopiera kort in i leken', 'Antal'],
+    grave_to_deck:         ['Från graven till leken', 'Antal'],
+    grave_summon:          ['Kalla fram från graven', null],
+    summon_from_hand:      ['Kalla fram från handen', null],
+    revive_turn_dead:      ['Återuppliva de som dog i turen', null],
+    hand_cost:             ['Ändra kostnad på kort i handen', 'Ändring'],
+    copy_cast_spell:       ['Kopiera en spell som kastas', null],
+  },
+  'Mana': {
+    add_mana:              ['Få mana', 'Mana'],
+    refund_mana:           ['Få tillbaka mana', null],
+    drain_to_mana:         ['Dränera till mana', null],
+  },
+  'Övrigt': {
+    turn_flag:             ['Specialregel för turen', 'Värde'],
+    resurrect_as_token:    ['Återuppstå som token', null],
+  },
+};
+const EFFECT_META = Object.fromEntries(Object.values(EFFECT_INFO).flatMap(g => Object.entries(g)));
+const EFFECT_GROUPS = Object.entries(EFFECT_INFO).map(([group, items]) => ({ group, items: Object.keys(items) }));
 
 function buildEffectOptions() {
   let html = '<option value="">— ingen —</option>';
   for (const { group, items } of EFFECT_GROUPS) {
     html += `<optgroup label="${group}">`;
-    for (const id of items) html += `<option value="${id}">${id}</option>`;
+    for (const id of items) html += `<option value="${id}">${EFFECT_META[id][0]} · ${id}</option>`;
     html += '</optgroup>';
   }
   return html;
@@ -688,14 +755,20 @@ function buildPassiveArgUI(passiveId, container, hiddenInput, initialValue = '')
   const capWrap = document.getElementById('passive-cap-wrap');
   const valLabel = document.getElementById('passive-value-label');
 
-  if (argRow)  argRow.style.display  = passiveId === 'pack_buff' ? '' : 'none';
+  if (argRow)  argRow.style.display  = passiveId ? '' : 'none';
   if (capWrap) capWrap.style.display = passiveId === 'pack_buff' ? '' : 'none';
   if (valLabel) {
     valLabel.textContent = passiveId === 'spell_discount' ? 'Minskning (1–7)' : 'Per-Minion Bonus';
   }
 
   if (passiveId !== 'pack_buff') {
-    hiddenInput.value = '';
+    // Övriga passiver (tribe_aura, full_health …) har sin inställning som text
+    hiddenInput.value = initialValue;
+    if (!passiveId) return;
+    container.innerHTML = `<input class="pa-raw" spellcheck="false" placeholder="t.ex. atk:skeleton">`;
+    const input = container.querySelector('.pa-raw');
+    input.value = initialValue;
+    input.addEventListener('input', () => { hiddenInput.value = input.value.trim(); });
     return;
   }
 
@@ -1263,59 +1336,18 @@ function buildArgUI(effectId, targetingMode, container, argInput, initialValue =
   argInput.value = initialValue;
 }
 
-function buildFilterUI(targetingMode, filterContainer, filterInput, initialValue = '') {
-  filterContainer.innerHTML = '';
+function buildFilterUI(_targetingMode, filterContainer, filterInput, initialValue = '') {
+  // Spelet förstår: atk/hp med jämförelse (atk<=2), attacking>0, blocked>0, frozen_turns>0,
+  // cant_block_turns<1, kw:X / no_kw:X och "other"
   filterInput.value = initialValue;
-
-  if (targetingMode !== 'all') return;
-
-  const filterMatch = (initialValue || '').match(/^(atk|hp)(>=|<=|>|<|==|!=)(\d+)$/);
-  const initStat = filterMatch ? filterMatch[1] : 'atk';
-  const initOp   = filterMatch ? filterMatch[2] : '>=';
-  const initVal  = filterMatch ? filterMatch[3] : '';
-
   filterContainer.innerHTML = `
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;align-items:flex-end">
-      <div class="field" style="flex:0 0 auto">
-        <label style="font-size:12px">Target filter — stat</label>
-        <select class="fil-stat">
-          <option value="">— ingen —</option>
-          <option value="atk">atk</option>
-          <option value="hp">hp</option>
-        </select>
-      </div>
-      <div class="field" style="flex:0 0 auto">
-        <label style="font-size:12px">Op</label>
-        <select class="fil-op">
-          <option value=">=">>=</option>
-          <option value="<="><=</option>
-          <option value=">">></option>
-          <option value="<"><</option>
-          <option value="==">==</option>
-          <option value="!=">!=</option>
-        </select>
-      </div>
-      <div class="field" style="flex:0 0 auto;min-width:70px">
-        <label style="font-size:12px">Värde</label>
-        <input class="fil-val" type="number" min="0" placeholder="t.ex. 2">
-      </div>
+    <div class="field" style="margin-top:8px">
+      <label style="font-size:12px">Bara mål som … <span style="color:var(--muted)">(valfritt)</span></label>
+      <input class="fil-raw" spellcheck="false" placeholder="tomt = alla mål · t.ex. atk<=2 · attacking>0 · no_kw:AIRBORNE">
     </div>`;
-
-  filterContainer.querySelector('.fil-stat').value = initStat;
-  filterContainer.querySelector('.fil-op').value   = initOp;
-  filterContainer.querySelector('.fil-val').value  = initVal;
-
-  const compose = () => {
-    const stat = filterContainer.querySelector('.fil-stat').value;
-    const op   = filterContainer.querySelector('.fil-op').value;
-    const val  = filterContainer.querySelector('.fil-val').value.trim();
-    filterInput.value = (stat && val !== '') ? `${stat}${op}${val}` : '';
-  };
-  filterContainer.querySelectorAll('.fil-stat,.fil-op,.fil-val').forEach(el => {
-    el.addEventListener('change', compose);
-    el.addEventListener('input', compose);
-  });
-  compose();
+  const input = filterContainer.querySelector('.fil-raw');
+  input.value = initialValue;
+  input.addEventListener('input', () => { filterInput.value = input.value.trim(); });
 }
 
 function setupArgUI({ effectSel, targetingSel, argInput: argInputSel, uiContainer: containerSel, filterInput: filterInputSel, filterUI: filterUISel, context = 'ability' }) {
@@ -1329,10 +1361,9 @@ function setupArgUI({ effectSel, targetingSel, argInput: argInputSel, uiContaine
 
   const refresh = () => {
     buildArgUI(eff.value, tgt.value, container, argInput, '', context);
-    if (filterInput && filterUI) buildFilterUI(tgt.value, filterUI, filterInput, '');
+    if (filterInput && filterUI) buildFilterUI(tgt.value, filterUI, filterInput, filterInput.value);
   };
   eff.addEventListener('change', refresh);
-  tgt.addEventListener('change', refresh);
   refresh();
 }
 
@@ -1346,8 +1377,23 @@ function reloadArgUI(effectSel, targetingSel, argInputSel, containerSel, filterI
   const filterInput = filterInputSel ? document.querySelector(filterInputSel) : null;
   const filterUI    = filterUISel    ? document.querySelector(filterUISel)    : null;
   if (!eff || !tgt || !argInput || !container) return;
-  buildArgUI(eff.value, tgt.value, container, argInput, argInput.value, context);
+  const initial = argInput.value;
+  buildArgUI(eff.value, tgt.value, container, argInput, initial, context);
+  if (argInput.value !== initial || (initial && !container.innerHTML.trim())) showRawArgInput(container, argInput, initial);
   if (filterInput && filterUI) buildFilterUI(tgt.value, filterUI, filterInput, filterInput.value);
+}
+
+// Inställningar som reglagen inte kan visa redigeras som text, så att inget skrivs över
+function showRawArgInput(container, argInput, value) {
+  argInput.value = value;
+  container.innerHTML = `
+    <div class="field">
+      <label style="font-size:12px">Extra inställning <span style="color:var(--muted)">(visas som text eftersom reglagen inte kan visa den)</span></label>
+      <input class="arg-raw" spellcheck="false">
+    </div>`;
+  const input = container.querySelector('.arg-raw');
+  input.value = value;
+  input.addEventListener('input', () => { argInput.value = input.value.trim(); });
 }
 
 // ─────────────────────────────────────────────────────────
@@ -1590,6 +1636,7 @@ async function resetForm() {
   document.getElementById('btn-cancel-edit').style.display = 'none';
   updateTypeSections();
   resetKeywords();
+  simpleFormSync();
 }
 
 let editingId = null;
@@ -1597,7 +1644,12 @@ let editingCardArtwork = [];
 
 function setFieldVal(name, val) {
   const el = form.querySelector(`[name="${name}"]`);
-  if (el && val !== undefined && val !== null) el.value = val;
+  if (!el || val === undefined || val === null) return;
+  // Ett värde som saknas i listan får ett eget val, annars blir fältet tomt och sparas tomt
+  if (el.tagName === 'SELECT' && val !== '' && ![...el.options].some(o => o.value === String(val))) {
+    el.add(new Option(`${val} (saknas i listan)`, val));
+  }
+  el.value = val;
 }
 
 async function openEditForm(card) {
@@ -1675,6 +1727,7 @@ async function openEditForm(card) {
     setFieldVal('trigger_condition', card.trigger_condition || 'start_of_turn');
     setFieldVal('trigger_arg', card.trigger_arg || '');
   }
+  simpleFormSync();
 
   // Visa befintliga bilder
   const artworkArr = Array.isArray(card.artwork) ? card.artwork : (card.artwork ? [card.artwork] : []);
@@ -1781,6 +1834,7 @@ form.addEventListener('submit', async e => {
       transform_attack: parseInt(get('transform_attack')) || 0,
       transform_health: parseInt(get('transform_health')) || 0,
       transform_keywords: get('transform_keywords') || '',
+      target_filter: document.getElementById('minion-target-filter').value.trim(),
     };
   } else if (base.card_type === 'spell') {
     const effectId  = get('effect_id');
@@ -1800,6 +1854,7 @@ form.addEventListener('submit', async e => {
       effect_arg: effectArg,
       repeat_count: parseInt(get('repeat_count')) || 1,
       repeat_mode: get('repeat_mode') || 'same_target',
+      target_filter: document.getElementById('spell-target-filter').value.trim(),
     };
   } else if (base.card_type === 'structure') {
     const sAbilityId  = get('s_ability_id');
@@ -1836,6 +1891,7 @@ form.addEventListener('submit', async e => {
       trigger_target_mode: get('trigger_target_mode') || 'enemy_hero',
       trigger_condition: get('trigger_condition') || 'start_of_turn',
       trigger_arg: get('trigger_arg'),
+      target_filter: document.getElementById('structure-target-filter').value.trim(),
     };
   }
 
@@ -4717,4 +4773,173 @@ async function ccExportFiles(id, type) {
   });
 
   ccSetActive('hand');
+})();
+
+// ── Enklare kortformulär ──────────────────────────────────────────────────────
+// Målet väljs i ett enda val ("En fiendeminion", "Alla egna minions" …) som fyller i
+// target mode + targeting mode. De råa fälten finns kvar under "Avancerat".
+const TARGET_PRESETS = [
+  ['Välj själv', [
+    ['any_target|explicit',         'Valfritt mål'],
+    ['target_minion|explicit',      'En minion'],
+    ['enemy_minion|explicit',       'En fiendeminion'],
+    ['friendly_minion|explicit',    'En egen minion'],
+    ['any_enemy|explicit',          'En fiende (minion eller hjälte)'],
+    ['target_structure|explicit',   'En structure'],
+    ['friendly_structure|explicit', 'En egen structure'],
+    ['structure_or_hero|explicit',  'En structure eller hjälte'],
+  ]],
+  ['Slumpat', [
+    ['enemy_minion|random',    'Slumpad fiendeminion'],
+    ['friendly_minion|random', 'Slumpad egen minion'],
+    ['target_minion|random',   'Slumpad minion'],
+    ['any_enemy|random',       'Slumpad fiende (minion eller hjälte)'],
+  ]],
+  ['Alla', [
+    ['enemy_minion|all',    'Alla fiendeminions'],
+    ['friendly_minion|all', 'Alla egna minions'],
+    ['target_minion|all',   'Alla minions'],
+  ]],
+  ['Spelare', [
+    ['friendly_hero|auto', 'Du (din hjälte)'],
+    ['enemy_hero|auto',    'Motståndaren (hjälten)'],
+  ]],
+];
+const SOURCE_PRESETS = ['Källan', [
+  ['self|auto',          'Den här minionen / structuren'],
+  ['damage_source|auto', 'Den som gjorde skadan'],
+]];
+// Effecter där "målet" egentligen betyder hur kortet väljs
+const EFFECT_PRESETS = {
+  draw_spell:  [['Hur', [['self|random', 'Slumpad spell ur leken'], ['self|explicit', 'Välj 1 av 3 spells ur leken']]]],
+  search_deck: [['Hur', [['self|explicit', 'Välj 1 av 3 kort ur leken']]]],
+};
+
+const TRIGGERS = [
+  ['activate',             'Aktiveras av dig (kostar mana)'],
+  ['on_play',              'När den spelas'],
+  ['on_death',             'När den dör'],
+  ['on_attack',            'När den anfaller'],
+  ['after_attack_survive', 'Efter anfall, om den överlever'],
+  ['on_kill',              'När den dödar en minion'],
+  ['on_damaged',           'När den tar skada'],
+  ['on_deal_damage',       'När den gör skada'],
+  ['on_blocked',           'När den blir blockad'],
+  ['on_hero_damage',       'När hjälten tar skada'],
+  ['start_of_turn',        'I början av din tur'],
+  ['on_draw',              'När du drar ett kort'],
+  ['on_enemy_draw',        'När motståndaren drar ett kort'],
+  ['on_spell_cast',        'När du kastar en spell'],
+  ['on_card_played',       'När ett kort spelas'],
+  ['on_consume',           'När den äter (consume)'],
+];
+
+// Värden som betyder samma sak i spelet visas som samma val
+function simplePresetKey(tm, tg, context) {
+  tm = tm || '';
+  tg = tg || 'explicit';
+  if (tm === 'any_minion') tm = 'target_minion';
+  if (tm === 'friendly_player') tm = 'friendly_hero';
+  if (tm === 'enemy_player') tm = 'enemy_hero';
+  if (context === 'spell' && tm === 'self' && tg === 'auto') tm = 'friendly_hero';   // en spell har ingen källa: self = du
+  if (context !== 'spell' && tm === 'source') tm = 'self';
+  return `${tm}|${tg}`;
+}
+
+function simpleSetSelect(sel, value) {
+  if (![...sel.options].some(o => o.value === value)) sel.add(new Option(value, value));
+  sel.value = value;
+}
+
+const SIMPLE_SETUPS = [
+  { context: 'spell',     effect: 'effect_id',    tm: 'target_mode',           tg: 'targeting_mode',           valueWrap: 'effect-value-wrap',
+    advanced: ['school', 'repeat_count', 'repeat_mode'] },
+  { context: 'minion',    effect: 'ability_id',   tm: 'ability_target_mode',   tg: 'ability_targeting_mode',   valueWrap: 'ability-value-wrap' },
+  { context: 'structure', effect: 's_ability_id', tm: 's_ability_target_mode', tg: 's_ability_targeting_mode', valueWrap: 's-ability-value-wrap' },
+];
+
+function simpleSync(setup) {
+  const { eff, tmSel, tgSel, preset, details, valueLabel } = setup.el;
+  const meta = EFFECT_META[eff.value];
+  if (valueLabel) valueLabel.textContent = meta ? (meta[1] ?? 'Värde (används inte)') : 'Värde';
+
+  const groups = EFFECT_PRESETS[eff.value]
+    || (setup.context === 'spell' ? TARGET_PRESETS : [...TARGET_PRESETS, SOURCE_PRESETS]);
+  preset.innerHTML = '<option value="">— välj mål —</option>'
+    + groups.map(([label, items]) =>
+        `<optgroup label="${label}">${items.map(([v, t]) => `<option value="${v}">${t}</option>`).join('')}</optgroup>`).join('')
+    + '<option value="custom">Eget (se Avancerat)</option>';
+
+  const key = simplePresetKey(tmSel.value, tgSel.value, setup.context);
+  if ([...preset.options].some(o => o.value === key)) {
+    preset.value = key;
+  } else if (!tmSel.value) {
+    preset.value = '';
+  } else {
+    preset.value = 'custom';
+    details.open = true;
+  }
+}
+
+function simpleFormSync() {
+  SIMPLE_SETUPS.forEach(s => s.el && simpleSync(s));
+}
+
+(function initSimpleForm() {
+  // Triggers med svenska förklaringar (värden som saknas läggs till av setFieldVal)
+  ['ability_trigger', 's_ability_trigger'].forEach(name => {
+    const sel = form.querySelector(`[name="${name}"]`);
+    if (!sel) return;
+    sel.innerHTML = '<option value="">— ingen —</option>'
+      + TRIGGERS.map(([v, t]) => `<option value="${v}">${t} · ${v}</option>`).join('');
+  });
+
+  SIMPLE_SETUPS.forEach(setup => {
+    const eff   = form.querySelector(`[name="${setup.effect}"]`);
+    const tmSel = form.querySelector(`[name="${setup.tm}"]`);
+    const tgSel = form.querySelector(`[name="${setup.tg}"]`);
+    if (!eff || !tmSel || !tgSel) return;
+    const tmField = tmSel.closest('.field');
+    const tgField = tgSel.closest('.field');
+
+    const presetField = document.createElement('div');
+    presetField.className = 'field';
+    presetField.innerHTML = '<label>Mål</label><select class="simple-target"></select>';
+    tmField.before(presetField);
+    const preset = presetField.querySelector('select');
+
+    const details = document.createElement('details');
+    details.className = 'simple-advanced';
+    details.innerHTML = '<summary>Avancerat</summary><div class="field-row"></div>';
+    presetField.closest('.field-row').after(details);
+    const advRow = details.querySelector('.field-row');
+    advRow.append(tmField, tgField);
+    (setup.advanced || []).forEach(name => {
+      const f = form.querySelector(`[name="${name}"]`)?.closest('.field');
+      if (f) advRow.append(f);
+    });
+
+    const valueLabel = document.getElementById(setup.valueWrap)?.querySelector('label');
+    setup.el = { eff, tmSel, tgSel, preset, details, valueLabel };
+
+    preset.addEventListener('change', () => {
+      if (preset.value === 'custom') { details.open = true; return; }
+      if (!preset.value) return;
+      const [tm, tg] = preset.value.split('|');
+      simpleSetSelect(tmSel, tm);
+      simpleSetSelect(tgSel, tg);
+    });
+    tmSel.addEventListener('change', () => simpleSync(setup));
+    tgSel.addEventListener('change', () => simpleSync(setup));
+    eff.addEventListener('change', () => {
+      simpleSync(setup);
+      // Effecter med egna val ("Välj 1 av 3 …") får det första valet direkt
+      if (EFFECT_PRESETS[eff.value] && (preset.value === '' || preset.value === 'custom')) {
+        preset.value = EFFECT_PRESETS[eff.value][0][1][0][0];
+        preset.dispatchEvent(new Event('change'));
+        details.open = false;
+      }
+    });
+    simpleSync(setup);
+  });
 })();
