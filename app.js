@@ -4799,6 +4799,8 @@ const TARGET_PRESETS = [
     ['enemy_minion|all',    'Alla fiendeminions'],
     ['friendly_minion|all', 'Alla egna minions'],
     ['target_minion|all',   'Alla minions'],
+    ['any_enemy|all',       'Alla fiender (minions + fiendens core)'],
+    ['any_target|all',      'Allt (minions, structures och båda corerna)'],
   ]],
   ['Spelare', [
     ['friendly_hero|auto', 'Du (din hjälte)'],
