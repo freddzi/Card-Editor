@@ -1779,3 +1779,63 @@ body.theme-light .toast {
   background: linear-gradient(135deg, var(--modal-bg-from), var(--modal-bg-to));
   border-color: var(--modal-border);
 }
+
+/* ── SKAPA KORT ── */
+.cc-wrap { max-width: 1000px; margin: 0 auto; }
+.cc-wrap h2 {
+  font-size: 16px;
+  color: var(--blue);
+  margin-bottom: 24px;
+  font-family: 'Cinzel', serif;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+.cc-controls { display: flex; flex-direction: column; gap: 12px; }
+.cc-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.cc-row > label {
+  width: 90px;
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  font-family: 'Cinzel', serif;
+  letter-spacing: 1.2px;
+}
+.cc-row input[type="range"] { flex: 1; max-width: 320px; accent-color: var(--gold); }
+.cc-row input[type="color"] { width: 36px; height: 28px; border: 1px solid var(--border); background: none; border-radius: 4px; cursor: pointer; }
+.cc-actions { justify-content: flex-end; }
+.cc-hint { font-size: 12px; color: var(--muted); margin: 0; }
+.cc-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+.cc-pill {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.cc-pill.active { border-color: var(--gold); color: var(--gold); }
+.cc-previews { display: flex; gap: 24px; justify-content: center; align-items: flex-start; flex-wrap: wrap; }
+.cc-preview { margin: 0; text-align: center; }
+.cc-preview canvas {
+  display: block;
+  height: min(70vh, 560px);
+  max-width: 100%;
+  object-fit: contain;
+  border-radius: 10px;
+  outline: 2px solid transparent;
+  outline-offset: 4px;
+  cursor: grab;
+  touch-action: none;
+}
+.cc-preview canvas:active { cursor: grabbing; }
+.cc-preview.active canvas { outline-color: var(--gold); }
+.cc-preview.drop canvas { outline-color: var(--blue); }
+.cc-preview figcaption {
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  font-family: 'Cinzel', serif;
+  letter-spacing: 1.5px;
+}

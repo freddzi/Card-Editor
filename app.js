@@ -230,6 +230,7 @@ const navBtns = document.querySelectorAll('nav button[data-page]');
 const DROPDOWN_PARENTS = {
   'page-add':          'nav-btn-add',
   'page-add-skill':    'nav-btn-add',
+  'page-create-card':  'nav-btn-add',
   'page-upload-zip':   'nav-btn-advanced',
   'page-design':       'nav-btn-design',
   'page-gameboard':    'nav-btn-design',
@@ -253,6 +254,7 @@ function showPage(id) {
   if (id === 'page-export')          renderExport();
   if (id === 'page-patchnotes')      renderPatchNotes();
   if (id === 'page-suggestions')     renderSuggestions();
+  if (id === 'page-create-card')     ccRenderAll();
 }
 
 navBtns.forEach(b => b.addEventListener('click', () => {
@@ -1657,7 +1659,7 @@ async function openEditForm(card) {
     reloadArgUI('[name="effect_id"]','[name="targeting_mode"]','#spell-effect-arg','#spell-arg-ui','#spell-target-filter','#spell-filter-ui','spell');
     setFieldVal('repeat_count', card.repeat_count); setFieldVal('repeat_mode', card.repeat_mode);
   } else if (card.card_type === 'structure') {
-    setFieldVal('armor', card.armor); setFieldVal('s_subtype', card.subtype);
+    setFieldVal('armor', card.armor); setFieldVal('s_attack', card.attack || 0); setFieldVal('s_subtype', card.subtype);
     setFieldVal('maintenance_cost', card.maintenance_cost); setFieldVal('s_ability_id', card.ability_id);
     setFieldVal('s_ability_trigger', card.ability_trigger);
     setFieldVal('s_ability_cost', card.ability_cost); setFieldVal('s_ability_target_mode', card.ability_target_mode);
@@ -1816,6 +1818,7 @@ form.addEventListener('submit', async e => {
     }
     extra = {
       armor: parseInt(get('armor')) || 1,
+      attack: parseInt(get('s_attack')) || 0,
       subtype: get('s_subtype'),
       maintenance_cost: parseInt(get('maintenance_cost')) || 0,
       ability_id: sAbilityId,
@@ -4377,3 +4380,263 @@ async function renderSuggestions() {
   });
 })();
 
+
+// ── Skapa kort ────────────────────────────────────────────────────────────────
+// Ramarna i frames/ har en genomskinlig bildruta. Den uppladdade bilden ritas
+// bakom ramen, klipps till bildrutan och tonas mot kanten.
+const CC_CLASSES = [
+  { key: 'dark',     label: 'Dark' },
+  { key: 'the_blue', label: 'The Blue' },
+  { key: 'forest',   label: 'Forest' },
+  { key: 'neutral',  label: 'Neutral' },
+];
+const CC_KINDS = ['hand', 'ute'];
+const cc = {
+  cls: 'dark',
+  art: null,
+  artName: '',
+  active: 'hand',
+  views: { hand: null, ute: null },   // { cx, cy, zoom } i ramens pixlar
+  frames: {},                          // 'dark_hand' -> { img, mask, box, overlay, overlayKey }
+};
+
+function ccLoadImage(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error(`Kunde inte ladda ${src}`));
+    img.src = src;
+  });
+}
+
+async function ccFrame(cls, kind) {
+  const key = `${cls}_${kind}`;
+  if (cc.frames[key]) return cc.frames[key];
+  const img = await ccLoadImage(`frames/${key}.png`);
+  const w = img.naturalWidth, h = img.naturalHeight;
+  const tmp = document.createElement('canvas');
+  tmp.width = w; tmp.height = h;
+  const tctx = tmp.getContext('2d');
+  tctx.drawImage(img, 0, 0);
+  const px = tctx.getImageData(0, 0, w, h).data;
+
+  // Fyll bildrutan från mitten: alla genomskinliga pixlar som hänger ihop
+  const inside = new Uint8Array(w * h);
+  const stack = [Math.floor(h * 0.3) * w + (w >> 1)];
+  let x0 = w, y0 = h, x1 = 0, y1 = 0;
+  while (stack.length) {
+    const i = stack.pop();
+    if (inside[i] || px[i * 4 + 3] > 200) continue;
+    inside[i] = 1;
+    const x = i % w, y = (i / w) | 0;
+    if (x < x0) x0 = x; if (x > x1) x1 = x;
+    if (y < y0) y0 = y; if (y > y1) y1 = y;
+    if (x > 0) stack.push(i - 1);
+    if (x < w - 1) stack.push(i + 1);
+    if (y > 0) stack.push(i - w);
+    if (y < h - 1) stack.push(i + w);
+  }
+  const maskData = tctx.createImageData(w, h);
+  for (let i = 0; i < inside.length; i++) if (inside[i]) maskData.data[i * 4 + 3] = 255;
+  const mask = document.createElement('canvas');
+  mask.width = w; mask.height = h;
+  mask.getContext('2d').putImageData(maskData, 0, 0);
+
+  return cc.frames[key] = { img, mask, box: { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 }, overlay: null, overlayKey: '' };
+}
+
+// Kantfärgen som tonar in från bildrutans kant. Beror bara på ram, bredd och färg.
+function ccOverlay(frame, edge, color) {
+  const key = `${edge}|${color}`;
+  if (frame.overlayKey === key) return frame.overlay;
+  const { width: w, height: h } = frame.mask;
+  const c = frame.overlay || document.createElement('canvas');
+  c.width = w; c.height = h;
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, w, h);
+  if (edge > 0) {
+    ctx.fillStyle = color;
+    ctx.fillRect(0, 0, w, h);
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.filter = `blur(${edge}px)`;
+    ctx.drawImage(frame.mask, 0, 0);
+    ctx.filter = 'none';
+    ctx.globalCompositeOperation = 'source-over';
+  }
+  frame.overlay = c;
+  frame.overlayKey = key;
+  return c;
+}
+
+function ccCoverScale(frame) {
+  return Math.max(frame.box.w / cc.art.naturalWidth, frame.box.h / cc.art.naturalHeight);
+}
+
+function ccDefaultView(frame) {
+  return { cx: frame.box.x + frame.box.w / 2, cy: frame.box.y + frame.box.h / 2, zoom: 1 };
+}
+
+async function ccRender(kind) {
+  const canvas = document.getElementById(`cc-canvas-${kind}`);
+  let frame;
+  try { frame = await ccFrame(cc.cls, kind); }
+  catch (err) { showToast(err.message); return; }
+  const { naturalWidth: w, naturalHeight: h } = frame.img;
+  if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, w, h);
+
+  if (cc.art) {
+    const v = cc.views[kind] || (cc.views[kind] = ccDefaultView(frame));
+    const s = ccCoverScale(frame) * v.zoom;
+    const aw = cc.art.naturalWidth * s, ah = cc.art.naturalHeight * s;
+    ctx.drawImage(cc.art, v.cx - aw / 2, v.cy - ah / 2, aw, ah);
+    ctx.globalCompositeOperation = 'destination-in';
+    ctx.drawImage(frame.mask, 0, 0);
+    ctx.globalCompositeOperation = 'source-atop';
+    ctx.drawImage(ccOverlay(frame, +document.getElementById('cc-edge').value,
+                            document.getElementById('cc-edge-color').value), 0, 0);
+    ctx.globalCompositeOperation = 'source-over';
+  }
+  ctx.drawImage(frame.img, 0, 0);
+}
+
+function ccRenderAll() {
+  CC_KINDS.forEach(ccRender);
+}
+
+function ccSyncZoomSlider() {
+  const v = cc.views[cc.active];
+  const zoom = Math.round((v ? v.zoom : 1) * 100);
+  document.getElementById('cc-zoom').value = zoom;
+  document.getElementById('cc-zoom-val').textContent = `${zoom} %`;
+}
+
+function ccSetActive(kind) {
+  cc.active = kind;
+  document.querySelectorAll('.cc-preview').forEach(f => f.classList.toggle('active', f.dataset.kind === kind));
+  ccSyncZoomSlider();
+}
+
+async function ccSetArt(file) {
+  if (!file || !file.type.startsWith('image/')) return;
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await ccLoadImage(url);
+    if (cc.art) URL.revokeObjectURL(cc.art.src);
+    cc.art = img;
+    cc.artName = file.name.replace(/\.[^.]+$/, '');
+    cc.views = { hand: null, ute: null };
+    document.getElementById('cc-art-filename').textContent = file.name;
+    ccSyncZoomSlider();
+    ccRenderAll();
+  } catch (err) {
+    URL.revokeObjectURL(url);
+    showToast('Kunde inte läsa bilden.');
+  }
+}
+
+(function initCreateCard() {
+  const pills = document.getElementById('cc-class-pills');
+  if (!pills) return;
+
+  pills.innerHTML = CC_CLASSES.map(c =>
+    `<button type="button" class="cc-pill${c.key === cc.cls ? ' active' : ''}" data-cls="${c.key}">${c.label}</button>`
+  ).join('');
+  pills.addEventListener('click', e => {
+    const btn = e.target.closest('.cc-pill');
+    if (!btn) return;
+    cc.cls = btn.dataset.cls;
+    pills.querySelectorAll('.cc-pill').forEach(b => b.classList.toggle('active', b === btn));
+    ccRenderAll();
+  });
+
+  document.getElementById('cc-art-input').addEventListener('change', e => ccSetArt(e.target.files[0]));
+
+  document.getElementById('cc-zoom').addEventListener('input', e => {
+    const v = cc.views[cc.active];
+    if (!v) return;
+    v.zoom = e.target.value / 100;
+    document.getElementById('cc-zoom-val').textContent = `${e.target.value} %`;
+    ccRender(cc.active);
+  });
+  document.getElementById('cc-edge').addEventListener('input', ccRenderAll);
+  document.getElementById('cc-edge-color').addEventListener('input', ccRenderAll);
+
+  document.getElementById('cc-reset').addEventListener('click', () => {
+    cc.views = { hand: null, ute: null };
+    ccSyncZoomSlider();
+    ccRenderAll();
+  });
+
+  document.getElementById('cc-download').addEventListener('click', () => {
+    if (!cc.art) { showToast('Välj en bild först.'); return; }
+    const base = (cc.artName || 'kort').replace(/\s+/g, '_').toLowerCase();
+    CC_KINDS.forEach(kind => {
+      document.getElementById(`cc-canvas-${kind}`).toBlob(blob => {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `${base}_${cc.cls}_${kind}.png`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      }, 'image/png');
+    });
+  });
+
+  document.querySelectorAll('.cc-preview').forEach(fig => {
+    const kind = fig.dataset.kind;
+    const canvas = fig.querySelector('canvas');
+    // Skärmpixlar -> ramens pixlar
+    const toFrame = (clientX, clientY) => {
+      const r = canvas.getBoundingClientRect();
+      return { x: (clientX - r.left) * canvas.width / r.width, y: (clientY - r.top) * canvas.height / r.height };
+    };
+    let drag = null;
+
+    canvas.addEventListener('pointerdown', e => {
+      ccSetActive(kind);
+      const v = cc.views[kind];
+      if (!v) return;
+      canvas.setPointerCapture(e.pointerId);
+      const p = toFrame(e.clientX, e.clientY);
+      drag = { px: p.x, py: p.y, cx: v.cx, cy: v.cy };
+    });
+    canvas.addEventListener('pointermove', e => {
+      if (!drag) return;
+      const p = toFrame(e.clientX, e.clientY);
+      const v = cc.views[kind];
+      v.cx = drag.cx + p.x - drag.px;
+      v.cy = drag.cy + p.y - drag.py;
+      ccRender(kind);
+    });
+    const endDrag = () => { drag = null; };
+    canvas.addEventListener('pointerup', endDrag);
+    canvas.addEventListener('pointercancel', endDrag);
+
+    canvas.addEventListener('wheel', e => {
+      const v = cc.views[kind];
+      if (!v) return;
+      e.preventDefault();
+      ccSetActive(kind);
+      const zoom = Math.min(4, Math.max(0.3, v.zoom * Math.exp(-e.deltaY * 0.0015)));
+      // Zooma runt muspekaren
+      const p = toFrame(e.clientX, e.clientY);
+      const k = zoom / v.zoom;
+      v.cx = p.x - (p.x - v.cx) * k;
+      v.cy = p.y - (p.y - v.cy) * k;
+      v.zoom = zoom;
+      ccSyncZoomSlider();
+      ccRender(kind);
+    }, { passive: false });
+
+    fig.addEventListener('dragover', e => { e.preventDefault(); fig.classList.add('drop'); });
+    fig.addEventListener('dragleave', () => fig.classList.remove('drop'));
+    fig.addEventListener('drop', e => {
+      e.preventDefault();
+      fig.classList.remove('drop');
+      ccSetArt(e.dataTransfer.files[0]);
+    });
+  });
+
+  ccSetActive('hand');
+})();

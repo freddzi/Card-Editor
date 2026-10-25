@@ -46,6 +46,7 @@
       <div class="nav-dropdown-menu">
         <button data-page="page-add">Lägg till kort</button>
         <button data-page="page-add-skill">Lägg till skill</button>
+        <button data-page="page-create-card">Skapa kort</button>
       </div>
     </div>
     <div class="nav-dropdown">
@@ -248,6 +249,44 @@
     <div class="form-section" style="margin-top:28px">
       <legend>Uppladdade zippar</legend>
       <div id="zip-list" style="margin-top:10px"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ── SKAPA KORT ── -->
+<section id="page-create-card" class="page">
+  <div class="cc-wrap">
+    <h2>Skapa kort</h2>
+    <div class="form-section cc-controls">
+      <div class="cc-row">
+        <label>Klass</label>
+        <div class="cc-pills" id="cc-class-pills"></div>
+      </div>
+      <div class="cc-row">
+        <label>Bild</label>
+        <div class="btn-upload" onclick="document.getElementById('cc-art-input').click()">Välj fil…</div>
+        <input type="file" id="cc-art-input" accept="image/*" style="display:none">
+        <span id="cc-art-filename" class="cc-hint">eller släpp en bild på korten</span>
+      </div>
+      <div class="cc-row">
+        <label for="cc-zoom">Zoom</label>
+        <input type="range" id="cc-zoom" min="30" max="400" value="100">
+        <span id="cc-zoom-val" class="cc-hint">100 %</span>
+      </div>
+      <div class="cc-row">
+        <label for="cc-edge">Mjuk kant</label>
+        <input type="range" id="cc-edge" min="0" max="80" value="25">
+        <input type="color" id="cc-edge-color" value="#000000" title="Färgen bilden tonar mot">
+      </div>
+      <div class="cc-row cc-actions">
+        <button type="button" class="btn btn-secondary" id="cc-reset">Centrera bild</button>
+        <button type="button" class="btn btn-primary" id="cc-download">Ladda ner</button>
+      </div>
+      <p class="cc-hint">Dra i bilden för att flytta den och skrolla för att zooma. Zoomreglaget styr kortet du senast klickade på.</p>
+    </div>
+    <div class="cc-previews">
+      <figure class="cc-preview" data-kind="hand"><canvas id="cc-canvas-hand"></canvas><figcaption>Hand</figcaption></figure>
+      <figure class="cc-preview" data-kind="ute"><canvas id="cc-canvas-ute"></canvas><figcaption>Ute</figcaption></figure>
     </div>
   </div>
 </section>
@@ -640,6 +679,10 @@
           <div class="field">
             <label>Armor</label>
             <input name="armor" type="number" min="1" value="1">
+          </div>
+          <div class="field">
+            <label>Attack</label>
+            <input name="s_attack" type="number" min="0" value="0" title="Skada per skott för RANGE-structures (t.ex. Pirate turret). 0 = ingen attack.">
           </div>
           <div class="field">
             <label>Subtype</label>
