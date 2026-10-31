@@ -4538,9 +4538,9 @@ function ccOverlay(frame, edge, color) {
 const CC_PART_POS = {
   plate:        { x: 26,  y: 973, w: 364 },   // vänster: attack
   potion:       { x: 732, y: 977, w: 364 },   // höger: liv
-  shield:       { x: 777, y: 968, w: 274 },   // höger: rustning (structure)
+  shield:       { x: 774, y: 920, w: 339 },   // höger: rustning (structure), som på 21.png
   banner_long:  { x: 420, y: 985, w: 285 },
-  banner_short: { x: 460, y: 985, w: 204 },
+  banner_short: { x: 420, y: 985, w: 285 },
   weapon_spear: { x: 14,  y: 745, w: 140 },   // ovanför attackplattan
   weapon_mouth: { x: 18,  y: 845, w: 210 },
 };
@@ -4557,17 +4557,16 @@ function ccPartImg(name) {
 // så vapnet hamnar under attackplattan.
 function ccParts() {
   const type = typeSelect.value;
-  const hasAttack = type === 'minion'
-    || (type === 'structure' && +form.querySelector('[name="s_attack"]').value > 0);
+  const hasPlate = type === 'minion' || type === 'structure';
   let weapon = document.getElementById('cc-weapon').value;
-  if (weapon === 'auto') weapon = hasAttack ? 'weapon_spear' : 'none';
+  if (weapon === 'auto') weapon = hasPlate ? 'weapon_spear' : 'none';
   let banner = document.getElementById('cc-banner').value;
   if (banner === 'auto') banner = type === 'structure' ? 'banner_short' : 'banner_long';
 
   const parts = [];
   if (weapon !== 'none') parts.push(weapon);
   if (banner !== 'none') parts.push(banner);
-  if (hasAttack) parts.push('plate');
+  if (hasPlate) parts.push('plate');
   if (type === 'minion') parts.push('potion');
   if (type === 'structure') parts.push('shield');
   return parts;
@@ -4741,7 +4740,6 @@ async function ccExportFiles(id, type) {
   };
   form.querySelector('[name="card_class"]').addEventListener('change', onFormChange);
   typeSelect.addEventListener('change', onFormChange);
-  form.querySelector('[name="s_attack"]').addEventListener('input', onFormChange);
   [['cc-weapon', CC_WEAPONS, 'Inget'], ['cc-banner', CC_BANNERS, 'Ingen']].forEach(([id, items, none]) => {
     const sel = document.getElementById(id);
     sel.innerHTML = '<option value="auto">Efter korttyp</option>'
