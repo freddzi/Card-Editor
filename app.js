@@ -4533,16 +4533,24 @@ function ccOverlay(frame, edge, color) {
   return c;
 }
 
-// Delarna som läggs på den nakna ute-ramen. Lägen i pixlar på en 1122 bred ram
-// (samma lägen som på den färdiga neutralute), w = bredden delen ritas i.
+// Delarna som läggs på ramarna. Lägen i pixlar på en ram som är `base` bred,
+// w = bredden delen ritas i. Ute: uppmätt på 21.png. Hand: mindre, i nederhörnen.
 const CC_PART_POS = {
-  plate:        { x: 26,  y: 973, w: 364 },   // vänster: attack
-  potion:       { x: 732, y: 977, w: 364 },   // höger: liv
-  shield:       { x: 774, y: 920, w: 339 },   // höger: rustning (structure), som på 21.png
-  banner_long:  { x: 420, y: 985, w: 285 },
-  banner_short: { x: 420, y: 985, w: 285 },
-  weapon_spear: { x: 14,  y: 745, w: 140 },   // ovanför attackplattan
-  weapon_mouth: { x: 18,  y: 845, w: 210 },
+  ute: { base: 1122,
+    plate:        { x: 24,  y: 995, w: 369 },   // vänster: attack
+    potion:       { x: 729, y: 999, w: 369 },   // höger: liv
+    shield:       { x: 774, y: 920, w: 339 },   // höger: rustning (structure)
+    banner_long:  { x: 420, y: 985, w: 285 },
+    banner_short: { x: 420, y: 985, w: 285 },
+    weapon_spear: { x: 12,  y: 767, w: 140 },   // ovanför attackplattan
+    weapon_mouth: { x: 18,  y: 867, w: 210 },
+  },
+  hand: { base: 1024,
+    plate:        { x: 25,  y: 1300, w: 210 },
+    potion:       { x: 789, y: 1300, w: 210 },
+    weapon_spear: { x: 18,  y: 1170, w: 80 },
+    weapon_mouth: { x: 22,  y: 1227, w: 120 },
+  },
 };
 // Valen i "Skapa kort". En ny bild i frames/parts/ blir ett nytt val här + ett läge ovan.
 const CC_WEAPONS = [['weapon_spear', 'Spjutspets'], ['weapon_mouth', 'Mun']];
@@ -4554,9 +4562,10 @@ function ccPartImg(name) {
 }
 
 // Vilka delar kortet ska ha, utifrån korttypen i formuläret. Ritas i ordning,
-// så vapnet hamnar under attackplattan.
-function ccParts() {
+// så vapnet hamnar under attackplattan. Hand-korten har bara minionens platta och kula.
+function ccParts(kind) {
   const type = typeSelect.value;
+  if (kind === 'hand' && type !== 'minion') return [];
   const hasPlate = type === 'minion' || type === 'structure';
   let weapon = document.getElementById('cc-weapon').value;
   if (weapon === 'auto') weapon = hasPlate ? 'weapon_spear' : 'none';
@@ -4565,23 +4574,24 @@ function ccParts() {
 
   const parts = [];
   if (weapon !== 'none') parts.push(weapon);
-  if (banner !== 'none') parts.push(banner);
+  if (banner !== 'none' && kind === 'ute') parts.push(banner);
   if (hasPlate) parts.push('plate');
   if (type === 'minion') parts.push('potion');
   if (type === 'structure') parts.push('shield');
   return parts;
 }
 
-async function ccLoadParts() {
-  const names = ccParts();
+async function ccLoadParts(kind) {
+  const names = ccParts(kind);
   const imgs = await Promise.all(names.map(ccPartImg));
   return names.map((name, i) => ({ name, img: imgs[i] }));
 }
 
-function ccDrawParts(ctx, w, parts) {
-  const scale = w / 1122;
+function ccDrawParts(ctx, kind, w, parts) {
+  const pos = CC_PART_POS[kind];
+  const scale = w / pos.base;
   parts.forEach(({ name, img }) => {
-    const { x, y, w: pw } = CC_PART_POS[name];
+    const { x, y, w: pw } = pos[name];
     const dw = pw * scale, dh = img.naturalHeight * dw / img.naturalWidth;
     ctx.drawImage(img, x * scale, y * scale, dw, dh);
   });
@@ -4606,7 +4616,7 @@ async function ccRender(kind) {
   let parts = [];
   try {
     frame = await ccFrame(cc.cls, kind);
-    if (kind === 'ute') parts = await ccLoadParts();
+    parts = await ccLoadParts(kind);
   } catch (err) { showToast(err.message); return; }
   const { naturalWidth: w, naturalHeight: h } = frame.img;
   if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
@@ -4627,7 +4637,7 @@ async function ccRender(kind) {
     ctx.globalCompositeOperation = 'source-over';
   }
   ctx.drawImage(frame.img, 0, 0);
-  ccDrawParts(ctx, w, parts);
+  ccDrawParts(ctx, kind, w, parts);
 }
 
 function ccRenderAll() {
@@ -4745,7 +4755,7 @@ async function ccExportFiles(id, type) {
     sel.innerHTML = '<option value="auto">Efter korttyp</option>'
       + items.map(([v, t]) => `<option value="${v}">${t}</option>`).join('')
       + `<option value="none">${none}</option>`;
-    sel.addEventListener('change', () => ccRender('ute'));
+    sel.addEventListener('change', ccRenderAll);
   });
 
   document.getElementById('cc-art-input').addEventListener('change', e => ccSetArt(e.target.files[0]));
