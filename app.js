@@ -2522,7 +2522,7 @@ async function seedDocsIfEmpty() {
     { category:'keyword', title:'INSTANT', body:'Spellen med INSTANT kan spelas utanför din tur, som en reaktion.', tags:'timing,spell' },
     { category:'keyword', title:'STUN', body:'Minionen är bedövad och kan varken attackera eller blockera under sin bedövade tur.\nSTUN löser sig i slutet av ägarens tur.', tags:'combat,restriction' },
     { category:'keyword', title:'SCARE', body:'Minionen skrämmer fiender vid kontakt — det skrämda målet tvingas till BACK_LINE och kan inte attackera den turen.\nSCARE triggar vanligen on_attack eller passivt (first_attacker).', tags:'combat,control' },
-    { category:'keyword', title:'GUARDIAN', body:'Minionen kan blockera attacker riktade mot din core även från BACK_LINE.\nFiender måste slå igenom GUARDIAN-minionen för att nå din core.', tags:'defense,combat' },
+    { category:'keyword', title:'GUARDIAN', body:'Minionen vaktar en annan egen minion. När fienden anfaller den med en minion eller kastar en spell på den, hoppar GUARDIAN emellan och tar träffen själv.\nVakten hoppar inte om den är frusen, stunnad eller inte får blocka, eller om spellen inte kan träffa den.', tags:'defense,combat' },
     { category:'keyword', title:'STEALTH', body:'Minionen kan inte väljas som mål av motspelaren tills den attackerar eller påverkar en fiende.\nSTEALTH bryts när minionen delar ut skada.', tags:'evasion,offense' },
     { category:'keyword', title:'CONSUME', body:'När minionen dödar en fiendeminion äter den upp den och får dess attack- och/eller HP-värden.\neffect_arg styr vilka stats som absorberas.', tags:'combat,sustain', in_godot:true },
     { category:'keyword', title:'LURKER', body:'Minionen kan inte väljas som mål av motståndarens spell-effekter.\nKan heller inte attackeras direkt av fiendens minions.\nStealth-liknande skydd men utan att brytas vid attack.', tags:'evasion,defense', in_godot:true },
@@ -4476,7 +4476,8 @@ function ccLoadImage(src) {
 async function ccFrame(cls, kind) {
   const key = `${cls}_${kind}`;
   if (cc.frames[key]) return cc.frames[key];
-  const img = await ccLoadImage(`frames/${key}.png`);
+  // Ute-korten byggs av en naken ram plus delar (se ccParts)
+  const img = await ccLoadImage(kind === 'ute' ? `frames/bare/${key}.png` : `frames/${key}.png`);
   const w = img.naturalWidth, h = img.naturalHeight;
   const tmp = document.createElement('canvas');
   tmp.width = w; tmp.height = h;
@@ -4532,6 +4533,61 @@ function ccOverlay(frame, edge, color) {
   return c;
 }
 
+// Delarna som läggs på den nakna ute-ramen. Lägen i pixlar på en 1122 bred ram
+// (samma lägen som på den färdiga neutralute), w = bredden delen ritas i.
+const CC_PART_POS = {
+  plate:        { x: 26,  y: 973, w: 364 },   // vänster: attack
+  potion:       { x: 732, y: 977, w: 364 },   // höger: liv
+  shield:       { x: 777, y: 968, w: 274 },   // höger: rustning (structure)
+  banner_long:  { x: 420, y: 985, w: 285 },
+  banner_short: { x: 460, y: 985, w: 204 },
+  weapon_spear: { x: 14,  y: 745, w: 140 },   // ovanför attackplattan
+  weapon_mouth: { x: 18,  y: 845, w: 210 },
+};
+// Valen i "Skapa kort". En ny bild i frames/parts/ blir ett nytt val här + ett läge ovan.
+const CC_WEAPONS = [['weapon_spear', 'Spjutspets'], ['weapon_mouth', 'Mun']];
+const CC_BANNERS = [['banner_long', 'Lång flagga'], ['banner_short', 'Kort flagga']];
+const ccPartImgs = {};
+
+function ccPartImg(name) {
+  return ccPartImgs[name] || (ccPartImgs[name] = ccLoadImage(`frames/parts/${name}.png`));
+}
+
+// Vilka delar kortet ska ha, utifrån korttypen i formuläret. Ritas i ordning,
+// så vapnet hamnar under attackplattan.
+function ccParts() {
+  const type = typeSelect.value;
+  const hasAttack = type === 'minion'
+    || (type === 'structure' && +form.querySelector('[name="s_attack"]').value > 0);
+  let weapon = document.getElementById('cc-weapon').value;
+  if (weapon === 'auto') weapon = hasAttack ? 'weapon_spear' : 'none';
+  let banner = document.getElementById('cc-banner').value;
+  if (banner === 'auto') banner = type === 'structure' ? 'banner_short' : 'banner_long';
+
+  const parts = [];
+  if (weapon !== 'none') parts.push(weapon);
+  if (banner !== 'none') parts.push(banner);
+  if (hasAttack) parts.push('plate');
+  if (type === 'minion') parts.push('potion');
+  if (type === 'structure') parts.push('shield');
+  return parts;
+}
+
+async function ccLoadParts() {
+  const names = ccParts();
+  const imgs = await Promise.all(names.map(ccPartImg));
+  return names.map((name, i) => ({ name, img: imgs[i] }));
+}
+
+function ccDrawParts(ctx, w, parts) {
+  const scale = w / 1122;
+  parts.forEach(({ name, img }) => {
+    const { x, y, w: pw } = CC_PART_POS[name];
+    const dw = pw * scale, dh = img.naturalHeight * dw / img.naturalWidth;
+    ctx.drawImage(img, x * scale, y * scale, dw, dh);
+  });
+}
+
 function ccCoverScale(frame) {
   return Math.max(frame.box.w / cc.art.naturalWidth, frame.box.h / cc.art.naturalHeight);
 }
@@ -4548,8 +4604,11 @@ function ccCenter(frame, v) {
 async function ccRender(kind) {
   const canvas = document.getElementById(`cc-canvas-${kind}`);
   let frame;
-  try { frame = await ccFrame(cc.cls, kind); }
-  catch (err) { showToast(err.message); return; }
+  let parts = [];
+  try {
+    frame = await ccFrame(cc.cls, kind);
+    if (kind === 'ute') parts = await ccLoadParts();
+  } catch (err) { showToast(err.message); return; }
   const { naturalWidth: w, naturalHeight: h } = frame.img;
   if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
   const ctx = canvas.getContext('2d');
@@ -4569,6 +4628,7 @@ async function ccRender(kind) {
     ctx.globalCompositeOperation = 'source-over';
   }
   ctx.drawImage(frame.img, 0, 0);
+  ccDrawParts(ctx, w, parts);
 }
 
 function ccRenderAll() {
@@ -4681,6 +4741,14 @@ async function ccExportFiles(id, type) {
   };
   form.querySelector('[name="card_class"]').addEventListener('change', onFormChange);
   typeSelect.addEventListener('change', onFormChange);
+  form.querySelector('[name="s_attack"]').addEventListener('input', onFormChange);
+  [['cc-weapon', CC_WEAPONS, 'Inget'], ['cc-banner', CC_BANNERS, 'Ingen']].forEach(([id, items, none]) => {
+    const sel = document.getElementById(id);
+    sel.innerHTML = '<option value="auto">Efter korttyp</option>'
+      + items.map(([v, t]) => `<option value="${v}">${t}</option>`).join('')
+      + `<option value="none">${none}</option>`;
+    sel.addEventListener('change', () => ccRender('ute'));
+  });
 
   document.getElementById('cc-art-input').addEventListener('change', e => ccSetArt(e.target.files[0]));
 
@@ -4807,8 +4875,8 @@ const TARGET_PRESETS = [
     ['enemy_hero|auto',    'Motståndaren (hjälten)'],
   ]],
 ];
-const SOURCE_PRESETS = ['Källan', [
-  ['self|auto',          'Den här minionen / structuren'],
+const sourcePresets = context => ['Källan', [
+  ['self|auto',          context === 'structure' ? 'Den här structuren' : 'Den här minionen'],
   ['damage_source|auto', 'Den som gjorde skadan'],
 ]];
 // Effecter där "målet" egentligen betyder hur kortet väljs
@@ -4866,7 +4934,7 @@ function simpleSync(setup) {
   if (valueLabel) valueLabel.textContent = meta ? (meta[1] ?? 'Värde (används inte)') : 'Värde';
 
   const groups = EFFECT_PRESETS[eff.value]
-    || (setup.context === 'spell' ? TARGET_PRESETS : [...TARGET_PRESETS, SOURCE_PRESETS]);
+    || (setup.context === 'spell' ? TARGET_PRESETS : [...TARGET_PRESETS, sourcePresets(setup.context)]);
   preset.innerHTML = '<option value="">— välj mål —</option>'
     + groups.map(([label, items]) =>
         `<optgroup label="${label}">${items.map(([v, t]) => `<option value="${v}">${t}</option>`).join('')}</optgroup>`).join('')

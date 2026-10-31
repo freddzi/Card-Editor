@@ -22,7 +22,7 @@ new_docs = [
     {"category":"keyword","title":"SCARE","tags":"combat,control",
      "body":"Minionen skrämmer fiender vid kontakt — det skrämda målet tvingas till BACK_LINE och kan inte attackera den turen.\nSCARE triggar vanligen on_attack eller passivt (first_attacker)."},
     {"category":"keyword","title":"GUARDIAN","tags":"defense,combat",
-     "body":"Minionen kan blockera attacker riktade mot din core även från BACK_LINE.\nFiender måste slå igenom GUARDIAN-minionen för att nå din core."},
+     "body":"Minionen vaktar en annan egen minion. När fienden anfaller den med en minion eller kastar en spell på den, hoppar GUARDIAN emellan och tar träffen själv.\nVakten hoppar inte om den är frusen, stunnad eller inte får blocka, eller om spellen inte kan träffa den."},
     {"category":"keyword","title":"STEALTH","tags":"evasion,offense",
      "body":"Minionen kan inte väljas som mål av motspelaren tills den attackerar eller påverkar en fiende.\nSTEALTH bryts när minionen delar ut skada."},
     {"category":"keyword","title":"CANT_BLOCK","tags":"combat,restriction",
