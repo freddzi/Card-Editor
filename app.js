@@ -4548,6 +4548,7 @@ const CC_PART_POS = {
   hand: { base: 1024,
     plate:        { x: 25,  y: 1300, w: 210 },
     potion:       { x: 789, y: 1300, w: 210 },
+    shield:       { x: 815, y: 1240, w: 193 },
     weapon_spear: { x: 18,  y: 1170, w: 80 },
     weapon_mouth: { x: 22,  y: 1227, w: 120 },
   },
@@ -4562,13 +4563,13 @@ function ccPartImg(name) {
 }
 
 // Vilka delar kortet ska ha, utifrån korttypen i formuläret. Ritas i ordning,
-// så vapnet hamnar under attackplattan. Hand-korten har bara minionens platta och kula.
+// så vapnet hamnar under attackplattan. Hand-korten har platta och kula/sköld men ingen flagga.
 function ccParts(kind) {
   const type = typeSelect.value;
-  if (kind === 'hand' && type !== 'minion') return [];
+  if (kind === 'hand' && type === 'spell') return [];
   const hasPlate = type === 'minion' || type === 'structure';
   let weapon = document.getElementById('cc-weapon').value;
-  if (weapon === 'auto') weapon = hasPlate ? 'weapon_spear' : 'none';
+  if (weapon === 'auto') weapon = type === 'minion' ? 'weapon_spear' : 'none';   // structures har inget vapen
   let banner = document.getElementById('cc-banner').value;
   if (banner === 'auto') banner = type === 'structure' ? 'banner_short' : 'banner_long';
 
