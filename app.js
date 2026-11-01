@@ -4542,6 +4542,7 @@ const CC_PART_POS = {
     shield:       { x: 774, y: 920, w: 339 },   // höger: rustning (structure)
     banner_long:  { x: 420, y: 985, w: 285 },
     banner_short: { x: 420, y: 985, w: 285 },
+    flag:         { cx: 562, y: 988 },   // klassflaggan, storlek per klass i CC_FLAG_SIZE
     weapon_spear: { x: 12,  y: 767, w: 140 },   // ovanför attackplattan
     weapon_mouth: { x: 18,  y: 867, w: 210 },
   },
@@ -4554,11 +4555,15 @@ const CC_PART_POS = {
   },
 };
 // Valen i "Skapa kort". En ny bild i frames/parts/ blir ett nytt val här + ett läge ovan.
+// Klassflaggornas storlek på ute (1122-bas), uppmätt mot de gamla färdiga ute-ramarnas flaggor.
+// w ELLER h; den andra följer bildens proportioner. Samma som FLAGS i flag_ute.py.
+const CC_FLAG_SIZE = { dark: { h: 385 }, forest: { h: 385 }, neutral: { h: 380 }, the_blue: { h: 385 }, wasteland: { w: 385 } };
 const CC_WEAPONS = [['weapon_spear', 'Spjutspets'], ['weapon_mouth', 'Mun']];
-const CC_BANNERS = [['banner_long', 'Lång flagga'], ['banner_short', 'Kort flagga']];
+const CC_BANNERS = [['flag', 'Klassflagga'], ['banner_long', 'Lång flagga'], ['banner_short', 'Kort flagga']];
 const ccPartImgs = {};
 
 function ccPartImg(name) {
+  if (name === 'flag') name = `flag_${cc.cls}`;
   return ccPartImgs[name] || (ccPartImgs[name] = ccLoadImage(`frames/parts/${name}.png`));
 }
 
@@ -4571,7 +4576,7 @@ function ccParts(kind) {
   let weapon = document.getElementById('cc-weapon').value;
   if (weapon === 'auto') weapon = type === 'minion' ? 'weapon_spear' : 'none';   // structures har inget vapen
   let banner = document.getElementById('cc-banner').value;
-  if (banner === 'auto') banner = type === 'structure' ? 'banner_short' : 'banner_long';
+  if (banner === 'auto') banner = 'flag';   // klassens egen flagga på både minions och structures
 
   const parts = [];
   if (weapon !== 'none') parts.push(weapon);
@@ -4592,6 +4597,15 @@ function ccDrawParts(ctx, kind, w, parts) {
   const pos = CC_PART_POS[kind];
   const scale = w / pos.base;
   parts.forEach(({ name, img }) => {
+    if (!pos[name]) return;
+    if (name === 'flag') {   // centrerad runt cx, storleken efter klassen
+      const { cx, y } = pos.flag;
+      const size = CC_FLAG_SIZE[cc.cls] || { w: 285 };
+      const s = (size.w ? size.w / img.naturalWidth : size.h / img.naturalHeight) * scale;
+      const dw = img.naturalWidth * s;
+      ctx.drawImage(img, cx * scale - dw / 2, y * scale, dw, img.naturalHeight * s);
+      return;
+    }
     const { x, y, w: pw } = pos[name];
     const dw = pw * scale, dh = img.naturalHeight * dw / img.naturalWidth;
     ctx.drawImage(img, x * scale, y * scale, dw, dh);
@@ -4751,9 +4765,10 @@ async function ccExportFiles(id, type) {
   };
   form.querySelector('[name="card_class"]').addEventListener('change', onFormChange);
   typeSelect.addEventListener('change', onFormChange);
-  [['cc-weapon', CC_WEAPONS, 'Inget'], ['cc-banner', CC_BANNERS, 'Ingen']].forEach(([id, items, none]) => {
+  // Flaggan har klassflaggan som förval (inget "Efter korttyp"); vapnet väljs fortfarande efter korttyp
+  [['cc-weapon', CC_WEAPONS, 'Inget', true], ['cc-banner', CC_BANNERS, 'Ingen', false]].forEach(([id, items, none, auto]) => {
     const sel = document.getElementById(id);
-    sel.innerHTML = '<option value="auto">Efter korttyp</option>'
+    sel.innerHTML = (auto ? '<option value="auto">Efter korttyp</option>' : '')
       + items.map(([v, t]) => `<option value="${v}">${t}</option>`).join('')
       + `<option value="none">${none}</option>`;
     sel.addEventListener('change', ccRenderAll);
