@@ -4556,8 +4556,10 @@ const CC_PART_POS = {
 };
 // Valen i "Skapa kort". En ny bild i frames/parts/ blir ett nytt val här + ett läge ovan.
 // Klassflaggornas storlek på ute (1122-bas), uppmätt mot de gamla färdiga ute-ramarnas flaggor.
-// w ELLER h; den andra följer bildens proportioner. Samma som FLAGS i flag_ute.py.
-const CC_FLAG_SIZE = { dark: { h: 385 }, forest: { h: 385 }, neutral: { h: 380 }, the_blue: { h: 385 }, wasteland: { w: 385 } };
+// Alla lika breda som Wasteland. Både w och h = sträcks till den storleken; bara den ena = den andra
+// följer bildens proportioner. Samma som FLAGS i flag_ute.py.
+const CC_FLAG_SIZE = { dark: { w: 385, h: 385 }, forest: { w: 385, h: 385 }, neutral: { w: 385, h: 380 },
+                       the_blue: { w: 385, h: 385 }, wasteland: { w: 385 } };
 const CC_WEAPONS = [['weapon_spear', 'Spjutspets'], ['weapon_mouth', 'Mun']];
 const CC_BANNERS = [['flag', 'Klassflagga'], ['banner_long', 'Lång flagga'], ['banner_short', 'Kort flagga']];
 const ccPartImgs = {};
@@ -4601,9 +4603,9 @@ function ccDrawParts(ctx, kind, w, parts) {
     if (name === 'flag') {   // centrerad runt cx, storleken efter klassen
       const { cx, y } = pos.flag;
       const size = CC_FLAG_SIZE[cc.cls] || { w: 285 };
-      const s = (size.w ? size.w / img.naturalWidth : size.h / img.naturalHeight) * scale;
-      const dw = img.naturalWidth * s;
-      ctx.drawImage(img, cx * scale - dw / 2, y * scale, dw, img.naturalHeight * s);
+      const dw = (size.w || img.naturalWidth * size.h / img.naturalHeight) * scale;
+      const dh = (size.h || img.naturalHeight * size.w / img.naturalWidth) * scale;
+      ctx.drawImage(img, cx * scale - dw / 2, y * scale, dw, dh);
       return;
     }
     const { x, y, w: pw } = pos[name];
